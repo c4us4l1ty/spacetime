@@ -1,0 +1,20 @@
+[package]
+name = "spacetime-shell"
+description = "Workspace engine: tabs, zygote, warden, network, agent and the `spacetime` CLI/daemon."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "spacetime"
+path = "src/main.rs"
+
+[dependencies]
+spacetime-core.workspace = true
+spacetime-vmm.workspace = true
+spacetime-net.workspace = true
+spacetime-warden.workspace = true
+spacetime-agent.workspace = true

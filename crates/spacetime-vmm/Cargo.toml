@@ -1,0 +1,12 @@
+[package]
+name = "spacetime-vmm"
+description = "Hypervisor abstraction: trait + null/simulated backends, zygote CoW clones, directory CAS backend."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+spacetime-core.workspace = true

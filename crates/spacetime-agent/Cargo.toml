@@ -1,0 +1,12 @@
+[package]
+name = "spacetime-agent"
+description = "Out-of-band autonomous operator: heartbeat loop, Goal DAG, context compactor, steering, simulated vision-action brain."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+spacetime-core.workspace = true

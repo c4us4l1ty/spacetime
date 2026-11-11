@@ -1,0 +1,12 @@
+[package]
+name = "spacetime-warden"
+description = "Focus-aware resource choking and virtio-balloon reclaim."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+spacetime-core.workspace = true
