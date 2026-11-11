@@ -21,7 +21,7 @@ cargo run -p spacetime-shell -- tabs                  # the git-style tab tree
 cargo run -p spacetime-shell -- branch --tab 1        # fork a tab from a CoW snapshot
 cargo run -p spacetime-shell -- store Cargo.toml Cargo.toml   # CAS dedup demo
 cargo run -p spacetime-shell -- versions
-cargo test --workspace                                # 125+ unit tests
+cargo test --workspace                                # 118 unit tests
 ```
 
 `serve` exposes a zero-dependency dark-mode dashboard at `/` and the engine's
