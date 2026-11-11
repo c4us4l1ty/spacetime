@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # The canonical gate: format, lint, test, and prove the demo actually serves.
+  check:
+    name: fmt + clippy + test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        if: matrix.os == 'ubuntu-latest'
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace
+
+  # Builds release binaries and boots the dashboard for a smoke test, so every
+  # push proves `spacetime serve` renders and `/api/state` returns valid JSON.
+  smoke:
+    name: build + serve smoke test
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build release
+        run: cargo build --workspace --release
+      - name: CLI presents itself
+        run: ./target/release/spacetime versions
+      - name: CLI runs a headless session
+        run: ./target/release/spacetime run --ticks 40
+      - name: Dashboard serves valid state
+        run: |
+          ./target/release/spacetime serve --port 7420 &
+          SERVER=$!
+          for i in $(seq 1 40); do
+            if curl -sf http://127.0.0.1:7420/api/state > state.json; then break; fi
+            sleep 0.25
+          done
+          kill $SERVER || true
+          test -s state.json
+          python3 - <<'PY'
+          import json
+          state = json.load(open('state.json'))
+          for key in ('tabs', 'travel', 'net', 'warden', 'agent', 'cursor', 'zygote', 'log'):
+              assert key in state, f'missing {key}'
+          assert state['tabs']['live'] >= 3, state['tabs']
+          print('state ok:', state['tabs']['live'], 'tabs,', len(state['net']['entries']), 'net events')
+          PY
+      - name: Upload state artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: workspace-state
+          path: state.json
+
+  # Guest init must build for the real targets; this is the cross-compile proof.
+  guest:
+    name: guest-init cross-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - name: Build static guest init
+        run: |
+          cargo build --release -p guest-init --target x86_64-unknown-linux-musl
+          cargo build --release -p guest-init --target aarch64-unknown-linux-musl
+      - name: Verify it is static
+        run: |
+          file target/x86_64-unknown-linux-musl/release/guest-init
+          file target/aarch64-unknown-linux-musl/release/guest-init
