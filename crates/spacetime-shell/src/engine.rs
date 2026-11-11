@@ -246,8 +246,8 @@ impl Spacetime {
 
     /// Open a tab: zygote CoW clone + resource policy + network posture.
     pub fn open_tab(&mut self, name: &str, kind: TabKind, trust: Trust) -> u64 {
-        let id = self.tabs.open(name, kind, trust);
-        let tab_id = TabId(id);
+        let tab_id = self.tabs.open(name, kind, trust);
+        let id = tab_id.0;
         let mut config = VmConfig::new(tab_id, name, Self::image_for(kind), Self::net_mode_for(trust));
         config.ram_mb = self
             .tabs

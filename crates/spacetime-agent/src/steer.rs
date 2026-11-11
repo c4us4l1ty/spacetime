@@ -36,11 +36,13 @@ impl Directive {
     /// Classify raw operator text.
     pub fn parse(text: &str, at_ms: u64) -> Directive {
         let trimmed = text.trim();
+        let structural = trimmed.starts_with("--")
+            || (trimmed.contains(':') && trimmed.len() < 40);
         let priority = if trimmed.starts_with("--stop") || trimmed.eq_ignore_ascii_case("stop") {
             Priority::Stop
-        } else if trimmed.starts_with("--skip") {
-            Priority::Constraint
-        } else if trimmed.starts_with("--") || trimmed.contains(':') && trimmed.len() < 40 {
+        } else if structural {
+            // `--skip`, other `--flags`, and short `key:value` directives all
+            // replace the active node's plan rather than annotating it.
             Priority::Constraint
         } else {
             Priority::Advisory

@@ -99,7 +99,10 @@ impl ProposedAction {
 }
 
 /// The only capability the agent engine needs from a model.
-pub trait Brain {
+/// Brains live inside the host engine, which is shared behind `Arc<Mutex<..>>`
+/// across the dashboard's connection threads — so every implementation must be
+/// `Send`. Real brains (HTTP clients, ONNX sessions) are all `Send`.
+pub trait Brain: Send {
     /// Human label shown in the brain-pool UI.
     fn name(&self) -> &'static str;
     /// Propose the next action for this observation.
