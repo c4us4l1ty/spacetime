@@ -3,15 +3,14 @@ name: fmt
 # Applies rustfmt and commits the result, so a machine with no local Rust
 # toolchain can satisfy `cargo fmt --all --check` through CI.
 #
-# GitHub cannot `workflow_dispatch` a workflow that has never run on the default
-# branch, so this also listens for pushes whose commit message contains `[fmt]`.
-# Push any commit with that marker (even an empty one) to request a format:
+# Now that this workflow lives on the default branch (`main`), both
+# `gh workflow run fmt.yml` and the `[fmt]` push marker are available:
 #   git commit --allow-empty -m "style: apply rustfmt [fmt]" && git push
 # The generated `style: cargo fmt` commit carries no marker, so there is no loop.
 on:
   workflow_dispatch:
   push:
-    branches: ['arena/**']
+    branches: ['arena/**', 'main']
 
 permissions:
   contents: write

@@ -8,8 +8,10 @@ lives in [`IMPORTANT.md`](IMPORTANT.md).
 > **Status:** the workspace is a *simulated-but-faithful* engine. Every subsystem
 > below runs today, dependency-free, on any host — including CI runners that are
 > themselves VMs. Real KVM / Hypervisor.framework / WHPX backends, `virtio-fs`,
-> `smoltcp` and ONNX vision are phase 3; the traits and wire formats they will
-> implement already exist.
+> `smoltcp` and ONNX vision are still to be built. **[`plan.md`](plan.md) is the
+> phased build order for coding agents**: it lists the work, the trait seams each
+> real implementation must satisfy, and the CI-as-compiler workflow. The protocols
+> and policies those implementations plug into already exist and are tested.
 
 ## Quick start
 

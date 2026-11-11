@@ -10,7 +10,7 @@ name: diag
 on:
   workflow_dispatch:
   push:
-    branches: ['arena/**']
+    branches: ['arena/**', 'main']
 
 permissions:
   contents: write

@@ -5,7 +5,7 @@
 //! lets the shell, agent, network switch and CI all run end-to-end on machines
 //! without KVM/HAXM/WHPX (including GitHub runners, which are themselves VMs).
 //!
-//! Real backends (planned, see PLAN.md):
+//! Real backends (planned, see plan.md):
 //!
 //! | Backend | Hosts | Engine |
 //! |---------|-------|--------|
@@ -328,7 +328,7 @@ impl SpacetimeVmm for NullBackend {
     }
     fn availability(&self) -> Result<(), VmmError> {
         Err(VmmError::Unavailable(
-            "no hypervisor wired up yet; see PLAN.md phase 3",
+            "no hypervisor wired up yet; see plan.md phase 3",
         ))
     }
     fn boot(&mut self, _config: &VmConfig) -> Result<VmHandle, VmmError> {
