@@ -120,6 +120,10 @@ pub struct TimeTravel {
     pub now_ms: u64,
     /// Guards against capturing when nothing changed.
     last: MemoryImage,
+    /// Whether the golden base image has been installed. Callers must seed
+    /// exactly once per ring; re-seeding on every empty-snapshot tick would
+    /// reset `last` to the live image and make every diff empty forever.
+    seeded: bool,
 }
 
 impl Default for TimeTravel {
@@ -140,6 +144,7 @@ impl TimeTravel {
             next_seq: 1,
             now_ms: 0,
             last: MemoryImage::new(),
+            seeded: false,
         }
     }
 
@@ -148,7 +153,11 @@ impl TimeTravel {
         self.last = image.clone();
         self.base = image;
         self.base_ms = 0;
+        self.seeded = true;
     }
+
+    /// Whether [`TimeTravel::seed`] has been called on this ring.
+    pub fn seeded(&self) -> bool { self.seeded }
 
     /// Capture the current image at time `at_ms`. Returns the new snapshot, or
     /// `None` if nothing changed.

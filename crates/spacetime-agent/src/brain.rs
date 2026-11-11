@@ -172,6 +172,18 @@ impl Brain for SimulatedBrain {
     }
 }
 
+impl Brain for Box<dyn Brain> {
+    fn name(&self) -> &'static str {
+        self.as_ref().name()
+    }
+    fn act(&mut self, observation: &Observation) -> ProposedAction {
+        self.as_mut().act(observation)
+    }
+    fn feedback(&mut self, action: &ProposedAction, outcome: &str) {
+        self.as_mut().feedback(action, outcome)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,14 +285,3 @@ mod tests {
     }
 }
 
-impl Brain for Box<dyn Brain> {
-    fn name(&self) -> &'static str {
-        self.as_ref().name()
-    }
-    fn act(&mut self, observation: &Observation) -> ProposedAction {
-        self.as_mut().act(observation)
-    }
-    fn feedback(&mut self, action: &ProposedAction, outcome: &str) {
-        self.as_mut().feedback(action, outcome)
-    }
-}

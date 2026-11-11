@@ -130,12 +130,22 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Build static guest init
         run: |
-          cargo build --release -p guest-init --target x86_64-unknown-linux-musl
-          cargo build --release -p guest-init --target aarch64-unknown-linux-musl
+          set -o pipefail
+          {
+            cargo build --release -p guest-init --target x86_64-unknown-linux-musl
+            cargo build --release -p guest-init --target aarch64-unknown-linux-musl
+          } 2>&1 | tee guest.txt
       - name: Verify it is static
         run: |
           file target/x86_64-unknown-linux-musl/release/guest-init
           file target/aarch64-unknown-linux-musl/release/guest-init
+      - name: Upload guest diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-guest
+          path: guest.txt
+          if-no-files-found: ignore
 
   # Agents cannot always download artifacts or logs. This job turns the failure
   # logs into a commit comment, which is readable through the REST API:
@@ -166,7 +176,7 @@ jobs:
           {
             echo "### CI diagnostics for ${SHA:0:7}"
             echo
-            for f in clippy.txt tests.txt build.txt; do
+            for f in clippy.txt tests.txt build.txt guest.txt; do
               [ -f "$f" ] || continue
               echo "<details><summary>$f</summary>"
               echo

@@ -130,6 +130,21 @@ impl<B: ObjectBackend> CasStore<B> {
         }
     }
 
+    /// Drop all references to an object without freeing its bytes yet.
+    ///
+    /// Models a closed tab whose objects are retained for a grace period
+    /// (undo-close). The object stays in the store until [`CasStore::sweep`]
+    /// reclaims it. Returns `false` for an unknown hash.
+    pub fn detach(&mut self, hash: Hash) -> bool {
+        match self.refs.get_mut(&hash) {
+            Some(count) => {
+                *count = 0;
+                true
+            }
+            None => false,
+        }
+    }
+
     pub fn refcount(&self, hash: Hash) -> u32 {
         self.refs.get(&hash).copied().unwrap_or(0)
     }
@@ -184,8 +199,8 @@ mod tests {
         assert!(second.deduplicated);
         assert_eq!(first.hash, second.hash);
         assert_eq!(store.object_count(), 1);
-        assert_eq!(store.stored_bytes(), 10);
-        assert_eq!(store.saved_bytes(), 10);
+        assert_eq!(store.stored_bytes(), b"torch-2.5.1".len() as u64);
+        assert_eq!(store.saved_bytes(), b"torch-2.5.1".len() as u64);
     }
 
     #[test]
@@ -213,10 +228,14 @@ mod tests {
         let mut store = CasStore::default();
         let a = store.insert(b"x").unwrap();
         let b = store.insert(b"y").unwrap();
-        store.release(a.hash).unwrap();
+        // `release()` frees on the last reference; `detach()` models a tab that
+        // was closed while its objects were kept for a grace period, which is
+        // what `sweep()` exists to garbage-collect.
+        assert!(store.detach(a.hash));
         let swept = store.sweep();
         assert!(swept.contains(&a.hash));
         assert!(!swept.contains(&b.hash));
         assert_eq!(store.object_count(), 1);
+        assert_eq!(store.stored_bytes(), 1);
     }
 }

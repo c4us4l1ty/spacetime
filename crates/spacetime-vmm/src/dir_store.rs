@@ -142,8 +142,8 @@ mod tests {
         assert_eq!(store.get(insert.hash).unwrap(), b"torch-cu121".to_vec());
         assert_eq!(store.object_count(), 1);
         store.insert(b"torch-cu121").unwrap();
-        assert_eq!(store.stored_bytes(), 10);
-        assert_eq!(store.saved_bytes(), 10);
+        assert_eq!(store.stored_bytes(), b"torch-cu121".len() as u64);
+        assert_eq!(store.saved_bytes(), b"torch-cu121".len() as u64);
         let removed = store.release(insert.hash).unwrap();
         assert!(!removed);
         let freed = store.release(insert.hash).unwrap();

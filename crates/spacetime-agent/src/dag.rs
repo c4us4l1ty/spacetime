@@ -245,7 +245,12 @@ impl GoalDag {
         if self.active == Some(id) {
             self.active = None;
         }
-        self.refresh();
+        // A retryable failure must stay `Pending` until the next `pull_ready`
+        // call; refreshing here would immediately promote it back to `Ready`
+        // (its dependency set is empty) and hide the failed attempt.
+        if state != NodeState::Pending {
+            self.refresh();
+        }
         Some(id)
     }
 
@@ -420,9 +425,14 @@ mod tests {
 
     #[test]
     fn steer_appends_or_annotates() {
+        // With no active node, a directive becomes a new root task.
         let mut dag = GoalDag::new("x");
         dag.steer_active("use dark mode");
         assert!(dag.summary(4).contains("use dark mode"));
+
+        // With an active node, a directive annotates that node instead. Use a
+        // fresh graph so `a` really is the node that gets pulled.
+        let mut dag = GoalDag::new("x");
         let a = dag.add_root("active task");
         dag.pull_ready();
         dag.steer_active("9:16 vertical");
@@ -449,7 +459,10 @@ mod tests {
         let mut dag = GoalDag::new("x");
         let a = dag.add_root("keep");
         let b = dag.add_root("drop");
+        // `a` is the active node now; running nodes cannot be pruned.
+        dag.pull_ready();
         assert_eq!(dag.remove(a), Err(DagError::NotReady(a)));
+        // `b` is still only planned, so the UI may delete it.
         dag.remove(b).unwrap();
         assert_eq!(dag.len(), 1);
     }

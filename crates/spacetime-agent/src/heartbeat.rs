@@ -350,8 +350,12 @@ mod tests {
         let mut hb = Heartbeat::new("edit a promo video", 1, SimulatedBrain::new());
         let mut saw_guard = false;
         let mut saw_complete = false;
+        // The scripted brain only proposes `Done` on a screen with no marks, so
+        // the last tick feeds an empty frame to exercise the completion path.
+        let empty = Screen::from_elements(1, 10, 10, vec![]);
         for at in 0..12u64 {
-            match hb.tick(screen(), at * 500) {
+            let view = if at == 11 { empty.clone() } else { screen() };
+            match hb.tick(view, at * 500) {
                 TickOutcome::Acted { guarded, .. } => saw_guard |= guarded,
                 TickOutcome::Completed { .. } => saw_complete = true,
                 TickOutcome::Flushed { .. } => {}

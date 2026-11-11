@@ -64,7 +64,7 @@ jobs:
               echo "<details><summary>$f.log (exit $status)</summary>"
               echo
               echo '```'
-              sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$f.log" | head -250 || true
+              sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$f.log" | head -400 || true
               echo '```'
               echo "</details>"
               echo

@@ -229,7 +229,9 @@ mod tests {
     #[test]
     fn finds_header_terminator() {
         let data = b"GET / HTTP/1.1\r\nHost: x\r\n\r\nbody";
-        assert_eq!(find_subslice(data, b"\r\n\r\n"), Some(26));
+        // "GET / HTTP/1.1\r\nHost: x" is 23 bytes; the header terminator
+        // starts there and ends at byte 27.
+        assert_eq!(find_subslice(data, b"\r\n\r\n"), Some(23));
         assert_eq!(find_subslice(data, b"nope"), None);
     }
 }

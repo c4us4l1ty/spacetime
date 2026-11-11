@@ -14,7 +14,7 @@ use std::process::ExitCode;
 
 use spacetime_core::cas::{CasStore, MemBackend};
 use spacetime_core::json::Value;
-use spacetime_core::tab::{TabKind, TabTree, Trust};
+use spacetime_core::tab::TabTree;
 use spacetime_shell::app;
 use spacetime_shell::engine::{EngineConfig, Spacetime};
 
@@ -192,6 +192,7 @@ fn print_tabs(tree: &TabTree) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use spacetime_core::tab::{TabKind, Trust};
 
     #[test]
     fn flag_parsing() {

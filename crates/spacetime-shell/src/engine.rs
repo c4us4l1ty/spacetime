@@ -420,7 +420,7 @@ impl Spacetime {
             return;
         };
         if let Ok(image) = self.vmm.snapshot(handle) {
-            if self.travel.snapshots().is_empty() {
+            if !self.travel.seeded() {
                 self.travel.seed(image.clone());
             }
             if self.travel.capture(&image, self.now_ms).is_some()
@@ -729,7 +729,7 @@ mod tests {
     fn ticking_produces_snapshots_and_net_events() {
         let mut engine = Spacetime::demo(EngineConfig::default());
         engine.run(20);
-        assert!(engine.travel.len() > 0);
+        assert!(!engine.travel.is_empty());
         assert!(engine.travel.window().1 > 0);
         assert!(engine.net.stats().entries() > 0);
     }

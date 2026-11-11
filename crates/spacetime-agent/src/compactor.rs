@@ -282,6 +282,11 @@ mod tests {
         scratch.set("repo", "https://github.com/me/crypto-tracker");
         scratch.note("learned: export lives under File > Export");
         scratch.note("stale: 40 screenshots of the home screen");
+        // Overflow the hydration window: render(6) must keep only the newest
+        // notes, so the stale screenshot note above is dropped.
+        for i in 0..8 {
+            scratch.note(&format!("note {i}: inspected element {i}"));
+        }
 
         let mut session = Session::new(4, 8_000);
         let prompt = session.hydrate(
@@ -298,6 +303,7 @@ mod tests {
         assert!(prompt.contains("[2] Export"));
         // Only the most recent notes are carried, and no screenshot history.
         assert!(!prompt.contains("home screen"));
+        assert!(prompt.contains("note 7"));
         assert!(session.hydrated);
         assert!(session.tokens_used > 0);
     }
