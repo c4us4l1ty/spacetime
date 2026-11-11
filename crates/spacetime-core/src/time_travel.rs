@@ -50,13 +50,21 @@ impl MemoryImage {
         self.pages.get(&index).map(|v| v.as_slice())
     }
 
-    pub fn page_count(&self) -> usize { self.pages.len() }
+    pub fn page_count(&self) -> usize {
+        self.pages.len()
+    }
 
-    pub fn is_empty(&self) -> bool { self.pages.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.pages.is_empty()
+    }
 
-    pub fn byte_len(&self) -> u64 { self.pages.len() as u64 * PAGE_SIZE }
+    pub fn byte_len(&self) -> u64 {
+        self.pages.len() as u64 * PAGE_SIZE
+    }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&u64, &Vec<u8>)> { self.pages.iter() }
+    pub fn iter(&self) -> impl Iterator<Item = (&u64, &Vec<u8>)> {
+        self.pages.iter()
+    }
 
     /// Pages present in `self` but absent or different in `base`.
     pub fn diff_against(&self, base: &MemoryImage) -> MemoryImage {
@@ -98,7 +106,9 @@ pub struct Snapshot {
 
 impl Snapshot {
     /// Host bytes charged for this snapshot.
-    pub fn cost_bytes(&self) -> u64 { self.diff.byte_len() }
+    pub fn cost_bytes(&self) -> u64 {
+        self.diff.byte_len()
+    }
 }
 
 /// Default capture cadence from the design doc: a snapshot every 2 s, keeping
@@ -157,7 +167,9 @@ impl TimeTravel {
     }
 
     /// Whether [`TimeTravel::seed`] has been called on this ring.
-    pub fn seeded(&self) -> bool { self.seeded }
+    pub fn seeded(&self) -> bool {
+        self.seeded
+    }
 
     /// Capture the current image at time `at_ms`. Returns the new snapshot, or
     /// `None` if nothing changed.
@@ -212,7 +224,11 @@ impl TimeTravel {
     ///
     /// Returns `None` if the requested moment predates the oldest snapshot.
     pub fn rewind_to(&self, at_ms: u64) -> Option<MemoryImage> {
-        let oldest = self.snapshots.first().map(|s| s.at_ms).unwrap_or(self.now_ms);
+        let oldest = self
+            .snapshots
+            .first()
+            .map(|s| s.at_ms)
+            .unwrap_or(self.now_ms);
         if at_ms < oldest {
             return None;
         }
@@ -233,20 +249,32 @@ impl TimeTravel {
     }
 
     /// All snapshots currently retained, oldest first.
-    pub fn snapshots(&self) -> &[Snapshot] { &self.snapshots }
+    pub fn snapshots(&self) -> &[Snapshot] {
+        &self.snapshots
+    }
 
     /// Total host bytes charged for retained diffs.
-    pub fn cost_bytes(&self) -> u64 { self.snapshots.iter().map(Snapshot::cost_bytes).sum() }
+    pub fn cost_bytes(&self) -> u64 {
+        self.snapshots.iter().map(Snapshot::cost_bytes).sum()
+    }
 
     /// Window currently covered by the scrubber.
     pub fn window(&self) -> (u64, u64) {
-        let start = self.snapshots.first().map(|s| s.at_ms).unwrap_or(self.now_ms);
+        let start = self
+            .snapshots
+            .first()
+            .map(|s| s.at_ms)
+            .unwrap_or(self.now_ms);
         (start, self.now_ms)
     }
 
-    pub fn len(&self) -> usize { self.snapshots.len() }
+    pub fn len(&self) -> usize {
+        self.snapshots.len()
+    }
 
-    pub fn is_empty(&self) -> bool { self.snapshots.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.snapshots.is_empty()
+    }
 
     /// JSON view for the scrubber UI.
     pub fn to_json(&self) -> crate::json::Value {
@@ -287,7 +315,9 @@ mod tests {
     fn only_dirty_pages_are_stored() {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         tt.seed(image(&[(1, 0xaa), (2, 0xbb)]));
-        let snap = tt.capture(&image(&[(1, 0xaa), (2, 0xcc), (3, 0xdd)]), 1_000).unwrap();
+        let snap = tt
+            .capture(&image(&[(1, 0xaa), (2, 0xcc), (3, 0xdd)]), 1_000)
+            .unwrap();
         assert_eq!(snap.diff.page_count(), 2); // page 1 unchanged, 2 and 3 are new
     }
 

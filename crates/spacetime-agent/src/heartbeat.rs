@@ -131,11 +131,17 @@ impl<B: Brain> Heartbeat<B> {
         }
     }
 
-    pub fn phase(&self) -> Phase { self.phase }
+    pub fn phase(&self) -> Phase {
+        self.phase
+    }
 
-    pub fn tick_count(&self) -> u64 { self.tick_count }
+    pub fn tick_count(&self) -> u64 {
+        self.tick_count
+    }
 
-    pub fn results(&self) -> &BTreeMap<NodeId, String> { &self.results }
+    pub fn results(&self) -> &BTreeMap<NodeId, String> {
+        &self.results
+    }
 
     /// Drain queued side effects.
     pub fn drain_events(&mut self) -> Vec<AgentEvent> {
@@ -177,7 +183,8 @@ impl<B: Brain> Heartbeat<B> {
             let number = self.session.number + 1;
             self.session = self.compactor.flush(&mut self.session, at_ms, reason);
             self.phase = Phase::Flushing;
-            self.events.push(AgentEvent::ContextFlushed { session: number });
+            self.events
+                .push(AgentEvent::ContextFlushed { session: number });
             self.screenshots_this_session = 0;
             return TickOutcome::Flushed {
                 session: number,
@@ -237,10 +244,8 @@ impl<B: Brain> Heartbeat<B> {
             ProposedAction::Done { result } => {
                 let result = result.clone();
                 self.results.insert(node, result.clone());
-                self.scratchpad.set(
-                    &format!("done:{}", node_title),
-                    &result,
-                );
+                self.scratchpad
+                    .set(&format!("done:{}", node_title), &result);
                 let completed = self.dag.complete_active(&result);
                 self.phase = Phase::Idle;
                 // Pulling the next node also arms it as active, so the following
@@ -254,12 +259,10 @@ impl<B: Brain> Heartbeat<B> {
             ProposedAction::Fail { reason } => {
                 let reason = reason.clone();
                 self.dag.fail_active(&reason);
-                self.scratchpad.note(&format!("failed {}: {reason}", node_title));
+                self.scratchpad
+                    .note(&format!("failed {}: {reason}", node_title));
                 self.phase = Phase::Idle;
-                return TickOutcome::RolledBack {
-                    node,
-                    reason,
-                };
+                return TickOutcome::RolledBack { node, reason };
             }
             _ => {}
         }
@@ -282,7 +285,8 @@ impl<B: Brain> Heartbeat<B> {
                     reason: reason.clone(),
                 });
                 self.dag.rollback_active(&reason);
-                self.scratchpad.note("auto-rollback: kernel panic after install");
+                self.scratchpad
+                    .note("auto-rollback: kernel panic after install");
                 self.phase = Phase::Verifying;
                 return TickOutcome::RolledBack { node, reason };
             }
@@ -315,10 +319,7 @@ impl<B: Brain> Heartbeat<B> {
             .with("scratchpad", self.scratchpad.to_json())
             .with("steer", self.steer.to_json())
             .with("screenshots_total", self.total_screenshots)
-            .with(
-                "screenshots_session",
-                self.screenshots_this_session as u64,
-            )
+            .with("screenshots_session", self.screenshots_this_session as u64)
     }
 }
 
@@ -374,17 +375,12 @@ mod tests {
             let _ = hb.tick(screen(), at * 100);
         }
         let events = hb.drain_events();
-        assert!(
-            events.iter().any(|e| matches!(
-            e,
-            AgentEvent::SnapshotRequested { tab: 7, .. }
-        )),
-        );
-        assert!(
-            events
+        assert!(events
             .iter()
-            .any(|e| matches!(e, AgentEvent::InputInjected { .. })),
-        );
+            .any(|e| matches!(e, AgentEvent::SnapshotRequested { tab: 7, .. })),);
+        assert!(events
+            .iter()
+            .any(|e| matches!(e, AgentEvent::InputInjected { .. })),);
     }
 
     #[test]
@@ -401,11 +397,9 @@ mod tests {
         }
         assert!(rolled_back);
         let events = hb.drain_events();
-        assert!(
-            events
+        assert!(events
             .iter()
-            .any(|e| matches!(e, AgentEvent::RollbackRequested { .. })),
-        );
+            .any(|e| matches!(e, AgentEvent::RollbackRequested { .. })),);
     }
 
     #[test]
@@ -418,15 +412,14 @@ mod tests {
             other => panic!("expected steer, got {other:?}"),
         }
         assert!(
-            hb.dag.summary(8).contains("9:16") || hb.scratchpad.notes().iter().any(|n| n.contains("9:16")),
+            hb.dag.summary(8).contains("9:16")
+                || hb.scratchpad.notes().iter().any(|n| n.contains("9:16")),
         );
         // Next tick continues acting.
-        assert!(
-            matches!(
+        assert!(matches!(
             hb.tick(screen(), 300),
             TickOutcome::Acted { .. } | TickOutcome::Completed { .. }
-        ),
-        );
+        ),);
     }
 
     #[test]
@@ -454,7 +447,10 @@ mod tests {
             }
         }
         assert!(flushes >= 2, "expected several context resets");
-        assert!(acted_after_flush > 0, "operator must keep working after a reset");
+        assert!(
+            acted_after_flush > 0,
+            "operator must keep working after a reset"
+        );
         assert_eq!(hb.steer.pending(), 0);
     }
 

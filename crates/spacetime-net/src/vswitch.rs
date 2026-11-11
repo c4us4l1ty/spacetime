@@ -70,7 +70,10 @@ pub enum Verdict {
     /// Hard block. The guest sees a connection reset.
     Block { reason: String },
     /// Block, but answer convincingly from the sinkhole.
-    Sinkhole { profile: SinkholeProfile, reply: Vec<u8> },
+    Sinkhole {
+        profile: SinkholeProfile,
+        reply: Vec<u8>,
+    },
 }
 
 impl Verdict {
@@ -106,7 +109,10 @@ impl FeedEntry {
             .unwrap_or_default();
         let detail = match &self.verdict {
             Verdict::Allow { egress, ttl } => {
-                format!("via {egress}{}", ttl.map(|t| format!(" [TTL {t}]")).unwrap_or_default())
+                format!(
+                    "via {egress}{}",
+                    ttl.map(|t| format!(" [TTL {t}]")).unwrap_or_default()
+                )
             }
             Verdict::Block { reason } => reason.clone(),
             Verdict::Sinkhole { .. } => "fed sinkhole response".to_string(),
@@ -128,7 +134,9 @@ pub struct SwitchStats {
 }
 
 impl SwitchStats {
-    pub fn entries(&self) -> u64 { self.allowed + self.blocked + self.sinkholed }
+    pub fn entries(&self) -> u64 {
+        self.allowed + self.blocked + self.sinkholed
+    }
 }
 
 /// The switch itself.
@@ -177,9 +185,13 @@ impl Switch {
         &mut self.sinkhole
     }
 
-    pub fn feed(&self) -> &[FeedEntry] { &self.feed }
+    pub fn feed(&self) -> &[FeedEntry] {
+        &self.feed
+    }
 
-    pub fn stats(&self) -> SwitchStats { self.stats }
+    pub fn stats(&self) -> SwitchStats {
+        self.stats
+    }
 
     /// Decide a flow's fate and record it.
     pub fn judge(&mut self, tab: u64, at_ms: u64, flow: &Flow) -> Verdict {
@@ -217,7 +229,11 @@ impl Switch {
                     }
                 } else {
                     Verdict::Allow {
-                        ttl: if self.spoof_fingerprint { Some(128) } else { None },
+                        ttl: if self.spoof_fingerprint {
+                            Some(128)
+                        } else {
+                            None
+                        },
                         egress: self.egress.clone(),
                     }
                 }
@@ -250,7 +266,9 @@ impl Switch {
     }
 
     /// Endpoints currently being deceived, with their attribution.
-    pub fn trapped(&self) -> &BTreeMap<String, String> { &self.trapped }
+    pub fn trapped(&self) -> &BTreeMap<String, String> {
+        &self.trapped
+    }
 
     /// Route an already-allowed endpoint into the sinkhole from the UI toggle.
     pub fn trap(&mut self, endpoint: &str) {
@@ -319,7 +337,11 @@ mod tests {
     #[test]
     fn honeyduct_traps_public_and_allows_loopback() {
         let mut switch = Switch::new(NetMode::HoneyDuct);
-        let public = switch.judge(2, 100, &Flow::tcp(ip(185, 220, 101, 1), 4444, "/tmp/.miner"));
+        let public = switch.judge(
+            2,
+            100,
+            &Flow::tcp(ip(185, 220, 101, 1), 4444, "/tmp/.miner"),
+        );
         assert!(matches!(public, Verdict::Sinkhole { .. }));
         assert!(switch.trapped().contains_key("185.220.101.1:4444"));
         let lo = switch.judge(2, 101, &Flow::tcp(ip(10, 0, 0, 2), 8080, "init"));
@@ -329,7 +351,11 @@ mod tests {
     #[test]
     fn stealth_blocks_datacenter_and_morphs_ttl() {
         let mut switch = Switch::new(NetMode::Stealth);
-        let ok = switch.judge(3, 0, &Flow::tcp(ip(73, 14, 3, 9), 443, "chrome").with_host("opencut.app"));
+        let ok = switch.judge(
+            3,
+            0,
+            &Flow::tcp(ip(73, 14, 3, 9), 443, "chrome").with_host("opencut.app"),
+        );
         match ok {
             Verdict::Allow { ttl, egress } => {
                 assert_eq!(ttl, Some(128));

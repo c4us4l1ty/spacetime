@@ -60,7 +60,9 @@ impl Value {
         }
     }
 
-    pub fn as_u64(&self) -> Option<u64> { self.as_f64().map(|n| n as u64) }
+    pub fn as_u64(&self) -> Option<u64> {
+        self.as_f64().map(|n| n as u64)
+    }
 
     pub fn as_bool(&self) -> Option<bool> {
         match self {
@@ -256,10 +258,7 @@ impl<'a> Parser<'a> {
             self.pos += 1;
             Ok(())
         } else {
-            Err(format!(
-                "expected '{}' at byte {}",
-                byte as char, self.pos
-            ))
+            Err(format!("expected '{}' at byte {}", byte as char, self.pos))
         }
     }
 
@@ -273,7 +272,10 @@ impl<'a> Parser<'a> {
             Some(b'f') => self.literal("false", Value::Bool(false)),
             Some(b'n') => self.literal("null", Value::Null),
             Some(b'-') | Some(b'0'..=b'9') => self.number(),
-            Some(other) => Err(format!("unexpected '{}' at byte {}", other as char, self.pos)),
+            Some(other) => Err(format!(
+                "unexpected '{}' at byte {}",
+                other as char, self.pos
+            )),
             None => Err("unexpected end of input".into()),
         }
     }
@@ -441,8 +443,7 @@ impl<'a> Parser<'a> {
                 self.pos += 1;
             }
         }
-        let text = std::str::from_utf8(&self.bytes[start..self.pos])
-            .map_err(|e| e.to_string())?;
+        let text = std::str::from_utf8(&self.bytes[start..self.pos]).map_err(|e| e.to_string())?;
         text.parse::<f64>()
             .map(Value::Num)
             .map_err(|e| format!("bad number '{text}': {e}"))
@@ -533,7 +534,13 @@ mod tests {
         let text = r#"{"a":1,"b":[true,null,"x\ny"],"c":{"d":-2.5e3}}"#;
         let value = Value::parse(text).unwrap();
         assert_eq!(value.get("a").and_then(Value::as_u64), Some(1));
-        assert_eq!(value.get("c").and_then(|c| c.get("d")).and_then(Value::as_f64), Some(-2500.0));
+        assert_eq!(
+            value
+                .get("c")
+                .and_then(|c| c.get("d"))
+                .and_then(Value::as_f64),
+            Some(-2500.0)
+        );
         let again = Value::parse(&value.to_string()).unwrap();
         assert_eq!(again, value);
     }
@@ -543,7 +550,10 @@ mod tests {
         let value = Value::parse(r#""héllo \u00e9 \uD83D\uDE80 ""#).unwrap();
         assert_eq!(value, Value::Str("héllo é 🚀 ".into()));
         let encoded = Value::Str("a\"b\\c\nd".into()).to_string();
-        assert_eq!(Value::parse(&encoded).unwrap(), Value::Str("a\"b\\c\nd".into()));
+        assert_eq!(
+            Value::parse(&encoded).unwrap(),
+            Value::Str("a\"b\\c\nd".into())
+        );
     }
 
     #[test]

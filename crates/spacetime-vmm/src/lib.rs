@@ -226,13 +226,19 @@ impl SpacetimeVmm for SimulatedBackend {
     }
 
     fn pause(&mut self, handle: VmHandle) -> Result<(), VmmError> {
-        let vm = self.vms.get_mut(&handle.tab).ok_or(VmmError::UnknownTab(handle.tab))?;
+        let vm = self
+            .vms
+            .get_mut(&handle.tab)
+            .ok_or(VmmError::UnknownTab(handle.tab))?;
         vm.paused = true;
         Ok(())
     }
 
     fn resume(&mut self, handle: VmHandle) -> Result<(), VmmError> {
-        let vm = self.vms.get_mut(&handle.tab).ok_or(VmmError::UnknownTab(handle.tab))?;
+        let vm = self
+            .vms
+            .get_mut(&handle.tab)
+            .ok_or(VmmError::UnknownTab(handle.tab))?;
         vm.paused = false;
         Ok(())
     }
@@ -247,18 +253,27 @@ impl SpacetimeVmm for SimulatedBackend {
     }
 
     fn snapshot(&mut self, handle: VmHandle) -> Result<MemoryImage, VmmError> {
-        let vm = self.vms.get(&handle.tab).ok_or(VmmError::UnknownTab(handle.tab))?;
+        let vm = self
+            .vms
+            .get(&handle.tab)
+            .ok_or(VmmError::UnknownTab(handle.tab))?;
         Ok(vm.memory.clone())
     }
 
     fn restore(&mut self, handle: VmHandle, image: &MemoryImage) -> Result<(), VmmError> {
-        let vm = self.vms.get_mut(&handle.tab).ok_or(VmmError::UnknownTab(handle.tab))?;
+        let vm = self
+            .vms
+            .get_mut(&handle.tab)
+            .ok_or(VmmError::UnknownTab(handle.tab))?;
         vm.memory = image.clone();
         Ok(())
     }
 
     fn stats(&self, handle: VmHandle) -> Result<VmStats, VmmError> {
-        let vm = self.vms.get(&handle.tab).ok_or(VmmError::UnknownTab(handle.tab))?;
+        let vm = self
+            .vms
+            .get(&handle.tab)
+            .ok_or(VmmError::UnknownTab(handle.tab))?;
         Ok(vm.stats)
     }
 
@@ -379,12 +394,10 @@ mod tests {
     fn double_boot_is_rejected() {
         let mut backend = SimulatedBackend::new();
         backend.boot(&cfg(1, NetMode::Airgapped)).unwrap();
-        assert!(
-            matches!(
+        assert!(matches!(
             backend.boot(&cfg(1, NetMode::Airgapped)),
             Err(VmmError::BadState { .. })
-        ),
-        );
+        ),);
     }
 
     #[test]

@@ -58,7 +58,9 @@ impl Sinkhole {
         }
     }
 
-    pub fn profile(&self) -> SinkholeProfile { self.profile }
+    pub fn profile(&self) -> SinkholeProfile {
+        self.profile
+    }
 
     pub fn set_profile(&mut self, profile: SinkholeProfile) {
         self.profile = profile;
@@ -101,11 +103,17 @@ impl Sinkhole {
     }
 
     /// Everything the implant has sent so far (the forensic payload).
-    pub fn captured(&self) -> &BTreeMap<String, Vec<u8>> { &self.captured }
+    pub fn captured(&self) -> &BTreeMap<String, Vec<u8>> {
+        &self.captured
+    }
 
-    pub fn exchanges(&self) -> &[Exchange] { &self.exchanges }
+    pub fn exchanges(&self) -> &[Exchange] {
+        &self.exchanges
+    }
 
-    pub fn captured_bytes(&self) -> u64 { self.captured.values().map(|v| v.len() as u64).sum() }
+    pub fn captured_bytes(&self) -> u64 {
+        self.captured.values().map(|v| v.len() as u64).sum()
+    }
 
     /// Human summary of the captured traffic, e.g. for the console drawer.
     pub fn transcript(&self, endpoint: &str) -> Option<String> {

@@ -64,10 +64,7 @@ pub struct MarkedElement {
 
 impl MarkedElement {
     pub fn center(&self) -> (u32, u32) {
-        (
-            self.rect.0 + self.rect.2 / 2,
-            self.rect.1 + self.rect.3 / 2,
-        )
+        (self.rect.0 + self.rect.2 / 2, self.rect.1 + self.rect.3 / 2)
     }
 }
 

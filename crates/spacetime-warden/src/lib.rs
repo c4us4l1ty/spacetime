@@ -87,7 +87,9 @@ impl<S: ChokeSink> Warden<S> {
         }
     }
 
-    pub fn sink(&self) -> &S { &self.sink }
+    pub fn sink(&self) -> &S {
+        &self.sink
+    }
 
     pub fn sink_mut(&mut self) -> &mut S {
         &mut self.sink
@@ -129,7 +131,9 @@ impl<S: ChokeSink> Warden<S> {
     }
 
     /// Total host RAM charged across tabs.
-    pub fn host_ram_mb(&self) -> u64 { self.balloons.values().map(|b| b.resident_mb).sum() }
+    pub fn host_ram_mb(&self) -> u64 {
+        self.balloons.values().map(|b| b.resident_mb).sum()
+    }
 
     /// PID ceiling the host enforces for a tab (fork-bomb guard).
     pub fn pids_ceiling(&self, tab: TabId) -> u32 {

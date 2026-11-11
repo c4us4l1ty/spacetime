@@ -192,7 +192,9 @@ impl Tab {
     }
 
     /// True when the warden has throttled this tab.
-    pub fn is_choked(&self) -> bool { self.state == TabState::Choked }
+    pub fn is_choked(&self) -> bool {
+        self.state == TabState::Choked
+    }
 }
 
 /// Errors from tree operations.
@@ -370,14 +372,13 @@ impl TabTree {
         }
         self.total_closed += removed.len() as u64;
 
-        let focused_tab_closed = self
-            .focus
-            .map(|f| removed.contains(&f))
-            .unwrap_or(false);
+        let focused_tab_closed = self.focus.map(|f| removed.contains(&f)).unwrap_or(false);
         if focused_tab_closed {
-            self.focus = self.roots.first().copied().or_else(|| {
-                self.tabs.keys().next().copied()
-            });
+            self.focus = self
+                .roots
+                .first()
+                .copied()
+                .or_else(|| self.tabs.keys().next().copied());
         }
         self.apply_focus_policy();
         Ok(removed)
@@ -393,7 +394,9 @@ impl TabTree {
     }
 
     /// The active tab.
-    pub fn focus(&self) -> Option<TabId> { self.focus }
+    pub fn focus(&self) -> Option<TabId> {
+        self.focus
+    }
 
     /// Switch tabs. The warden immediately chokes the old tab to 5 % of a core
     /// and restores the new one, so a crypto-miner in the background suffocates
@@ -443,10 +446,14 @@ impl TabTree {
         }
     }
 
-    pub fn live_count(&self) -> usize { self.tabs.len() }
+    pub fn live_count(&self) -> usize {
+        self.tabs.len()
+    }
 
     /// Sum of RAM charged to tabs, excluding the shared base image.
-    pub fn private_ram_mb(&self) -> u64 { self.tabs.values().map(|t| t.private_ram_mb).sum() }
+    pub fn private_ram_mb(&self) -> u64 {
+        self.tabs.values().map(|t| t.private_ram_mb).sum()
+    }
 
     /// Sum of shared pages across tabs; because the zygote clone is CoW this is
     /// charged to the host exactly once, so it is reported as savings.

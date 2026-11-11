@@ -236,8 +236,16 @@ mod tests {
     #[test]
     fn poweroff_and_events() {
         assert_eq!(decode("POWEROFF").unwrap(), HostCommand::Poweroff);
-        assert_eq!(encode_event(&GuestEvent::Ready { version: PROTOCOL_VERSION }), "READY 1");
-        assert_eq!(encode_event(&GuestEvent::Exit { pid: 7, code: 1 }), "EXIT 7 1");
+        assert_eq!(
+            encode_event(&GuestEvent::Ready {
+                version: PROTOCOL_VERSION
+            }),
+            "READY 1"
+        );
+        assert_eq!(
+            encode_event(&GuestEvent::Exit { pid: 7, code: 1 }),
+            "EXIT 7 1"
+        );
     }
 
     #[test]

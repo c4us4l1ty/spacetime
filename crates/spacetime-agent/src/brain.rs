@@ -27,14 +27,31 @@ pub struct Observation {
 /// What the operator wants to do next.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProposedAction {
-    Click { mark: u32, why: String },
-    Type { mark: u32, text: String, why: String },
-    Key { combo: String, why: String },
-    Scroll { dy: i32, why: String },
+    Click {
+        mark: u32,
+        why: String,
+    },
+    Type {
+        mark: u32,
+        text: String,
+        why: String,
+    },
+    Key {
+        combo: String,
+        why: String,
+    },
+    Scroll {
+        dy: i32,
+        why: String,
+    },
     /// Node finished; carry a one-line result for the DAG.
-    Done { result: String },
+    Done {
+        result: String,
+    },
     /// Node cannot proceed; carry the reason.
-    Fail { reason: String },
+    Fail {
+        reason: String,
+    },
 }
 
 impl ProposedAction {
@@ -53,7 +70,9 @@ impl ProposedAction {
                 let lowered = combo.to_lowercase();
                 lowered.contains("ctrl+alt") || lowered.contains("delete")
             }
-            ProposedAction::Type { text, .. } => text.contains("rm -rf") || text.contains("curl | sh"),
+            ProposedAction::Type { text, .. } => {
+                text.contains("rm -rf") || text.contains("curl | sh")
+            }
             _ => false,
         }
     }
@@ -88,9 +107,9 @@ impl ProposedAction {
                 .with("action", "scroll")
                 .with("dy", *dy as i64)
                 .with("why", why.as_str()),
-            ProposedAction::Done { result } => {
-                Value::obj().with("action", "done").with("result", result.as_str())
-            }
+            ProposedAction::Done { result } => Value::obj()
+                .with("action", "done")
+                .with("result", result.as_str()),
             ProposedAction::Fail { reason } => Value::obj()
                 .with("action", "fail")
                 .with("reason", reason.as_str()),
@@ -167,7 +186,10 @@ impl Brain for SimulatedBrain {
         }
         ProposedAction::Click {
             mark: element.mark,
-            why: format!("advance {} via \"{}\"", observation.active_node, element.label),
+            why: format!(
+                "advance {} via \"{}\"",
+                observation.active_node, element.label
+            ),
         }
     }
 }
@@ -246,34 +268,26 @@ mod tests {
 
     #[test]
     fn risky_actions_are_classified() {
-        assert!(
-            ProposedAction::Click {
+        assert!(ProposedAction::Click {
             mark: 3,
             why: "delete the project".into()
         }
-        .is_risky(),
-        );
-        assert!(
-            ProposedAction::Type {
+        .is_risky(),);
+        assert!(ProposedAction::Type {
             mark: 1,
             text: "rm -rf ~".into(),
             why: "x".into()
         }
-        .is_risky(),
-        );
-        assert!(
-            !ProposedAction::Click {
+        .is_risky(),);
+        assert!(!ProposedAction::Click {
             mark: 3,
             why: "open the file menu".into()
         }
-        .is_risky(),
-        );
-        assert!(
-            !ProposedAction::Done {
+        .is_risky(),);
+        assert!(!ProposedAction::Done {
             result: "ok".into()
         }
-        .is_risky(),
-        );
+        .is_risky(),);
     }
 
     #[test]
@@ -284,4 +298,3 @@ mod tests {
         assert!(matches!(brain.act(&obs), ProposedAction::Done { .. }));
     }
 }
-

@@ -30,7 +30,9 @@ impl DirBackend {
         Ok(DirBackend { root })
     }
 
-    pub fn root(&self) -> &Path { &self.root }
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
 
     /// Path an object with `hash` lives at.
     pub fn path_for(&self, hash: Hash) -> PathBuf {

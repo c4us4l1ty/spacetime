@@ -34,7 +34,9 @@ impl Dashboard {
         }
     }
 
-    pub fn state_json(&self) -> String { self.engine.to_json().to_string() }
+    pub fn state_json(&self) -> String {
+        self.engine.to_json().to_string()
+    }
 
     /// Handle one request. Pure besides the engine mutation, which is what makes
     /// it unit-testable without sockets.

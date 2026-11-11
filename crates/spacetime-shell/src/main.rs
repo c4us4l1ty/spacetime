@@ -57,7 +57,14 @@ fn main() -> ExitCode {
             let mut engine = Spacetime::demo(EngineConfig::default());
             engine.run(12);
             let json = engine.to_json();
-            println!("{}", if has(rest, "--pretty") { json.pretty() } else { json.to_string() });
+            println!(
+                "{}",
+                if has(rest, "--pretty") {
+                    json.pretty()
+                } else {
+                    json.to_string()
+                }
+            );
             ExitCode::SUCCESS
         }
         "tabs" => {
@@ -104,7 +111,11 @@ fn main() -> ExitCode {
                         println!(
                             "{}  {}  {}",
                             insert.hash.short(16),
-                            if insert.deduplicated { "dedup " } else { "stored" },
+                            if insert.deduplicated {
+                                "dedup "
+                            } else {
+                                "stored"
+                            },
                             file
                         );
                     }
@@ -208,10 +219,21 @@ mod tests {
 
     #[test]
     fn tab_kind_round_trips() {
-        for kind in [TabKind::Web, TabKind::Repo, TabKind::File, TabKind::Terminal, TabKind::Ai] {
+        for kind in [
+            TabKind::Web,
+            TabKind::Repo,
+            TabKind::File,
+            TabKind::Terminal,
+            TabKind::Ai,
+        ] {
             assert_eq!(TabKind::from_label(kind.label()), Some(kind));
         }
-        for trust in [Trust::Airgapped, Trust::Chameleon, Trust::HoneyDuct, Trust::Disposable] {
+        for trust in [
+            Trust::Airgapped,
+            Trust::Chameleon,
+            Trust::HoneyDuct,
+            Trust::Disposable,
+        ] {
             assert_eq!(Trust::from_label(trust.label()), Some(trust));
         }
     }

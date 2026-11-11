@@ -56,9 +56,13 @@ impl Scratchpad {
         }
     }
 
-    pub fn notes(&self) -> &[String] { &self.notes }
+    pub fn notes(&self) -> &[String] {
+        &self.notes
+    }
 
-    pub fn facts(&self) -> &BTreeMap<String, String> { &self.facts }
+    pub fn facts(&self) -> &BTreeMap<String, String> {
+        &self.facts
+    }
 
     /// Render for hydration, facts first then the last `keep` notes.
     pub fn render(&self, keep: usize) -> String {
@@ -223,7 +227,9 @@ impl Compactor {
         self.open()
     }
 
-    pub fn stats(&self) -> &CompactorStats { &self.stats }
+    pub fn stats(&self) -> &CompactorStats {
+        &self.stats
+    }
 
     pub fn to_json(&self, session: &Session, elapsed_ms: u64) -> Value {
         Value::obj()

@@ -46,12 +46,21 @@ impl Default for EngineConfig {
 /// A side effect requested by the engine, for the shell/CLI to execute.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    Boot { name: String, kind: TabKind, trust: Trust },
-    Branch { parent: u64 },
+    Boot {
+        name: String,
+        kind: TabKind,
+        trust: Trust,
+    },
+    Branch {
+        parent: u64,
+    },
     Focus(u64),
     Close(u64),
     Steer(String),
-    Rewind { tab: u64, at_ms: u64 },
+    Rewind {
+        tab: u64,
+        at_ms: u64,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -178,7 +187,11 @@ impl Spacetime {
         }
 
         let mission = "edit the promo video in /storage/X and export a 9:16 cut";
-        engine.agent = Heartbeat::new(mission, 1, Box::new(SimulatedBrain::new()) as Box<dyn Brain>);
+        engine.agent = Heartbeat::new(
+            mission,
+            1,
+            Box::new(SimulatedBrain::new()) as Box<dyn Brain>,
+        );
         engine.agent.fail_every = if config.demo_rollbacks { 5 } else { 0 };
 
         let opencut = engine.open_tab("opencut.app", TabKind::Web, Trust::Chameleon);
@@ -248,7 +261,12 @@ impl Spacetime {
     pub fn open_tab(&mut self, name: &str, kind: TabKind, trust: Trust) -> u64 {
         let tab_id = self.tabs.open(name, kind, trust);
         let id = tab_id.0;
-        let mut config = VmConfig::new(tab_id, name, Self::image_for(kind), Self::net_mode_for(trust));
+        let mut config = VmConfig::new(
+            tab_id,
+            name,
+            Self::image_for(kind),
+            Self::net_mode_for(trust),
+        );
         config.ram_mb = self
             .tabs
             .get(tab_id)
@@ -277,7 +295,11 @@ impl Spacetime {
                     ),
                 );
             }
-            None => self.log(LogLevel::Alert, "vmm", &format!("{name}: VM failed to boot")),
+            None => self.log(
+                LogLevel::Alert,
+                "vmm",
+                &format!("{name}: VM failed to boot"),
+            ),
         }
         self.focus(id);
         id
@@ -437,7 +459,8 @@ impl Spacetime {
         let stats = self.vmm.stats(handle).unwrap_or_default();
         let previous = self.last_balloon.get(&focus.0).copied().unwrap_or(0);
         let reclaimed = stats.balloon_reclaimed_mb.saturating_sub(previous);
-        self.last_balloon.insert(focus.0, stats.balloon_reclaimed_mb);
+        self.last_balloon
+            .insert(focus.0, stats.balloon_reclaimed_mb);
         self.warden
             .report_balloon(focus, stats.resident_mb, reclaimed);
     }
@@ -500,7 +523,11 @@ impl Spacetime {
         for event in self.agent.drain_events() {
             match event {
                 AgentEvent::SnapshotRequested { reason, .. } => {
-                    self.log(LogLevel::Warn, "agent", &format!("CoW snapshot before {reason}"));
+                    self.log(
+                        LogLevel::Warn,
+                        "agent",
+                        &format!("CoW snapshot before {reason}"),
+                    );
                 }
                 AgentEvent::RollbackRequested { reason, .. } => {
                     self.travel.mark("AI risky action");
@@ -648,9 +675,13 @@ impl Spacetime {
     }
 
     /// Number of live VMs (equals live tab count when healthy).
-    pub fn vm_count(&self) -> usize { self.handles.len() }
+    pub fn vm_count(&self) -> usize {
+        self.handles.len()
+    }
 
-    pub fn last_tab_id(&self) -> Option<u64> { self.tabs.walk().last().map(|(_, id)| id.0) }
+    pub fn last_tab_id(&self) -> Option<u64> {
+        self.tabs.walk().last().map(|(_, id)| id.0)
+    }
 
     /// Snapshot of the whole workspace as JSON (wire format for any UI).
     pub fn to_json(&self) -> Value {
@@ -721,7 +752,10 @@ mod tests {
             .find(|id| *id != first)
             .unwrap();
         engine.focus(other);
-        assert_eq!(engine.tabs.get(TabId(other)).unwrap().state, spacetime_core::TabState::Running);
+        assert_eq!(
+            engine.tabs.get(TabId(other)).unwrap().state,
+            spacetime_core::TabState::Running
+        );
         assert_eq!(engine.warden.sink().limits[&TabId(first)].cpu_permille, 50);
     }
 
@@ -748,7 +782,10 @@ mod tests {
         let mut engine = Spacetime::demo(EngineConfig::default());
         let parent = engine.tabs.focus().unwrap().0;
         let child = engine.branch(parent).unwrap();
-        assert_eq!(engine.tabs.get(TabId(child)).unwrap().parent, Some(TabId(parent)));
+        assert_eq!(
+            engine.tabs.get(TabId(child)).unwrap().parent,
+            Some(TabId(parent))
+        );
         assert_eq!(engine.vm_count(), 4);
     }
 
@@ -785,7 +822,9 @@ mod tests {
         let mut engine = Spacetime::demo(EngineConfig::default());
         engine.run(5);
         let json = engine.to_json();
-        for key in ["tabs", "travel", "net", "warden", "agent", "cursor", "zygote", "log"] {
+        for key in [
+            "tabs", "travel", "net", "warden", "agent", "cursor", "zygote", "log",
+        ] {
             assert!(json.get(key).is_some(), "missing {key}");
         }
         assert!(json.u64_of("now_ms") > 0);

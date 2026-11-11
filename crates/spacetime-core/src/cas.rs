@@ -153,13 +153,19 @@ impl<B: ObjectBackend> CasStore<B> {
         self.refs.contains_key(&hash)
     }
 
-    pub fn object_count(&self) -> usize { self.refs.len() }
+    pub fn object_count(&self) -> usize {
+        self.refs.len()
+    }
 
     /// Bytes physically stored.
-    pub fn stored_bytes(&self) -> u64 { self.backend.total_bytes() }
+    pub fn stored_bytes(&self) -> u64 {
+        self.backend.total_bytes()
+    }
 
     /// Bytes saved by deduplication.
-    pub fn saved_bytes(&self) -> u64 { self.naive_bytes.saturating_sub(self.stored_bytes()) }
+    pub fn saved_bytes(&self) -> u64 {
+        self.naive_bytes.saturating_sub(self.stored_bytes())
+    }
 
     /// Remove objects with no references (e.g. after a tab closes).
     pub fn sweep(&mut self) -> Vec<Hash> {

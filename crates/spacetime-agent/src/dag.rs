@@ -105,9 +105,13 @@ impl GoalDag {
         }
     }
 
-    pub fn mission(&self) -> &str { &self.mission }
+    pub fn mission(&self) -> &str {
+        &self.mission
+    }
 
-    pub fn active(&self) -> Option<NodeId> { self.active }
+    pub fn active(&self) -> Option<NodeId> {
+        self.active
+    }
 
     /// Add a root task.
     pub fn add_root(&mut self, title: &str) -> NodeId {
@@ -164,9 +168,13 @@ impl GoalDag {
         self.nodes.get(&id)
     }
 
-    pub fn len(&self) -> usize { self.nodes.len() }
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
 
-    pub fn is_empty(&self) -> bool { self.nodes.is_empty() }
+    pub fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+    }
 
     /// Recompute `Pending → Ready` for every node whose deps are done.
     /// Also demotes `Ready → Pending` if a dependency was re-opened by a rewind.

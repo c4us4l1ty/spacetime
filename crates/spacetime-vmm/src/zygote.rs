@@ -14,7 +14,7 @@ use std::time::{Duration, Instant};
 
 use spacetime_core::MemoryImage;
 
-use crate::{VmmError, VmConfig};
+use crate::{VmConfig, VmmError};
 
 /// Modelled cold-boot cost of a stripped guest kernel (50–100 ms in the design
 /// doc). The simulation does not actually burn that wall-clock time on CI, but
@@ -110,16 +110,26 @@ impl Zygote {
         }
     }
 
-    pub fn state(&self) -> ZygoteState { self.state }
+    pub fn state(&self) -> ZygoteState {
+        self.state
+    }
 
-    pub fn image(&self) -> &MemoryImage { &self.image }
+    pub fn image(&self) -> &MemoryImage {
+        &self.image
+    }
 
-    pub fn clones_served(&self) -> u64 { self.clones_served }
+    pub fn clones_served(&self) -> u64 {
+        self.clones_served
+    }
 
-    pub fn boot_ms(&self) -> u32 { self.boot_ms }
+    pub fn boot_ms(&self) -> u32 {
+        self.boot_ms
+    }
 
     /// Host RAM the golden image costs once, no matter how many tabs exist.
-    pub fn shared_ram_mb(&self) -> u64 { self.shared_mb }
+    pub fn shared_ram_mb(&self) -> u64 {
+        self.shared_mb
+    }
 
     /// Configure for a specific VM config (image path, shared mounts).
     pub fn prepare(&mut self, config: &VmConfig) -> Result<(), VmmError> {

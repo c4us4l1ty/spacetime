@@ -36,8 +36,7 @@ impl Directive {
     /// Classify raw operator text.
     pub fn parse(text: &str, at_ms: u64) -> Directive {
         let trimmed = text.trim();
-        let structural = trimmed.starts_with("--")
-            || (trimmed.contains(':') && trimmed.len() < 40);
+        let structural = trimmed.starts_with("--") || (trimmed.contains(':') && trimmed.len() < 40);
         let priority = if trimmed.starts_with("--stop") || trimmed.eq_ignore_ascii_case("stop") {
             Priority::Stop
         } else if structural {
@@ -93,9 +92,13 @@ impl SteerChannel {
         out
     }
 
-    pub fn pending(&self) -> usize { self.queue.len() }
+    pub fn pending(&self) -> usize {
+        self.queue.len()
+    }
 
-    pub fn history(&self) -> &[Directive] { &self.history }
+    pub fn history(&self) -> &[Directive] {
+        &self.history
+    }
 
     /// True if a `--stop` is queued or was the last directive.
     pub fn stop_requested(&self) -> bool {
@@ -141,10 +144,16 @@ mod tests {
 
     #[test]
     fn advisory_vs_structural() {
-        assert_eq!(Directive::parse("use dark mode", 0).priority, Priority::Advisory);
+        assert_eq!(
+            Directive::parse("use dark mode", 0).priority,
+            Priority::Advisory
+        );
         assert_eq!(Directive::parse("--skip", 0).priority, Priority::Constraint);
         assert_eq!(Directive::parse("--stop", 0).priority, Priority::Stop);
-        assert_eq!(Directive::parse("aspect:9:16", 0).priority, Priority::Constraint);
+        assert_eq!(
+            Directive::parse("aspect:9:16", 0).priority,
+            Priority::Constraint
+        );
     }
 
     #[test]
