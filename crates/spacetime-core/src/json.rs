@@ -106,7 +106,13 @@ impl Value {
     }
 
     /// Compact serialisation.
-    pub fn to_string(&self) -> String {
+    ///
+    /// Kept as `encode` rather than an inherent `to_string`: [`std::fmt::Display`]
+    /// is implemented below, so the blanket `ToString` implementation supplies
+    /// `to_string()` for free. Defining an inherent `to_string` as well would
+    /// shadow the trait method (`inherent_to_string_shadow_display`), which CI
+    /// turns into a hard error with `-D warnings`.
+    pub fn encode(&self) -> String {
         let mut out = String::new();
         self.write(&mut out);
         out
@@ -188,6 +194,12 @@ impl Value {
             }
             other => other.write(out),
         }
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.encode())
     }
 }
 
@@ -505,22 +517,32 @@ mod tests {
     fn round_trip_nested() {
         let text = r#"{"a":1,"b":[true,null,"x\ny"],"c":{"d":-2.5e3}}"#;
         let value = Value::parse(text).unwrap();
-        assert_eq(value.get("a").and_then(Value::as_u64), Some(1));        assert_eq(value.get("c").and_then(|c| c.get("d")).and_then(Value::as_f64), Some(-2500.0));        let again = Value::parse(&value.to_string()).unwrap();
-        assert_eq(again, value);    }
+        assert_eq!(value.get("a").and_then(Value::as_u64), Some(1));
+        assert_eq!(value.get("c").and_then(|c| c.get("d")).and_then(Value::as_f64), Some(-2500.0));
+        let again = Value::parse(&value.to_string()).unwrap();
+        assert_eq!(again, value);
+    }
 
     #[test]
     fn escapes_and_unicode() {
         let value = Value::parse(r#""héllo \u00e9 \uD83D\uDE80 ""#).unwrap();
-        assert_eq(value, Value::Str("héllo é 🚀 ".into()));        let encoded = Value::Str("a\"b\\c\nd".into()).to_string();
-        assert_eq(Value::parse(&encoded).unwrap(), Value::Str("a\"b\\c\nd".into()));    }
+        assert_eq!(value, Value::Str("héllo é 🚀 ".into()));
+        let encoded = Value::Str("a\"b\\c\nd".into()).to_string();
+        assert_eq!(Value::parse(&encoded).unwrap(), Value::Str("a\"b\\c\nd".into()));
+    }
 
     #[test]
     fn integers_stay_integers() {
         let v = Value::obj().with("n", 42u64).with("big", 1e18f64);
         let text = v.to_string();
-        assert_eq(text, r#"{"big":1000000000000000000,"n":42}"#);    }
+        assert_eq!(text, r#"{"big":1000000000000000000,"n":42}"#);
+    }
 
     #[test]
     fn rejects_garbage() {
-        assert(Value::parse("{").is_err());        assert(Value::parse("[1,]").is_err());        assert(Value::parse("nul").is_err());        assert(Value::parse("").is_err());    }
+        assert!(Value::parse("{").is_err());
+        assert!(Value::parse("[1,]").is_err());
+        assert!(Value::parse("nul").is_err());
+        assert!(Value::parse("").is_err());
+    }
 }

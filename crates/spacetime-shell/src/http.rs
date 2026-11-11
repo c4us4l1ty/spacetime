@@ -214,15 +214,22 @@ mod tests {
     #[test]
     fn target_splits_path_and_query() {
         let (path, query) = split_target("/api/tick?n=3&x=a%20b");
-        assert_eq(path, "/api/tick");        assert_eq(query["n"], "3");        assert_eq(query["x"], "a b");    }
+        assert_eq!(path, "/api/tick");
+        assert_eq!(query["n"], "3");
+        assert_eq!(query["x"], "a b");
+    }
 
     #[test]
     fn paths_without_query_work() {
         let (path, query) = split_target("/");
-        assert_eq(path, "/");        assert(query.is_empty());    }
+        assert_eq!(path, "/");
+        assert!(query.is_empty());
+    }
 
     #[test]
     fn finds_header_terminator() {
         let data = b"GET / HTTP/1.1\r\nHost: x\r\n\r\nbody";
-        assert_eq(find_subslice(data, b"\r\n\r\n"), Some(26));        assert_eq(find_subslice(data, b"nope"), None);    }
+        assert_eq!(find_subslice(data, b"\r\n\r\n"), Some(26));
+        assert_eq!(find_subslice(data, b"nope"), None);
+    }
 }

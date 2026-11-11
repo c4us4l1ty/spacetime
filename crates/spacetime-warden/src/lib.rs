@@ -164,20 +164,27 @@ mod tests {
         let mut warden = Warden::default();
         warden.apply_focus(TabId(1), &[(TabId(1), false), (TabId(2), false)]);
         let sink = warden.sink();
-        assert_eq(sink.limits[&TabId(1)].cpu_permille, 750);        assert_eq(sink.limits[&TabId(2)].cpu_permille, 50);        assert_eq(warden.throttle_events, 1);    }
+        assert_eq!(sink.limits[&TabId(1)].cpu_permille, 750);
+        assert_eq!(sink.limits[&TabId(2)].cpu_permille, 50);
+        assert_eq!(warden.throttle_events, 1);
+    }
 
     #[test]
     fn background_compute_opt_out_keeps_full_cpu() {
         let mut warden = Warden::default();
         warden.apply_focus(TabId(1), &[(TabId(1), false), (TabId(2), true)]);
-        assert_eq(warden.sink().limits[&TabId(2)].cpu_permille, 750);        assert_eq(warden.throttle_events, 0);    }
+        assert_eq!(warden.sink().limits[&TabId(2)].cpu_permille, 750);
+        assert_eq!(warden.throttle_events, 0);
+    }
 
     #[test]
     fn freeze_thaw_is_recorded() {
         let mut warden = Warden::default();
         warden.freeze(TabId(3));
-        assert(warden.sink().frozen[&TabId(3)]);        warden.thaw(TabId(3));
-        assert(!warden.sink().frozen[&TabId(3)]);    }
+        assert!(warden.sink().frozen[&TabId(3)]);
+        warden.thaw(TabId(3));
+        assert!(!warden.sink().frozen[&TabId(3)]);
+    }
 
     #[test]
     fn balloon_reclaim_is_summed() {
@@ -185,10 +192,15 @@ mod tests {
         warden.report_balloon(TabId(1), 900, 64);
         warden.report_balloon(TabId(1), 700, 32);
         warden.report_balloon(TabId(2), 400, 16);
-        assert_eq(warden.balloon(TabId(1)).reclaimed_mb, 96);        assert_eq(warden.reclaimed_mb, 112);        assert_eq(warden.balloon(TabId(2)).resident_mb, 400);    }
+        assert_eq!(warden.balloon(TabId(1)).reclaimed_mb, 96);
+        assert_eq!(warden.reclaimed_mb, 112);
+        assert_eq!(warden.balloon(TabId(2)).resident_mb, 400);
+    }
 
     #[test]
     fn fork_bomb_ceiling_is_finite() {
         let warden = Warden::default();
-        assert(warden.pids_ceiling(TabId(9)) <= 256);        assert_eq(warden.host_ram_mb(), 0);    }
+        assert!(warden.pids_ceiling(TabId(9)) <= 256);
+        assert_eq!(warden.host_ram_mb(), 0);
+    }
 }

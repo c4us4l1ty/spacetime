@@ -138,10 +138,18 @@ mod tests {
         let backend = DirBackend::open(&dir).unwrap();
         let mut store = CasStore::new(backend);
         let insert = store.insert(b"torch-cu121").unwrap();
-        assert(!insert.deduplicated);        assert_eq(store.get(insert.hash).unwrap(), b"torch-cu121".to_vec());        assert_eq(store.object_count(), 1);        store.insert(b"torch-cu121").unwrap();
-        assert_eq(store.stored_bytes(), 10);        assert_eq(store.saved_bytes(), 10);        let removed = store.release(insert.hash).unwrap();
-        assert(!removed);        let freed = store.release(insert.hash).unwrap();
-        assert(freed);        assert_eq(store.stored_bytes(), 0);        fs::remove_dir_all(&dir).ok();
+        assert!(!insert.deduplicated);
+        assert_eq!(store.get(insert.hash).unwrap(), b"torch-cu121".to_vec());
+        assert_eq!(store.object_count(), 1);
+        store.insert(b"torch-cu121").unwrap();
+        assert_eq!(store.stored_bytes(), 10);
+        assert_eq!(store.saved_bytes(), 10);
+        let removed = store.release(insert.hash).unwrap();
+        assert!(!removed);
+        let freed = store.release(insert.hash).unwrap();
+        assert!(freed);
+        assert_eq!(store.stored_bytes(), 0);
+        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]
@@ -151,6 +159,7 @@ mod tests {
         let hash = spacetime_core::sha256(b"x");
         let path = backend.path_for(hash);
         let hex = hash.to_hex();
-        assert(path.ends_with(format!("sha256/{}/{}/{}", &hex[0..2], &hex[2..4], hex)));        fs::remove_dir_all(&dir).ok();
+        assert!(path.ends_with(format!("sha256/{}/{}/{}", &hex[0..2], &hex[2..4], hex)));
+        fs::remove_dir_all(&dir).ok();
     }
 }

@@ -139,23 +139,36 @@ mod tests {
 
     #[test]
     fn advisory_vs_structural() {
-        assert_eq(Directive::parse("use dark mode", 0).priority, Priority::Advisory);        assert_eq(Directive::parse("--skip", 0).priority, Priority::Constraint);        assert_eq(Directive::parse("--stop", 0).priority, Priority::Stop);        assert_eq(Directive::parse("aspect:9:16", 0).priority, Priority::Constraint);    }
+        assert_eq!(Directive::parse("use dark mode", 0).priority, Priority::Advisory);
+        assert_eq!(Directive::parse("--skip", 0).priority, Priority::Constraint);
+        assert_eq!(Directive::parse("--stop", 0).priority, Priority::Stop);
+        assert_eq!(Directive::parse("aspect:9:16", 0).priority, Priority::Constraint);
+    }
 
     #[test]
     fn drain_is_atomic_per_heartbeat() {
         let mut channel = SteerChannel::new();
         channel.push("use dark mode", 1_000);
         channel.push("--skip tests", 1_010);
-        assert_eq(channel.pending(), 2);        let drained = channel.drain();
-        assert_eq(drained.len(), 2);        assert_eq(channel.pending(), 0);        assert_eq(channel.history().len(), 2);        assert(drained.iter().all(|d| d.consumed));    }
+        assert_eq!(channel.pending(), 2);
+        let drained = channel.drain();
+        assert_eq!(drained.len(), 2);
+        assert_eq!(channel.pending(), 0);
+        assert_eq!(channel.history().len(), 2);
+        assert!(drained.iter().all(|d| d.consumed));
+    }
 
     #[test]
     fn stop_is_detected() {
         let mut channel = SteerChannel::new();
-        assert(!channel.stop_requested());        channel.push("--stop", 5);
-        assert(channel.stop_requested());        channel.drain();
-        assert(channel.stop_requested());        channel.push("carry on", 9);
-        assert(!channel.stop_requested() || channel.pending() == 1);    }
+        assert!(!channel.stop_requested());
+        channel.push("--stop", 5);
+        assert!(channel.stop_requested());
+        channel.drain();
+        assert!(channel.stop_requested());
+        channel.push("carry on", 9);
+        assert!(!channel.stop_requested() || channel.pending() == 1);
+    }
 
     #[test]
     fn json_is_most_recent_first() {
@@ -165,5 +178,6 @@ mod tests {
         channel.drain();
         let json = channel.to_json();
         let history = json.get("history").unwrap().as_arr().unwrap();
-        assert_eq(history[0].str_of("text"), "two");    }
+        assert_eq!(history[0].str_of("text"), "two");
+    }
 }

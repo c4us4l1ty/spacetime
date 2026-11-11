@@ -189,19 +189,29 @@ mod tests {
 
     #[test]
     fn residential_and_hosting_are_distinguished() {
-        assert_eq(GeoIp::lookup(quad(73, 14, 3, 9)).kind, AsnKind::Residential);        assert(GeoIp::lookup(quad(52, 10, 0, 1)).kind.is_flagged_by_waf());        assert(!GeoIp::lookup(quad(73, 14, 3, 9)).kind.is_flagged_by_waf());    }
+        assert_eq!(GeoIp::lookup(quad(73, 14, 3, 9)).kind, AsnKind::Residential);
+        assert!(GeoIp::lookup(quad(52, 10, 0, 1)).kind.is_flagged_by_waf());
+        assert!(!GeoIp::lookup(quad(73, 14, 3, 9)).kind.is_flagged_by_waf());
+    }
 
     #[test]
     fn bulletproof_russian_range_matches_demo() {
         let record = GeoIp::lookup(quad(185, 220, 101, 1));
-        assert_eq(record.country, "RU");        assert_eq(record.kind, AsnKind::Bulletproof);        assert(GeoIp::label(quad(185, 220, 101, 1)).contains("AS49505"));    }
+        assert_eq!(record.country, "RU");
+        assert_eq!(record.kind, AsnKind::Bulletproof);
+        assert!(GeoIp::label(quad(185, 220, 101, 1)).contains("AS49505"));
+    }
 
     #[test]
     fn private_space() {
-        assert_eq(GeoIp::lookup(quad(10, 1, 2, 3)).kind, AsnKind::Private);        assert_eq(GeoIp::lookup(quad(192, 168, 4, 4)).kind, AsnKind::Private);    }
+        assert_eq!(GeoIp::lookup(quad(10, 1, 2, 3)).kind, AsnKind::Private);
+        assert_eq!(GeoIp::lookup(quad(192, 168, 4, 4)).kind, AsnKind::Private);
+    }
 
     #[test]
     fn unknown_falls_back_cleanly() {
         let record = GeoIp::lookup(quad(8, 8, 8, 8));
-        assert_eq(record.kind, AsnKind::Unknown);        assert_eq(record.country, "??");    }
+        assert_eq!(record.kind, AsnKind::Unknown);
+        assert_eq!(record.country, "??");
+    }
 }

@@ -206,36 +206,52 @@ mod tests {
             argv: vec!["/bin/sh".into(), "-c".into(), "echo hello world".into()],
         };
         let line = encode(&command);
-        assert_eq(line, "EXEC /bin/sh -c echo%20hello%20world");        assert_eq(decode(&line).unwrap(), command);    }
+        assert_eq!(line, "EXEC /bin/sh -c echo%20hello%20world");
+        assert_eq!(decode(&line).unwrap(), command);
+    }
 
     #[test]
     fn clipboard_is_sanitized_text() {
         let command = HostCommand::Clip {
             text: "hello world 100%".into(),
         };
-        assert_eq(decode(&encode(&command)).unwrap(), command);    }
+        assert_eq!(decode(&encode(&command)).unwrap(), command);
+    }
 
     #[test]
     fn resize_parses_numbers() {
         let command = decode("RESIZE 12 120 30").unwrap();
-        assert_eq(
+        assert_eq!(
             command,
             HostCommand::Resize {
                 pid: 12,
                 cols: 120,
                 rows: 30
             },
-        );        assert(decode("RESIZE x 1 2").is_err());        assert(decode("RESIZE").is_err());    }
+        );
+        assert!(decode("RESIZE x 1 2").is_err());
+        assert!(decode("RESIZE").is_err());
+    }
 
     #[test]
     fn poweroff_and_events() {
-        assert_eq(decode("POWEROFF").unwrap(), HostCommand::Poweroff);        assert_eq(encode_event(&GuestEvent::Ready { version: PROTOCOL_VERSION }), "READY 1");        assert_eq(encode_event(&GuestEvent::Exit { pid: 7, code: 1 }), "EXIT 7 1");    }
+        assert_eq!(decode("POWEROFF").unwrap(), HostCommand::Poweroff);
+        assert_eq!(encode_event(&GuestEvent::Ready { version: PROTOCOL_VERSION }), "READY 1");
+        assert_eq!(encode_event(&GuestEvent::Exit { pid: 7, code: 1 }), "EXIT 7 1");
+    }
 
     #[test]
     fn bad_input_is_rejected() {
-        assert(decode("").is_err());        assert(decode("FLY away").is_err());        assert(decode("EXEC").is_err());    }
+        assert!(decode("").is_err());
+        assert!(decode("FLY away").is_err());
+        assert!(decode("EXEC").is_err());
+    }
 
     #[test]
     fn boot_plan_is_ordered_and_complete() {
-        assert_eq(BOOT_PLAN.len(), 7);        assert_eq(BOOT_PLAN[0], BootStep::MountProc);        assert_eq(*BOOT_PLAN.last().unwrap(), BootStep::SignalReady);        assert(boot_plan_text().contains("signal READY"));    }
+        assert_eq!(BOOT_PLAN.len(), 7);
+        assert_eq!(BOOT_PLAN[0], BootStep::MountProc);
+        assert_eq!(*BOOT_PLAN.last().unwrap(), BootStep::SignalReady);
+        assert!(boot_plan_text().contains("signal READY"));
+    }
 }

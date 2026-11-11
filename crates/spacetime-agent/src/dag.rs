@@ -381,10 +381,13 @@ mod tests {
         let b = dag.add_child(a, "cut silence", vec![a]).unwrap();
         let _ = dag.add_child(a, "export mp4", vec![b]).unwrap();
 
-        assert_eq(dag.pull_ready(), Some(a));        dag.complete_active("3 clips imported");
-        assert_eq(dag.pull_ready(), Some(b));        dag.complete_active("removed 12 s of silence");
+        assert_eq!(dag.pull_ready(), Some(a));
+        dag.complete_active("3 clips imported");
+        assert_eq!(dag.pull_ready(), Some(b));
+        dag.complete_active("removed 12 s of silence");
         let third = dag.pull_ready().expect("export should be ready");
-        assert_eq(dag.get(third).unwrap().title, "export mp4");    }
+        assert_eq!(dag.get(third).unwrap().title, "export mp4");
+    }
 
     #[test]
     fn failures_retry_then_abandon() {
@@ -392,11 +395,13 @@ mod tests {
         let a = dag.add_root("flaky step");
         dag.pull_ready();
         dag.fail_active("crashed");
-        assert_eq(dag.get(a).unwrap().state, NodeState::Pending);        dag.pull_ready();
+        assert_eq!(dag.get(a).unwrap().state, NodeState::Pending);
+        dag.pull_ready();
         dag.fail_active("crashed");
         dag.pull_ready();
         dag.fail_active("crashed");
-        assert_eq(dag.get(a).unwrap().state, NodeState::Abandoned);    }
+        assert_eq!(dag.get(a).unwrap().state, NodeState::Abandoned);
+    }
 
     #[test]
     fn rollback_reopens_active_node() {
@@ -404,36 +409,45 @@ mod tests {
         let a = dag.add_root("risky step");
         dag.pull_ready();
         dag.rollback_active("kernel panic");
-        assert_eq(dag.get(a).unwrap().state, NodeState::Ready);        assert(dag.get(a).unwrap().note.contains("auto-rewound"));    }
+        assert_eq!(dag.get(a).unwrap().state, NodeState::Ready);
+        assert!(dag.get(a).unwrap().note.contains("auto-rewound"));
+    }
 
     #[test]
     fn steer_appends_or_annotates() {
         let mut dag = GoalDag::new("x");
         dag.steer_active("use dark mode");
-        assert(dag.summary(4).contains("use dark mode"));
+        assert!(dag.summary(4).contains("use dark mode"));
         let a = dag.add_root("active task");
         dag.pull_ready();
         dag.steer_active("9:16 vertical");
-        assert(dag.get(a).unwrap().note.contains("9:16"));    }
+        assert!(dag.get(a).unwrap().note.contains("9:16"));
+    }
 
     #[test]
     fn progress_and_completion() {
         let mut dag = GoalDag::new("x");
         let a = dag.add_root("one");
         dag.add_root("two");
-        assert_eq(dag.progress(), 0.0);        dag.pull_ready();
+        assert_eq!(dag.progress(), 0.0);
+        dag.pull_ready();
         dag.complete_active("done");
-        assert((dag.progress() - 0.5).abs() < f64::EPSILON);        assert(!dag.is_complete());        dag.pull_ready();
+        assert!((dag.progress() - 0.5).abs() < f64::EPSILON);
+        assert!(!dag.is_complete());
+        dag.pull_ready();
         dag.complete_active("done");
-        assert(dag.is_complete());    }
+        assert!(dag.is_complete());
+    }
 
     #[test]
     fn remove_prunes_planned_nodes() {
         let mut dag = GoalDag::new("x");
         let a = dag.add_root("keep");
         let b = dag.add_root("drop");
-        assert_eq(dag.remove(a), Err(DagError::NotReady(a)));        dag.remove(b).unwrap();
-        assert_eq(dag.len(), 1);    }
+        assert_eq!(dag.remove(a), Err(DagError::NotReady(a)));
+        dag.remove(b).unwrap();
+        assert_eq!(dag.len(), 1);
+    }
 
     #[test]
     fn json_tree_nests_children() {
@@ -442,5 +456,6 @@ mod tests {
         dag.add_child(a, "kid", vec![]).unwrap();
         let json = dag.to_json();
         let roots = json.get("nodes").unwrap().as_arr().unwrap();
-        assert_eq(roots[0].get("children").unwrap().as_arr().unwrap().len(), 1);    }
+        assert_eq!(roots[0].get("children").unwrap().as_arr().unwrap().len(), 1);
+    }
 }

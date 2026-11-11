@@ -26,5 +26,7 @@ jobs:
           git config user.name "spacetime-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git commit -m "style: cargo fmt [skip ci]"
+          # Deliberately no [skip ci]: the formatted commit must be checked by
+          # the remote compiler (ci.yml + diag.yml) on the very next push.
+          git commit -m "style: cargo fmt"
           git push

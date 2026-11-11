@@ -248,16 +248,23 @@ mod tests {
 
     #[test]
     fn token_estimate_is_rough_but_sane() {
-        assert_eq(estimate_tokens(""), 1);        assert_eq(estimate_tokens("12345678"), 2);        assert(estimate_tokens(&"a".repeat(4_000)) >= 900);    }
+        assert_eq!(estimate_tokens(""), 1);
+        assert_eq!(estimate_tokens("12345678"), 2);
+        assert!(estimate_tokens(&"a".repeat(4_000)) >= 900);
+    }
 
     #[test]
     fn session_charges_and_flushes() {
         let mut compactor = Compactor::new(10, 100);
         let mut session = compactor.open();
-        assert(session.charge(&"x".repeat(200))); // ~50 tokens
-        assert(!session.charge(&"x".repeat(400))); // would blow the budget
+        assert!(session.charge(&"x".repeat(200))); // ~50 tokens
+        assert!(!session.charge(&"x".repeat(400))); // would blow the budget
         let fresh = compactor.flush(&mut session, 5_000, "budget");
-        assert_eq(session.ended_because, "budget");        assert_eq(fresh.number, 2);        assert_eq(compactor.stats().flushes, 1);        assert_eq(fresh.tokens_used, 0);    }
+        assert_eq!(session.ended_because, "budget");
+        assert_eq!(fresh.number, 2);
+        assert_eq!(compactor.stats().flushes, 1);
+        assert_eq!(fresh.tokens_used, 0);
+    }
 
     #[test]
     fn turn_cap_triggers_flush() {
@@ -265,7 +272,9 @@ mod tests {
         for _ in 0..10 {
             session.charge("tiny");
         }
-        assert(session.should_flush(10));        assert_eq(session.turns, 10);    }
+        assert!(session.should_flush(10));
+        assert_eq!(session.turns, 10);
+    }
 
     #[test]
     fn hydration_contains_external_state_and_nothing_else() {
@@ -283,8 +292,15 @@ mod tests {
             "[1] File  [2] Export  [3] Cancel",
         );
 
-        assert(prompt.contains("build a crypto tracker"));        assert(prompt.contains("export mp4"));        assert(prompt.contains("github.com/me/crypto-tracker"));        assert(prompt.contains("[2] Export"));        // Only the most recent notes are carried, and no screenshot history.
-        assert(!prompt.contains("home screen"));        assert(session.hydrated);        assert(session.tokens_used > 0);    }
+        assert!(prompt.contains("build a crypto tracker"));
+        assert!(prompt.contains("export mp4"));
+        assert!(prompt.contains("github.com/me/crypto-tracker"));
+        assert!(prompt.contains("[2] Export"));
+        // Only the most recent notes are carried, and no screenshot history.
+        assert!(!prompt.contains("home screen"));
+        assert!(session.hydrated);
+        assert!(session.tokens_used > 0);
+    }
 
     #[test]
     fn scratchpad_renders_bounded_notes() {
@@ -293,5 +309,7 @@ mod tests {
             scratch.note(&format!("note {i}"));
         }
         let text = scratch.render(3);
-        assert(text.contains("note 49"));        assert(!text.contains("note 40"));    }
+        assert!(text.contains("note 49"));
+        assert!(!text.contains("note 40"));
+    }
 }

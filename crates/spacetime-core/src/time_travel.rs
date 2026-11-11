@@ -279,7 +279,7 @@ mod tests {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         tt.seed(image(&[(1, 0xaa), (2, 0xbb)]));
         let snap = tt.capture(&image(&[(1, 0xaa), (2, 0xcc), (3, 0xdd)]), 1_000).unwrap();
-        assert_eq(snap.diff.page_count(), 2); // page 1 unchanged, 2 and 3 are new
+        assert_eq!(snap.diff.page_count(), 2); // page 1 unchanged, 2 and 3 are new
     }
 
     #[test]
@@ -287,7 +287,9 @@ mod tests {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         let img = image(&[(1, 1)]);
         tt.seed(img.clone());
-        assert(tt.capture(&img, 500).is_none());        assert(tt.is_empty());    }
+        assert!(tt.capture(&img, 500).is_none());
+        assert!(tt.is_empty());
+    }
 
     #[test]
     fn rewind_restores_earlier_state() {
@@ -297,9 +299,11 @@ mod tests {
         tt.capture(&image(&[(1, 0x03), (9, 0x09)]), 2_000).unwrap();
 
         let at_1500 = tt.rewind_to(1_500).unwrap();
-        assert_eq(at_1500.get_page(1), Some(&[0x02u8; PAGE_SIZE as usize][..]));        assert(at_1500.get_page(9).is_none());
+        assert_eq!(at_1500.get_page(1), Some(&[0x02u8; PAGE_SIZE as usize][..]));
+        assert!(at_1500.get_page(9).is_none());
         let at_2500 = tt.rewind_to(2_500).unwrap();
-        assert_eq(at_2500.get_page(9), Some(&[0x09u8; PAGE_SIZE as usize][..]));    }
+        assert_eq!(at_2500.get_page(9), Some(&[0x09u8; PAGE_SIZE as usize][..]));
+    }
 
     #[test]
     fn horizon_eviction_refolds_base() {
@@ -311,15 +315,19 @@ mod tests {
         }
         // Only snapshots within the 10 s horizon survive.
         let (start, end) = tt.window();
-        assert(end - start <= 10_000);        // Rewinding after eviction still returns something coherent.
-        assert(tt.rewind_to(end).is_some());    }
+        assert!(end - start <= 10_000);
+        // Rewinding after eviction still returns something coherent.
+        assert!(tt.rewind_to(end).is_some());
+    }
 
     #[test]
     fn markers_are_attached() {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         tt.seed(image(&[(1, 0)]));
         tt.capture(&image(&[(1, 1)]), 1_000).unwrap();
-        assert(tt.mark("file created"));        assert_eq(tt.snapshots()[0].marker.as_deref(), Some("file created"));    }
+        assert!(tt.mark("file created"));
+        assert_eq!(tt.snapshots()[0].marker.as_deref(), Some("file created"));
+    }
 
     #[test]
     fn full_image_rebuild_matches_live_state() {
@@ -328,7 +336,9 @@ mod tests {
         let live = image(&[(1, 0x11), (2, 0x22), (3, 0x33)]);
         tt.capture(&live, 1_000).unwrap();
         let rebuilt = tt.rewind_to(1_000).unwrap();
-        assert_eq(rebuilt.page_count(), live.page_count());        assert_eq(rebuilt.get_page(2), live.get_page(2));    }
+        assert_eq!(rebuilt.page_count(), live.page_count());
+        assert_eq!(rebuilt.get_page(2), live.get_page(2));
+    }
 
     #[test]
     fn json_includes_pins() {
@@ -337,6 +347,8 @@ mod tests {
         tt.capture(&image(&[(1, 5)]), 1_000).unwrap();
         tt.mark("risky action");
         let json = tt.to_json();
-        assert_eq(json.u64_of("count"), 1);        let pins = json.get("pins").unwrap().as_arr().unwrap();
-        assert_eq(pins[0].str_of("marker"), "risky action");    }
+        assert_eq!(json.u64_of("count"), 1);
+        let pins = json.get("pins").unwrap().as_arr().unwrap();
+        assert_eq!(pins[0].str_of("marker"), "risky action");
+    }
 }

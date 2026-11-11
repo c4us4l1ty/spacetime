@@ -703,7 +703,11 @@ mod tests {
     #[test]
     fn demo_scene_boots_tabs_from_zygote() {
         let engine = Spacetime::demo(EngineConfig::default());
-        assert_eq(engine.tabs.live_count(), 3);        assert_eq(engine.vm_count(), 3);        assert_eq(engine.zygote.clones_served(), 3);        assert(engine.log.iter().any(|l| l.text.contains("zygote ready")));    }
+        assert_eq!(engine.tabs.live_count(), 3);
+        assert_eq!(engine.vm_count(), 3);
+        assert_eq!(engine.zygote.clones_served(), 3);
+        assert!(engine.log.iter().any(|l| l.text.contains("zygote ready")));
+    }
 
     #[test]
     fn focus_switches_throttle_the_old_tab() {
@@ -717,13 +721,18 @@ mod tests {
             .find(|id| *id != first)
             .unwrap();
         engine.focus(other);
-        assert_eq(engine.tabs.get(TabId(other)).unwrap().state, spacetime_core::TabState::Running);        assert_eq(engine.warden.sink().limits[&TabId(first)].cpu_permille, 50);    }
+        assert_eq!(engine.tabs.get(TabId(other)).unwrap().state, spacetime_core::TabState::Running);
+        assert_eq!(engine.warden.sink().limits[&TabId(first)].cpu_permille, 50);
+    }
 
     #[test]
     fn ticking_produces_snapshots_and_net_events() {
         let mut engine = Spacetime::demo(EngineConfig::default());
         engine.run(20);
-        assert(engine.travel.len() > 0);        assert(engine.travel.window().1 > 0);        assert(engine.net.stats().entries() > 0);    }
+        assert!(engine.travel.len() > 0);
+        assert!(engine.travel.window().1 > 0);
+        assert!(engine.net.stats().entries() > 0);
+    }
 
     #[test]
     fn ghost_cursor_moves_toward_target() {
@@ -731,28 +740,35 @@ mod tests {
         engine.run(6);
         engine.cursor.move_to(900.0, 400.0, "test");
         engine.cursor.advance(400);
-        assert(engine.cursor.x > 640.0);    }
+        assert!(engine.cursor.x > 640.0);
+    }
 
     #[test]
     fn branch_creates_child_tab_and_vm() {
         let mut engine = Spacetime::demo(EngineConfig::default());
         let parent = engine.tabs.focus().unwrap().0;
         let child = engine.branch(parent).unwrap();
-        assert_eq(engine.tabs.get(TabId(child)).unwrap().parent, Some(TabId(parent)));        assert_eq(engine.vm_count(), 4);    }
+        assert_eq!(engine.tabs.get(TabId(child)).unwrap().parent, Some(TabId(parent)));
+        assert_eq!(engine.vm_count(), 4);
+    }
 
     #[test]
     fn close_stops_vms() {
         let mut engine = Spacetime::demo(EngineConfig::default());
         let target = engine.tabs.walk()[0].1 .0;
         engine.close(target);
-        assert_eq(engine.vm_count(), 2);        assert_eq(engine.tabs.live_count(), 2);    }
+        assert_eq!(engine.vm_count(), 2);
+        assert_eq!(engine.tabs.live_count(), 2);
+    }
 
     #[test]
     fn steering_reaches_the_agent() {
         let mut engine = Spacetime::demo(EngineConfig::default());
         engine.steer("use 9:16");
-        assert_eq(engine.agent.steer.pending(), 1);        engine.tick();
-        assert_eq(engine.agent.steer.pending(), 0);    }
+        assert_eq!(engine.agent.steer.pending(), 1);
+        engine.tick();
+        assert_eq!(engine.agent.steer.pending(), 0);
+    }
 
     #[test]
     fn rewind_restores_focused_tab() {
@@ -761,7 +777,8 @@ mod tests {
         let target = engine.now_ms.saturating_sub(2_000);
         let focus = engine.tabs.focus().unwrap().0;
         engine.rewind(focus, target);
-        assert(engine.log.iter().any(|l| l.text.contains("rewound")));    }
+        assert!(engine.log.iter().any(|l| l.text.contains("rewound")));
+    }
 
     #[test]
     fn json_snapshot_has_all_sections() {
@@ -769,14 +786,19 @@ mod tests {
         engine.run(5);
         let json = engine.to_json();
         for key in ["tabs", "travel", "net", "warden", "agent", "cursor", "zygote", "log"] {
-            assert(json.get(key).is_some(), "missing {key}");        }
-        assert(json.u64_of("now_ms") > 0);        // Must round-trip through the JSON writer used by the daemon.
+            assert!(json.get(key).is_some(), "missing {key}");
+        }
+        assert!(json.u64_of("now_ms") > 0);
+        // Must round-trip through the JSON writer used by the daemon.
         let text = json.to_string();
-        assert(Value::parse(&text).is_ok());    }
+        assert!(Value::parse(&text).is_ok());
+    }
 
     #[test]
     fn long_session_does_not_panic() {
         let mut engine = Spacetime::demo(EngineConfig::default());
         engine.run(300);
-        assert(engine.now_ms >= 120_000);        assert(engine.travel.len() > 5);    }
+        assert!(engine.now_ms >= 120_000);
+        assert!(engine.travel.len() > 5);
+    }
 }

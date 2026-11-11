@@ -231,38 +231,43 @@ mod tests {
 
     #[test]
     fn risky_actions_are_classified() {
-        assert(
+        assert!(
             ProposedAction::Click {
             mark: 3,
             why: "delete the project".into()
         }
         .is_risky(),
-        );        assert(
+        );
+        assert!(
             ProposedAction::Type {
             mark: 1,
             text: "rm -rf ~".into(),
             why: "x".into()
         }
         .is_risky(),
-        );        assert(
+        );
+        assert!(
             !ProposedAction::Click {
             mark: 3,
             why: "open the file menu".into()
         }
         .is_risky(),
-        );        assert(
+        );
+        assert!(
             !ProposedAction::Done {
             result: "ok".into()
         }
         .is_risky(),
-        );    }
+        );
+    }
 
     #[test]
     fn empty_screen_completes() {
         let mut brain = SimulatedBrain::new();
         let mut obs = observation();
         obs.screen = Screen::from_elements(1, 10, 10, vec![]);
-        assert(matches!(brain.act(&obs), ProposedAction::Done { .. }));    }
+        assert!(matches!(brain.act(&obs), ProposedAction::Done { .. }));
+    }
 }
 
 impl Brain for Box<dyn Brain> {

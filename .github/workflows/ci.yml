@@ -74,22 +74,30 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build release
-        run: cargo build --workspace --release
+        run: |
+          set -o pipefail
+          cargo build --workspace --release 2>&1 | tee build.txt
       - name: CLI presents itself
-        run: ./target/release/spacetime versions
+        run: |
+          set -o pipefail
+          ./target/release/spacetime versions 2>&1 | tee -a build.txt
       - name: CLI runs a headless session
-        run: ./target/release/spacetime run --ticks 40
+        run: |
+          set -o pipefail
+          ./target/release/spacetime run --ticks 40 2>&1 | tee -a build.txt
       - name: Dashboard serves valid state
         run: |
-          ./target/release/spacetime serve --port 7420 &
-          SERVER=$!
-          for i in $(seq 1 60); do
-            if curl -sf http://127.0.0.1:7420/api/state > state.json; then break; fi
-            sleep 0.25
-          done
-          kill $SERVER || true
-          test -s state.json || { echo "::error title=smoke::dashboard never answered"; exit 1; }
-          python3 - <<'PY'
+          set -o pipefail
+          {
+            ./target/release/spacetime serve --port 7420 &
+            SERVER=$!
+            for i in $(seq 1 60); do
+              if curl -sf http://127.0.0.1:7420/api/state > state.json; then break; fi
+              sleep 0.25
+            done
+            kill $SERVER || true
+            test -s state.json || { echo "::error title=smoke::dashboard never answered"; exit 1; }
+            python3 - <<'PY'
           import json
           state = json.load(open('state.json'))
           for key in ('tabs', 'travel', 'net', 'warden', 'agent', 'cursor', 'zygote', 'log'):
@@ -97,6 +105,14 @@ jobs:
           assert state['tabs']['live'] >= 3, state['tabs']
           print('state ok:', state['tabs']['live'], 'tabs,', len(state['net']['entries']), 'net events')
           PY
+          } 2>&1 | tee -a build.txt
+      - name: Upload smoke diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-smoke
+          path: build.txt
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         with:
           name: workspace-state
@@ -150,22 +166,27 @@ jobs:
           {
             echo "### CI diagnostics for ${SHA:0:7}"
             echo
-            for f in clippy.txt tests.txt; do
+            for f in clippy.txt tests.txt build.txt; do
               [ -f "$f" ] || continue
               echo "<details><summary>$f</summary>"
               echo
               echo '```'
-              # keep only useful lines, cap at 300 lines per file
-              grep -E 'error|warning\[|warning:|test result|FAILED|panicked|^ *-->|^ *\||^ *=' "$f" | head -300 || true
+              # Strip ANSI first (cargo emits colour codes even into files),
+              # then keep useful lines and cap at 300 lines per file.
+              sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$f" \
+                | grep -E 'error|warning\[|warning:|test result|FAILED|panicked|assertion|left:|right:|^ *-->|^ *\||^ *=' \
+                | head -300 || true
               echo '```'
               echo "</details>"
               echo
             done
           } > "$body"
+          # GitHub commit comments are capped at 65536 bytes.
+          head -c 60000 "$body" > /tmp/body.trim && mv /tmp/body.trim "$body"
           BYTES=$(wc -c < "$body")
           echo "comment body bytes: $BYTES"
           if [ "$BYTES" -lt 400 ]; then
-            echo "(no logs captured; still posting a note so the failure is visible)" 
+            echo "(no logs captured; still posting a note so the failure is visible)"
             echo "No compiler logs were captured for this run (artifacts missing or empty). See the failing jobs directly." >> "$body"
           fi
           cp "$body" /tmp/summary.md

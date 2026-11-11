@@ -180,20 +180,33 @@ mod tests {
         let mut store = CasStore::default();
         let first = store.insert(b"torch-2.5.1").unwrap();
         let second = store.insert(b"torch-2.5.1").unwrap();
-        assert(!first.deduplicated);        assert(second.deduplicated);        assert_eq(first.hash, second.hash);        assert_eq(store.object_count(), 1);        assert_eq(store.stored_bytes(), 10);        assert_eq(store.saved_bytes(), 10);    }
+        assert!(!first.deduplicated);
+        assert!(second.deduplicated);
+        assert_eq!(first.hash, second.hash);
+        assert_eq!(store.object_count(), 1);
+        assert_eq!(store.stored_bytes(), 10);
+        assert_eq!(store.saved_bytes(), 10);
+    }
 
     #[test]
     fn reads_are_verified() {
         let mut store = CasStore::default();
         let insert = store.insert(b"payload").unwrap();
-        assert_eq(store.get(insert.hash).unwrap(), b"payload".to_vec());        assert(store.get(sha256(b"other")).is_err());    }
+        assert_eq!(store.get(insert.hash).unwrap(), b"payload".to_vec());
+        assert!(store.get(sha256(b"other")).is_err());
+    }
 
     #[test]
     fn release_frees_only_on_last_ref() {
         let mut store = CasStore::default();
         let a = store.insert(b"shared lib").unwrap();
         store.insert(b"shared lib").unwrap();
-        assert(!store.release(a.hash).unwrap());        assert_eq(store.refcount(a.hash), 1);        assert(store.release(a.hash).unwrap());        assert(!store.contains(a.hash));        assert_eq(store.stored_bytes(), 0);    }
+        assert!(!store.release(a.hash).unwrap());
+        assert_eq!(store.refcount(a.hash), 1);
+        assert!(store.release(a.hash).unwrap());
+        assert!(!store.contains(a.hash));
+        assert_eq!(store.stored_bytes(), 0);
+    }
 
     #[test]
     fn sweep_removes_unreferenced() {
@@ -202,5 +215,8 @@ mod tests {
         let b = store.insert(b"y").unwrap();
         store.release(a.hash).unwrap();
         let swept = store.sweep();
-        assert(swept.contains(&a.hash));        assert(!swept.contains(&b.hash));        assert_eq(store.object_count(), 1);    }
+        assert!(swept.contains(&a.hash));
+        assert!(!swept.contains(&b.hash));
+        assert_eq!(store.object_count(), 1);
+    }
 }
