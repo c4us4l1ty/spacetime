@@ -1,15 +1,24 @@
 name: fmt
 
-# Applies rustfmt and commits the result. Run manually when the formatting check
-# is the only failure; this keeps machines without a Rust toolchain honest.
+# Applies rustfmt and commits the result, so a machine with no local Rust
+# toolchain can satisfy `cargo fmt --all --check` through CI.
+#
+# GitHub cannot `workflow_dispatch` a workflow that has never run on the default
+# branch, so this also listens for pushes whose commit message contains `[fmt]`.
+# Push any commit with that marker (even an empty one) to request a format:
+#   git commit --allow-empty -m "style: apply rustfmt [fmt]" && git push
+# The generated `style: cargo fmt` commit carries no marker, so there is no loop.
 on:
   workflow_dispatch:
+  push:
+    branches: ['arena/**']
 
 permissions:
   contents: write
 
 jobs:
   format:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[fmt]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +30,8 @@ jobs:
       - name: cargo fmt
         run: cargo fmt --all
       - name: Commit if changed
+        env:
+          BRANCH: ${{ github.ref_name }}
         run: |
           if git diff --quiet; then echo "already formatted"; exit 0; fi
           git config user.name "spacetime-bot"
@@ -29,4 +40,4 @@ jobs:
           # Deliberately no [skip ci]: the formatted commit must be checked by
           # the remote compiler (ci.yml + diag.yml) on the very next push.
           git commit -m "style: cargo fmt"
-          git push
+          git push origin "HEAD:refs/heads/$BRANCH"

@@ -38,7 +38,14 @@ jobs:
           echo $? > test.status
           cargo fmt --all --check > fmt.log 2>&1
           echo $? > fmt.status
-          wc -l check.log clippy.log test.log fmt.log || true
+          (
+            set -e
+            rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+            cargo build --release -p guest-init --target x86_64-unknown-linux-musl
+            cargo build --release -p guest-init --target aarch64-unknown-linux-musl
+          ) > guest.log 2>&1
+          echo $? > guest.status
+          wc -l check.log clippy.log test.log fmt.log guest.log || true
       - name: Post diagnostics as a commit comment
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,11 +61,11 @@ jobs:
             echo
             echo "| gate | exit | log lines |"
             echo "| --- | --- | --- |"
-            for f in check clippy test fmt; do
+            for f in check clippy test fmt guest; do
               printf '| %s | `%s` | %s |\n' "$f" "$(cat "$f.status")" "$(wc -l < "$f.log")"
             done
             echo
-            for f in check clippy test fmt; do
+            for f in check clippy test fmt guest; do
               status=$(cat "$f.status")
               if [ "$status" = "0" ]; then continue; fi
               echo "<details><summary>$f.log (exit $status)</summary>"

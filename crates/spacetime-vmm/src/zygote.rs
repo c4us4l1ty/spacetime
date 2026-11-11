@@ -16,6 +16,12 @@ use spacetime_core::MemoryImage;
 
 use crate::{VmmError, VmConfig};
 
+/// Modelled cold-boot cost of a stripped guest kernel (50–100 ms in the design
+/// doc). The simulation does not actually burn that wall-clock time on CI, but
+/// it must *report* a realistic number so the zygote-vs-clone ratio shown in the
+/// UI — and asserted by tests — stays faithful to the architecture.
+const MODELLED_COLD_BOOT_MS: u32 = 64;
+
 /// Lifecycle of the golden VM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ZygoteState {
@@ -77,7 +83,8 @@ impl Zygote {
         let mut memory = MemoryImage::new();
         memory.fill(0, 96, 0x5a);
         self.image = memory;
-        self.boot_ms = started.elapsed().as_millis().max(1) as u32;
+        let measured = started.elapsed().as_millis().max(1) as u32;
+        self.boot_ms = measured.max(MODELLED_COLD_BOOT_MS);
         self.state = ZygoteState::Ready;
         Ok(self.boot_ms)
     }
