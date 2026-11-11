@@ -27,6 +27,10 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install aarch64 cross linker
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Compile, lint, test and check formatting
         run: |
           set +e
@@ -42,7 +46,8 @@ jobs:
             set -e
             rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
             cargo build --release -p guest-init --target x86_64-unknown-linux-musl
-            cargo build --release -p guest-init --target aarch64-unknown-linux-musl
+            CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-gnu-gcc \
+              cargo build --release -p guest-init --target aarch64-unknown-linux-musl
           ) > guest.log 2>&1
           echo $? > guest.status
           wc -l check.log clippy.log test.log fmt.log guest.log || true

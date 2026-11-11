@@ -122,12 +122,21 @@ jobs:
   guest:
     name: guest-init cross-build
     runs-on: ubuntu-latest
+    env:
+      # Rust ships self-contained musl CRT/libc objects for this target, but the
+      # host x86_64 `ld` cannot link aarch64 objects (it rejects
+      # --fix-cortex-a53-843419). A cross-capable linker is all that is needed.
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-gnu-gcc
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-unknown-linux-musl, aarch64-unknown-linux-musl
       - uses: Swatinem/rust-cache@v2
+      - name: Install aarch64 cross linker
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Build static guest init
         run: |
           set -o pipefail
