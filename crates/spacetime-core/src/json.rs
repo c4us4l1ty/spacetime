@@ -488,6 +488,21 @@ impl From<f64> for Value {
         Value::Num(n)
     }
 }
+impl From<i64> for Value {
+    fn from(n: i64) -> Value {
+        Value::Num(n as f64)
+    }
+}
+impl From<i32> for Value {
+    fn from(n: i32) -> Value {
+        Value::Num(n as f64)
+    }
+}
+impl From<u8> for Value {
+    fn from(n: u8) -> Value {
+        Value::Num(n as f64)
+    }
+}
 impl From<bool> for Value {
     fn from(b: bool) -> Value {
         Value::Bool(b)

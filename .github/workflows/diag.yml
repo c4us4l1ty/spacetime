@@ -45,7 +45,9 @@ jobs:
           SHA: ${{ github.sha }}
           REPO: ${{ github.repository }}
         run: |
-          set -euo pipefail
+          # No pipefail here: `head` closing a pipe early is expected and must
+          # not abort the comment (SIGPIPE from sed/grep is harmless).
+          set -eu
           body=/tmp/body.md
           {
             echo "### remote compiler diagnostics for ${SHA:0:7}"
@@ -58,11 +60,11 @@ jobs:
             echo
             for f in check clippy test fmt; do
               status=$(cat "$f.status")
-              [ "$status" = "0" ] && continue
+              if [ "$status" = "0" ]; then continue; fi
               echo "<details><summary>$f.log (exit $status)</summary>"
               echo
               echo '```'
-              sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$f.log" | head -250
+              sed -r 's/\x1B\[[0-9;]*[A-Za-z]//g' "$f.log" | head -250 || true
               echo '```'
               echo "</details>"
               echo

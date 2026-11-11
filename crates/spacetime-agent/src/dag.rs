@@ -6,7 +6,7 @@
 //! acts, verifies, and writes the result back. If the model forgets everything
 //! between ticks, the mission still progresses.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use spacetime_core::json::Value;
 
@@ -171,6 +171,14 @@ impl GoalDag {
     /// Recompute `Pending → Ready` for every node whose deps are done.
     /// Also demotes `Ready → Pending` if a dependency was re-opened by a rewind.
     pub fn refresh(&mut self) {
+        // Snapshot the completed set first: `values_mut()` holds a mutable borrow
+        // of `self.nodes`, so dependency lookups must not touch it in the loop.
+        let done: BTreeSet<NodeId> = self
+            .nodes
+            .iter()
+            .filter(|(_, node)| node.state == NodeState::Done)
+            .map(|(id, _)| *id)
+            .collect();
         for node in self.nodes.values_mut() {
             if matches!(
                 node.state,
@@ -178,10 +186,7 @@ impl GoalDag {
             ) {
                 continue;
             }
-            let deps_done = node
-                .deps
-                .iter()
-                .all(|d| self.nodes.get(d).map(|n| n.state == NodeState::Done).unwrap_or(false));
+            let deps_done = node.deps.iter().all(|dep| done.contains(dep));
             node.state = if deps_done {
                 NodeState::Ready
             } else {
@@ -427,7 +432,7 @@ mod tests {
     #[test]
     fn progress_and_completion() {
         let mut dag = GoalDag::new("x");
-        let a = dag.add_root("one");
+        dag.add_root("one");
         dag.add_root("two");
         assert_eq!(dag.progress(), 0.0);
         dag.pull_ready();
