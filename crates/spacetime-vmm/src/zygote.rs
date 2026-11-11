@@ -103,26 +103,16 @@ impl Zygote {
         }
     }
 
-    pub fn state(&self) -> ZygoteState {
-        self.state
-    }
+    pub fn state(&self) -> ZygoteState { self.state }
 
-    pub fn image(&self) -> &MemoryImage {
-        &self.image
-    }
+    pub fn image(&self) -> &MemoryImage { &self.image }
 
-    pub fn clones_served(&self) -> u64 {
-        self.clones_served
-    }
+    pub fn clones_served(&self) -> u64 { self.clones_served }
 
-    pub fn boot_ms(&self) -> u32 {
-        self.boot_ms
-    }
+    pub fn boot_ms(&self) -> u32 { self.boot_ms }
 
     /// Host RAM the golden image costs once, no matter how many tabs exist.
-    pub fn shared_ram_mb(&self) -> u64 {
-        self.shared_mb
-    }
+    pub fn shared_ram_mb(&self) -> u64 { self.shared_mb }
 
     /// Configure for a specific VM config (image path, shared mounts).
     pub fn prepare(&mut self, config: &VmConfig) -> Result<(), VmmError> {
@@ -151,20 +141,14 @@ mod tests {
     #[test]
     fn cold_zygote_refuses_clones() {
         let mut zygote = Zygote::new();
-        assert!(zygote.take_clone().is_err());
-    }
+        assert(zygote.take_clone().is_err());    }
 
     #[test]
     fn boot_then_clone_is_fast() {
         let mut zygote = Zygote::new();
         let cold_boot = zygote.boot().unwrap();
-        assert!(cold_boot >= 3);
-        assert_eq!(zygote.state(), ZygoteState::Ready);
-        let ms = zygote.take_clone().unwrap();
-        assert!(ms < cold_boot.max(10));
-        assert!(ms <= 15);
-        assert_eq!(zygote.clones_served(), 1);
-    }
+        assert(cold_boot >= 3);        assert_eq(zygote.state(), ZygoteState::Ready);        let ms = zygote.take_clone().unwrap();
+        assert(ms < cold_boot.max(10));        assert(ms <= 15);        assert_eq(zygote.clones_served(), 1);    }
 
     #[test]
     fn zygote_recycles_after_capacity() {
@@ -174,15 +158,11 @@ mod tests {
         for _ in 0..3 {
             zygote.take_clone().unwrap();
         }
-        assert_eq!(zygote.state(), ZygoteState::Retired);
-        assert!(zygote.take_clone().is_err());
-        zygote.boot().unwrap();
-        assert_eq!(zygote.state(), ZygoteState::Ready);
-    }
+        assert_eq(zygote.state(), ZygoteState::Retired);        assert(zygote.take_clone().is_err());        zygote.boot().unwrap();
+        assert_eq(zygote.state(), ZygoteState::Ready);    }
 
     #[test]
     fn shared_ram_is_charged_once() {
         let zygote = Zygote::new();
-        assert_eq!(zygote.shared_ram_mb(), 48);
-    }
+        assert_eq(zygote.shared_ram_mb(), 48);    }
 }

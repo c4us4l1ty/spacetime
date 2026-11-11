@@ -203,9 +203,7 @@ mod tests {
                 el(ElementKind::TextField, "Search", (10, 10, 200, 30)),
             ],
         );
-        assert_eq!(screen.elements.len(), 2);
-        assert!(screen.elements.iter().all(|e| e.mark > 0));
-    }
+        assert_eq(screen.elements.len(), 2);        assert(screen.elements.iter().all(|e| e.mark > 0));    }
 
     #[test]
     fn marks_follow_reading_order() {
@@ -219,10 +217,7 @@ mod tests {
                 el(ElementKind::Button, "top-left", (10, 10, 50, 20)),
             ],
         );
-        assert_eq!(screen.elements[0].label, "top-left");
-        assert_eq!(screen.elements[1].label, "top-right");
-        assert_eq!(screen.elements[2].label, "bottom");
-    }
+        assert_eq(screen.elements[0].label, "top-left");        assert_eq(screen.elements[1].label, "top-right");        assert_eq(screen.elements[2].label, "bottom");    }
 
     #[test]
     fn resolves_marks_to_pixels() {
@@ -233,11 +228,7 @@ mod tests {
             vec![el(ElementKind::Button, "Export", (100, 200, 80, 40))],
         );
         let (x, y, label) = screen.resolve("click #1").unwrap();
-        assert_eq!((x, y), (140, 220));
-        assert_eq!(label, "Export");
-        assert!(screen.resolve("#99").is_none());
-        assert!(screen.resolve("garbage").is_none());
-    }
+        assert_eq((x, y), (140, 220));        assert_eq(label, "Export");        assert(screen.resolve("#99").is_none());        assert(screen.resolve("garbage").is_none());    }
 
     #[test]
     fn markup_is_compact() {
@@ -251,16 +242,12 @@ mod tests {
             ],
         );
         let markup = screen.markup();
-        assert!(markup.contains("[1] menu \"File\""));
-        assert!(screen.token_cost() < 400);
-        assert_eq!(screen.sent_width, 1920);
-    }
+        assert(markup.contains("[1] menu \"File\""));        assert(screen.token_cost() < 400);        assert_eq(screen.sent_width, 1920);    }
 
     #[test]
     fn disabled_elements_are_dropped() {
         let mut disabled = el(ElementKind::Button, "Export", (0, 0, 10, 10));
         disabled.enabled = false;
         let screen = Screen::from_elements(1, 100, 100, vec![disabled]);
-        assert!(screen.elements.is_empty());
-    }
+        assert(screen.elements.is_empty());    }
 }

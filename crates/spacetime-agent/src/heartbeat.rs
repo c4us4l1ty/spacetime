@@ -131,17 +131,11 @@ impl<B: Brain> Heartbeat<B> {
         }
     }
 
-    pub fn phase(&self) -> Phase {
-        self.phase
-    }
+    pub fn phase(&self) -> Phase { self.phase }
 
-    pub fn tick_count(&self) -> u64 {
-        self.tick_count
-    }
+    pub fn tick_count(&self) -> u64 { self.tick_count }
 
-    pub fn results(&self) -> &BTreeMap<NodeId, String> {
-        &self.results
-    }
+    pub fn results(&self) -> &BTreeMap<NodeId, String> { &self.results }
 
     /// Drain queued side effects.
     pub fn drain_events(&mut self) -> Vec<AgentEvent> {
@@ -249,11 +243,9 @@ impl<B: Brain> Heartbeat<B> {
                 );
                 let completed = self.dag.complete_active(&result);
                 self.phase = Phase::Idle;
+                // Pulling the next node also arms it as active, so the following
+                // tick acts immediately instead of wasting a heartbeat.
                 let next = self.dag.pull_ready();
-                if let Some(next_id) = next {
-                    // Re-arm as active so the next tick acts immediately.
-                    self.dag.active = Some(next_id);
-                }
                 return TickOutcome::Completed {
                     node: completed.unwrap_or(node),
                     next,
@@ -366,10 +358,7 @@ mod tests {
                 _ => {}
             }
         }
-        assert!(saw_guard, "expected at least one snapshot-guarded action");
-        assert!(saw_complete, "expected the first node to complete");
-        assert!(hb.dag.progress() > 0.0);
-    }
+        assert(saw_guard, "expected at least one snapshot-guarded action");        assert(saw_complete, "expected the first node to complete");        assert(hb.dag.progress() > 0.0);    }
 
     #[test]
     fn snapshots_are_requested_for_risky_actions() {
@@ -378,14 +367,16 @@ mod tests {
             let _ = hb.tick(screen(), at * 100);
         }
         let events = hb.drain_events();
-        assert!(events.iter().any(|e| matches!(
+        assert(
+            events.iter().any(|e| matches!(
             e,
             AgentEvent::SnapshotRequested { tab: 7, .. }
-        )));
-        assert!(events
+        )),
+        );        assert(
+            events
             .iter()
-            .any(|e| matches!(e, AgentEvent::InputInjected { .. })));
-    }
+            .any(|e| matches!(e, AgentEvent::InputInjected { .. })),
+        );    }
 
     #[test]
     fn auto_rollback_on_injected_failure() {
@@ -394,17 +385,16 @@ mod tests {
         let mut rolled_back = false;
         for at in 0..10u64 {
             if let TickOutcome::RolledBack { reason, .. } = hb.tick(screen(), at * 100) {
-                assert!(reason.contains("auto-rewound"));
-                rolled_back = true;
+                assert(reason.contains("auto-rewound"));                rolled_back = true;
                 break;
             }
         }
-        assert!(rolled_back);
-        let events = hb.drain_events();
-        assert!(events
+        assert(rolled_back);        let events = hb.drain_events();
+        assert(
+            events
             .iter()
-            .any(|e| matches!(e, AgentEvent::RollbackRequested { .. })));
-    }
+            .any(|e| matches!(e, AgentEvent::RollbackRequested { .. })),
+        );    }
 
     #[test]
     fn steering_bends_the_plan_without_stopping() {
@@ -415,21 +405,21 @@ mod tests {
             TickOutcome::Steered { directives } => assert_eq!(directives, 1),
             other => panic!("expected steer, got {other:?}"),
         }
-        assert!(hb.dag.summary(8).contains("9:16") || hb.scratchpad.notes().iter().any(|n| n.contains("9:16")));
-        // Next tick continues acting.
-        assert!(matches!(
+        assert(
+            hb.dag.summary(8).contains("9:16") || hb.scratchpad.notes().iter().any(|n| n.contains("9:16")),
+        );        // Next tick continues acting.
+        assert(
+            matches!(
             hb.tick(screen(), 300),
             TickOutcome::Acted { .. } | TickOutcome::Completed { .. }
-        ));
-    }
+        ),
+        );    }
 
     #[test]
     fn stop_directive_halts() {
         let mut hb = Heartbeat::new("x", 1, SimulatedBrain::new());
         hb.steer.push("--stop", 5);
-        assert_eq!(hb.tick(screen(), 10), TickOutcome::Stopped);
-        assert_eq!(hb.phase(), Phase::Stopped);
-    }
+        assert_eq(hb.tick(screen(), 10), TickOutcome::Stopped);        assert_eq(hb.phase(), Phase::Stopped);    }
 
     #[test]
     fn context_flushes_at_turn_cap_and_rehydrates() {
@@ -441,16 +431,12 @@ mod tests {
             match hb.tick(screen(), at * 100) {
                 TickOutcome::Flushed { .. } => {
                     flushes += 1;
-                    assert_eq!(hb.session.tokens_used, 0);
-                }
+                    assert_eq(hb.session.tokens_used, 0);                }
                 TickOutcome::Acted { .. } if flushes > 0 => acted_after_flush += 1,
                 _ => {}
             }
         }
-        assert!(flushes >= 2, "expected several context resets");
-        assert!(acted_after_flush > 0, "operator must keep working after a reset");
-        assert_eq!(hb.steer.pending(), 0);
-    }
+        assert(flushes >= 2, "expected several context resets");        assert(acted_after_flush > 0, "operator must keep working after a reset");        assert_eq(hb.steer.pending(), 0);    }
 
     #[test]
     fn mission_finishes() {
@@ -460,17 +446,12 @@ mod tests {
         for at in 0..20u64 {
             let _ = hb.tick(empty.clone(), at * 100);
         }
-        assert!(hb.dag.is_complete());
-        assert_eq!(hb.phase(), Phase::Complete);
-    }
+        assert(hb.dag.is_complete());        assert_eq(hb.phase(), Phase::Complete);    }
 
     #[test]
     fn json_exposes_dag_and_session() {
         let mut hb = Heartbeat::new("mission", 1, SimulatedBrain::new());
         let _ = hb.tick(screen(), 0);
         let json = hb.to_json(1_000);
-        assert_eq!(json.str_of("brain"), "simulated");
-        assert!(json.get("dag").is_some());
-        assert!(json.get("session").is_some());
-    }
+        assert_eq(json.str_of("brain"), "simulated");        assert(json.get("dag").is_some());        assert(json.get("session").is_some());    }
 }

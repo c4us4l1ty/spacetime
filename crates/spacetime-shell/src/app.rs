@@ -34,9 +34,7 @@ impl Dashboard {
         }
     }
 
-    pub fn state_json(&self) -> String {
-        self.engine.to_json().to_string()
-    }
+    pub fn state_json(&self) -> String { self.engine.to_json().to_string() }
 
     /// Handle one request. Pure besides the engine mutation, which is what makes
     /// it unit-testable without sockets.
@@ -234,19 +232,14 @@ mod tests {
     fn serves_the_page() {
         let mut dash = Dashboard::new(EngineConfig::default());
         let response = dash.handle(&get("/"));
-        assert_eq!(response.status, 200);
-        assert!(String::from_utf8_lossy(&response.body).contains("SPACETIME"));
-    }
+        assert_eq(response.status, 200);        assert(String::from_utf8_lossy(&response.body).contains("SPACETIME"));    }
 
     #[test]
     fn state_advances_while_playing() {
         let mut dash = Dashboard::new(EngineConfig::default());
         let before = dash.engine.to_json().u64_of("tick");
         let response = dash.handle(&get("/api/state"));
-        assert_eq!(response.status, 200);
-        assert!(dash.engine.to_json().u64_of("tick") > before);
-        assert!(String::from_utf8_lossy(&response.body).contains("\"tabs\""));
-    }
+        assert_eq(response.status, 200);        assert(dash.engine.to_json().u64_of("tick") > before);        assert(String::from_utf8_lossy(&response.body).contains("\"tabs\""));    }
 
     #[test]
     fn pause_halts_progress() {
@@ -254,24 +247,19 @@ mod tests {
         dash.handle(&get("/api/play?on=0"));
         let before = dash.engine.to_json().u64_of("tick");
         dash.handle(&get("/api/state"));
-        assert_eq!(dash.engine.to_json().u64_of("tick"), before);
-    }
+        assert_eq(dash.engine.to_json().u64_of("tick"), before);    }
 
     #[test]
     fn commands_mutate_the_engine() {
         let mut dash = Dashboard::new(EngineConfig::default());
         let tabs = dash.engine.tabs.live_count();
         dash.handle(&get("/api/open?name=test&kind=terminal&trust=airgapped"));
-        assert_eq!(dash.engine.tabs.live_count(), tabs + 1);
-        dash.handle(&get("/api/branch?tab=1"));
-        assert_eq!(dash.engine.tabs.live_count(), tabs + 2);
-        dash.handle(&get("/api/steer?text=use+9:16"));
-        assert_eq!(dash.engine.agent.steer.pending(), 1);
-    }
+        assert_eq(dash.engine.tabs.live_count(), tabs + 1);        dash.handle(&get("/api/branch?tab=1"));
+        assert_eq(dash.engine.tabs.live_count(), tabs + 2);        dash.handle(&get("/api/steer?text=use+9:16"));
+        assert_eq(dash.engine.agent.steer.pending(), 1);    }
 
     #[test]
     fn unknown_route_is_404() {
         let mut dash = Dashboard::new(EngineConfig::default());
-        assert_eq!(dash.handle(&get("/nope")).status, 404);
-    }
+        assert_eq(dash.handle(&get("/nope")).status, 404);    }
 }

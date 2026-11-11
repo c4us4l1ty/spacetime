@@ -50,21 +50,13 @@ impl MemoryImage {
         self.pages.get(&index).map(|v| v.as_slice())
     }
 
-    pub fn page_count(&self) -> usize {
-        self.pages.len()
-    }
+    pub fn page_count(&self) -> usize { self.pages.len() }
 
-    pub fn is_empty(&self) -> bool {
-        self.pages.is_empty()
-    }
+    pub fn is_empty(&self) -> bool { self.pages.is_empty() }
 
-    pub fn byte_len(&self) -> u64 {
-        self.pages.len() as u64 * PAGE_SIZE
-    }
+    pub fn byte_len(&self) -> u64 { self.pages.len() as u64 * PAGE_SIZE }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&u64, &Vec<u8>)> {
-        self.pages.iter()
-    }
+    pub fn iter(&self) -> impl Iterator<Item = (&u64, &Vec<u8>)> { self.pages.iter() }
 
     /// Pages present in `self` but absent or different in `base`.
     pub fn diff_against(&self, base: &MemoryImage) -> MemoryImage {
@@ -106,9 +98,7 @@ pub struct Snapshot {
 
 impl Snapshot {
     /// Host bytes charged for this snapshot.
-    pub fn cost_bytes(&self) -> u64 {
-        self.diff.byte_len()
-    }
+    pub fn cost_bytes(&self) -> u64 { self.diff.byte_len() }
 }
 
 /// Default capture cadence from the design doc: a snapshot every 2 s, keeping
@@ -195,7 +185,6 @@ impl TimeTravel {
     /// Drop snapshots older than the horizon (or beyond the count cap).
     fn evict(&mut self) {
         let newest = self.now_ms;
-        let mut dropped_before: Option<u64> = None;
         while let Some(first) = self.snapshots.first() {
             let too_old = newest.saturating_sub(first.at_ms) > self.horizon_ms;
             let too_many = self.snapshots.len() > self.max_snapshots;
@@ -204,12 +193,10 @@ impl TimeTravel {
                 let first = self.snapshots.remove(0);
                 self.base.apply(&first.diff);
                 self.base_ms = first.at_ms;
-                dropped_before = Some(first.at_ms);
             } else {
                 break;
             }
         }
-        let _ = dropped_before;
     }
 
     /// Reconstruct the full memory image as of `at_ms`.
@@ -237,14 +224,10 @@ impl TimeTravel {
     }
 
     /// All snapshots currently retained, oldest first.
-    pub fn snapshots(&self) -> &[Snapshot] {
-        &self.snapshots
-    }
+    pub fn snapshots(&self) -> &[Snapshot] { &self.snapshots }
 
     /// Total host bytes charged for retained diffs.
-    pub fn cost_bytes(&self) -> u64 {
-        self.snapshots.iter().map(Snapshot::cost_bytes).sum()
-    }
+    pub fn cost_bytes(&self) -> u64 { self.snapshots.iter().map(Snapshot::cost_bytes).sum() }
 
     /// Window currently covered by the scrubber.
     pub fn window(&self) -> (u64, u64) {
@@ -252,13 +235,9 @@ impl TimeTravel {
         (start, self.now_ms)
     }
 
-    pub fn len(&self) -> usize {
-        self.snapshots.len()
-    }
+    pub fn len(&self) -> usize { self.snapshots.len() }
 
-    pub fn is_empty(&self) -> bool {
-        self.snapshots.is_empty()
-    }
+    pub fn is_empty(&self) -> bool { self.snapshots.is_empty() }
 
     /// JSON view for the scrubber UI.
     pub fn to_json(&self) -> crate::json::Value {
@@ -300,7 +279,7 @@ mod tests {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         tt.seed(image(&[(1, 0xaa), (2, 0xbb)]));
         let snap = tt.capture(&image(&[(1, 0xaa), (2, 0xcc), (3, 0xdd)]), 1_000).unwrap();
-        assert_eq!(snap.diff.page_count(), 2); // page 1 unchanged, 2 and 3 are new
+        assert_eq(snap.diff.page_count(), 2); // page 1 unchanged, 2 and 3 are new
     }
 
     #[test]
@@ -308,9 +287,7 @@ mod tests {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         let img = image(&[(1, 1)]);
         tt.seed(img.clone());
-        assert!(tt.capture(&img, 500).is_none());
-        assert!(tt.is_empty());
-    }
+        assert(tt.capture(&img, 500).is_none());        assert(tt.is_empty());    }
 
     #[test]
     fn rewind_restores_earlier_state() {
@@ -320,12 +297,9 @@ mod tests {
         tt.capture(&image(&[(1, 0x03), (9, 0x09)]), 2_000).unwrap();
 
         let at_1500 = tt.rewind_to(1_500).unwrap();
-        assert_eq!(at_1500.get_page(1), Some(&[0x02u8; PAGE_SIZE as usize][..]));
-        assert!(at_1500.get_page(9).is_none());
-
+        assert_eq(at_1500.get_page(1), Some(&[0x02u8; PAGE_SIZE as usize][..]));        assert(at_1500.get_page(9).is_none());
         let at_2500 = tt.rewind_to(2_500).unwrap();
-        assert_eq!(at_2500.get_page(9), Some(&[0x09u8; PAGE_SIZE as usize][..]));
-    }
+        assert_eq(at_2500.get_page(9), Some(&[0x09u8; PAGE_SIZE as usize][..]));    }
 
     #[test]
     fn horizon_eviction_refolds_base() {
@@ -337,19 +311,15 @@ mod tests {
         }
         // Only snapshots within the 10 s horizon survive.
         let (start, end) = tt.window();
-        assert!(end - start <= 10_000);
-        // Rewinding after eviction still returns something coherent.
-        assert!(tt.rewind_to(end).is_some());
-    }
+        assert(end - start <= 10_000);        // Rewinding after eviction still returns something coherent.
+        assert(tt.rewind_to(end).is_some());    }
 
     #[test]
     fn markers_are_attached() {
         let mut tt = TimeTravel::new(DEFAULT_HORIZON_MS);
         tt.seed(image(&[(1, 0)]));
         tt.capture(&image(&[(1, 1)]), 1_000).unwrap();
-        assert!(tt.mark("file created"));
-        assert_eq!(tt.snapshots()[0].marker.as_deref(), Some("file created"));
-    }
+        assert(tt.mark("file created"));        assert_eq(tt.snapshots()[0].marker.as_deref(), Some("file created"));    }
 
     #[test]
     fn full_image_rebuild_matches_live_state() {
@@ -358,9 +328,7 @@ mod tests {
         let live = image(&[(1, 0x11), (2, 0x22), (3, 0x33)]);
         tt.capture(&live, 1_000).unwrap();
         let rebuilt = tt.rewind_to(1_000).unwrap();
-        assert_eq!(rebuilt.page_count(), live.page_count());
-        assert_eq!(rebuilt.get_page(2), live.get_page(2));
-    }
+        assert_eq(rebuilt.page_count(), live.page_count());        assert_eq(rebuilt.get_page(2), live.get_page(2));    }
 
     #[test]
     fn json_includes_pins() {
@@ -369,8 +337,6 @@ mod tests {
         tt.capture(&image(&[(1, 5)]), 1_000).unwrap();
         tt.mark("risky action");
         let json = tt.to_json();
-        assert_eq!(json.u64_of("count"), 1);
-        let pins = json.get("pins").unwrap().as_arr().unwrap();
-        assert_eq!(pins[0].str_of("marker"), "risky action");
-    }
+        assert_eq(json.u64_of("count"), 1);        let pins = json.get("pins").unwrap().as_arr().unwrap();
+        assert_eq(pins[0].str_of("marker"), "risky action");    }
 }

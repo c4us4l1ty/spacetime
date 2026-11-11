@@ -126,23 +126,22 @@ fn escape(text: &str) -> String {
 }
 
 fn unescape(text: &str) -> String {
-    let bytes = text.as_bytes();
     let mut out = String::with_capacity(text.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' && i + 2 < bytes.len() {
-            let hex = std::str::from_utf8(&bytes[i + 1..i + 3]).unwrap_or("");
-            match u8::from_str_radix(hex, 16) {
-                Ok(byte) => {
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '%' {
+            let hex: String = chars.clone().take(2).collect();
+            if hex.len() == 2 {
+                if let Ok(byte) = u8::from_str_radix(&hex, 16) {
+                    chars.next();
+                    chars.next();
+                    // `escape` only emits ASCII escapes (%XX), so this is safe.
                     out.push(byte as char);
-                    i += 3;
                     continue;
                 }
-                Err(_) => {}
             }
         }
-        out.push(bytes[i] as char);
-        i += 1;
+        out.push(ch);
     }
     out
 }
@@ -207,55 +206,36 @@ mod tests {
             argv: vec!["/bin/sh".into(), "-c".into(), "echo hello world".into()],
         };
         let line = encode(&command);
-        assert_eq!(line, "EXEC /bin/sh -c echo%20hello%20world");
-        assert_eq!(decode(&line).unwrap(), command);
-    }
+        assert_eq(line, "EXEC /bin/sh -c echo%20hello%20world");        assert_eq(decode(&line).unwrap(), command);    }
 
     #[test]
     fn clipboard_is_sanitized_text() {
         let command = HostCommand::Clip {
             text: "hello world 100%".into(),
         };
-        assert_eq!(decode(&encode(&command)).unwrap(), command);
-    }
+        assert_eq(decode(&encode(&command)).unwrap(), command);    }
 
     #[test]
     fn resize_parses_numbers() {
         let command = decode("RESIZE 12 120 30").unwrap();
-        assert_eq!(
+        assert_eq(
             command,
             HostCommand::Resize {
                 pid: 12,
                 cols: 120,
                 rows: 30
-            }
-        );
-        assert!(decode("RESIZE x 1 2").is_err());
-        assert!(decode("RESIZE").is_err());
-    }
+            },
+        );        assert(decode("RESIZE x 1 2").is_err());        assert(decode("RESIZE").is_err());    }
 
     #[test]
     fn poweroff_and_events() {
-        assert_eq!(decode("POWEROFF").unwrap(), HostCommand::Poweroff);
-        assert_eq!(encode_event(&GuestEvent::Ready { version: PROTOCOL_VERSION }), "READY 1");
-        assert_eq!(
-            encode_event(&GuestEvent::Exit { pid: 7, code: 1 }),
-            "EXIT 7 1"
-        );
-    }
+        assert_eq(decode("POWEROFF").unwrap(), HostCommand::Poweroff);        assert_eq(encode_event(&GuestEvent::Ready { version: PROTOCOL_VERSION }), "READY 1");        assert_eq(encode_event(&GuestEvent::Exit { pid: 7, code: 1 }), "EXIT 7 1");    }
 
     #[test]
     fn bad_input_is_rejected() {
-        assert!(decode("").is_err());
-        assert!(decode("FLY away").is_err());
-        assert!(decode("EXEC").is_err());
-    }
+        assert(decode("").is_err());        assert(decode("FLY away").is_err());        assert(decode("EXEC").is_err());    }
 
     #[test]
     fn boot_plan_is_ordered_and_complete() {
-        assert_eq!(BOOT_PLAN.len(), 7);
-        assert_eq!(BOOT_PLAN[0], BootStep::MountProc);
-        assert_eq!(*BOOT_PLAN.last().unwrap(), BootStep::SignalReady);
-        assert!(boot_plan_text().contains("signal READY"));
-    }
+        assert_eq(BOOT_PLAN.len(), 7);        assert_eq(BOOT_PLAN[0], BootStep::MountProc);        assert_eq(*BOOT_PLAN.last().unwrap(), BootStep::SignalReady);        assert(boot_plan_text().contains("signal READY"));    }
 }

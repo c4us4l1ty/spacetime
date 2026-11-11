@@ -128,9 +128,7 @@ pub struct SwitchStats {
 }
 
 impl SwitchStats {
-    pub fn entries(&self) -> u64 {
-        self.allowed + self.blocked + self.sinkholed
-    }
+    pub fn entries(&self) -> u64 { self.allowed + self.blocked + self.sinkholed }
 }
 
 /// The switch itself.
@@ -179,13 +177,9 @@ impl Switch {
         &mut self.sinkhole
     }
 
-    pub fn feed(&self) -> &[FeedEntry] {
-        &self.feed
-    }
+    pub fn feed(&self) -> &[FeedEntry] { &self.feed }
 
-    pub fn stats(&self) -> SwitchStats {
-        self.stats
-    }
+    pub fn stats(&self) -> SwitchStats { self.stats }
 
     /// Decide a flow's fate and record it.
     pub fn judge(&mut self, tab: u64, at_ms: u64, flow: &Flow) -> Verdict {
@@ -256,9 +250,7 @@ impl Switch {
     }
 
     /// Endpoints currently being deceived, with their attribution.
-    pub fn trapped(&self) -> &BTreeMap<String, String> {
-        &self.trapped
-    }
+    pub fn trapped(&self) -> &BTreeMap<String, String> { &self.trapped }
 
     /// Route an already-allowed endpoint into the sinkhole from the UI toggle.
     pub fn trap(&mut self, endpoint: &str) {
@@ -319,20 +311,14 @@ mod tests {
     fn airgap_blocks_everything() {
         let mut switch = Switch::new(NetMode::Airgapped);
         let verdict = switch.judge(1, 0, &Flow::tcp(ip(1, 1, 1, 1), 443, "curl"));
-        assert!(!verdict.is_allowed());
-        assert_eq!(switch.stats().blocked, 1);
-        assert_eq!(switch.stats().allowed, 0);
-    }
+        assert(!verdict.is_allowed());        assert_eq(switch.stats().blocked, 1);        assert_eq(switch.stats().allowed, 0);    }
 
     #[test]
     fn honeyduct_traps_public_and_allows_loopback() {
         let mut switch = Switch::new(NetMode::HoneyDuct);
         let public = switch.judge(2, 100, &Flow::tcp(ip(185, 220, 101, 1), 4444, "/tmp/.miner"));
-        assert!(matches!(public, Verdict::Sinkhole { .. }));
-        assert!(switch.trapped().contains_key("185.220.101.1:4444"));
-        let lo = switch.judge(2, 101, &Flow::tcp(ip(10, 0, 0, 2), 8080, "init"));
-        assert!(lo.is_allowed());
-    }
+        assert(matches!(public, Verdict::Sinkhole { .. }));        assert(switch.trapped().contains_key("185.220.101.1:4444"));        let lo = switch.judge(2, 101, &Flow::tcp(ip(10, 0, 0, 2), 8080, "init"));
+        assert(lo.is_allowed());    }
 
     #[test]
     fn stealth_blocks_datacenter_and_morphs_ttl() {
@@ -340,14 +326,11 @@ mod tests {
         let ok = switch.judge(3, 0, &Flow::tcp(ip(73, 14, 3, 9), 443, "chrome").with_host("opencut.app"));
         match ok {
             Verdict::Allow { ttl, egress } => {
-                assert_eq!(ttl, Some(128));
-                assert!(egress.contains("Residential"));
-            }
+                assert_eq(ttl, Some(128));                assert(egress.contains("Residential"));            }
             other => panic!("expected allow, got {other:?}"),
         }
         let bad = switch.judge(3, 1, &Flow::tcp(ip(52, 10, 0, 1), 443, "chrome"));
-        assert!(!bad.is_allowed());
-    }
+        assert(!bad.is_allowed());    }
 
     #[test]
     fn feed_is_bounded() {
@@ -356,9 +339,7 @@ mod tests {
         for i in 0..50u8 {
             switch.judge(1, i as u64, &Flow::tcp(ip(185, 220, 0, i), 4444, "x"));
         }
-        assert_eq!(switch.feed().len(), 10);
-        assert_eq!(switch.stats().entries(), 50);
-    }
+        assert_eq(switch.feed().len(), 10);        assert_eq(switch.stats().entries(), 50);    }
 
     #[test]
     fn feed_renders_for_the_console() {
@@ -369,20 +350,15 @@ mod tests {
             &Flow::tcp(ip(185, 220, 101, 1), 4444, "/tmp/.hidden_miner").with_host("c2.evil"),
         );
         let line = switch.feed()[0].render();
-        assert!(line.contains("TRAPPED"));
-        assert!(line.contains("AS49505"));
-        assert!(line.contains("c2.evil"));
-    }
+        assert(line.contains("TRAPPED"));        assert(line.contains("AS49505"));        assert(line.contains("c2.evil"));    }
 
     #[test]
     fn trap_and_untrap_from_ui() {
         let mut switch = Switch::new(NetMode::Stealth);
         switch.judge(1, 0, &Flow::tcp(ip(73, 14, 3, 9), 443, "chrome"));
         switch.trap("73.14.3.9:443");
-        assert!(switch.trapped().contains_key("73.14.3.9:443"));
-        switch.untrap("73.14.3.9:443");
-        assert!(switch.trapped().is_empty());
-    }
+        assert(switch.trapped().contains_key("73.14.3.9:443"));        switch.untrap("73.14.3.9:443");
+        assert(switch.trapped().is_empty());    }
 
     #[test]
     fn json_contains_every_entry() {
@@ -390,7 +366,5 @@ mod tests {
         switch.judge(1, 0, &Flow::tcp(ip(185, 220, 1, 1), 4444, "x"));
         switch.judge(1, 1, &Flow::tcp(ip(10, 0, 0, 2), 53, "systemd-resolved"));
         let json = switch.to_json();
-        assert_eq!(json.get("entries").unwrap().as_arr().unwrap().len(), 2);
-        assert_eq!(json.u64_of("sinkholed"), 1);
-    }
+        assert_eq(json.get("entries").unwrap().as_arr().unwrap().len(), 2);        assert_eq(json.u64_of("sinkholed"), 1);    }
 }

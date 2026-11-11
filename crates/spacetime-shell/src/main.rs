@@ -199,19 +199,13 @@ mod tests {
             .iter()
             .map(|s| s.to_string())
             .collect();
-        assert_eq!(flag(&args, "--port").as_deref(), Some("9000"));
-        assert_eq!(flag(&args, "--ticks").as_deref(), Some("12"));
-        assert_eq!(flag(&args, "--nope"), None);
-        assert!(has(&args, "--port"));
-    }
+        assert_eq(flag(&args, "--port").as_deref(), Some("9000"));        assert_eq(flag(&args, "--ticks").as_deref(), Some("12"));        assert_eq(flag(&args, "--nope"), None);        assert(has(&args, "--port"));    }
 
     #[test]
     fn tab_kind_round_trips() {
         for kind in [TabKind::Web, TabKind::Repo, TabKind::File, TabKind::Terminal, TabKind::Ai] {
-            assert_eq!(TabKind::from_label(kind.label()), Some(kind));
-        }
+            assert_eq(TabKind::from_label(kind.label()), Some(kind));        }
         for trust in [Trust::Airgapped, Trust::Chameleon, Trust::HoneyDuct, Trust::Disposable] {
-            assert_eq!(Trust::from_label(trust.label()), Some(trust));
-        }
+            assert_eq(Trust::from_label(trust.label()), Some(trust));        }
     }
 }

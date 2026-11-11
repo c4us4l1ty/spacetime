@@ -370,20 +370,18 @@ mod tests {
     fn boot_measures_time_and_registers_vm() {
         let mut backend = SimulatedBackend::new();
         let handle = backend.boot(&cfg(1, NetMode::Airgapped)).unwrap();
-        assert_eq!(handle.pid, 4001);
-        assert_eq!(backend.list().len(), 1);
-        assert!(backend.stats(handle).unwrap().resident_mb > 0);
-    }
+        assert_eq(handle.pid, 4001);        assert_eq(backend.list().len(), 1);        assert(backend.stats(handle).unwrap().resident_mb > 0);    }
 
     #[test]
     fn double_boot_is_rejected() {
         let mut backend = SimulatedBackend::new();
         backend.boot(&cfg(1, NetMode::Airgapped)).unwrap();
-        assert!(matches!(
+        assert(
+            matches!(
             backend.boot(&cfg(1, NetMode::Airgapped)),
             Err(VmmError::BadState { .. })
-        ));
-    }
+        ),
+        );    }
 
     #[test]
     fn ticking_dirties_pages_and_reclaims_balloon() {
@@ -393,9 +391,7 @@ mod tests {
             backend.tick();
         }
         let stats = backend.stats(handle).unwrap();
-        assert!(stats.dirty_pages > 0);
-        assert_eq!(stats.balloon_reclaimed_mb, 8);
-    }
+        assert(stats.dirty_pages > 0);        assert_eq(stats.balloon_reclaimed_mb, 8);    }
 
     #[test]
     fn paused_vm_does_not_change() {
@@ -408,9 +404,7 @@ mod tests {
             backend.tick();
         }
         let after = backend.snapshot(handle).unwrap();
-        assert_eq!(before.page_count(), after.page_count());
-        assert_eq!(before, after);
-    }
+        assert_eq(before.page_count(), after.page_count());        assert_eq(before, after);    }
 
     #[test]
     fn snapshot_restore_round_trip() {
@@ -422,25 +416,18 @@ mod tests {
         for _ in 0..3 {
             backend.tick();
         }
-        assert!(backend.snapshot(handle).unwrap().page_count() > count);
-        backend.restore(handle, &saved).unwrap();
-        assert_eq!(backend.snapshot(handle).unwrap().page_count(), count);
-    }
+        assert(backend.snapshot(handle).unwrap().page_count() > count);        backend.restore(handle, &saved).unwrap();
+        assert_eq(backend.snapshot(handle).unwrap().page_count(), count);    }
 
     #[test]
     fn stopping_frees_the_slot() {
         let mut backend = SimulatedBackend::new();
         let handle = backend.boot(&cfg(4, NetMode::Airgapped)).unwrap();
         backend.stop(handle).unwrap();
-        assert!(backend.list().is_empty());
-        assert!(backend.stats(handle).is_err());
-        assert!(backend.memory_of(TabId(4)).is_none());
-    }
+        assert(backend.list().is_empty());        assert(backend.stats(handle).is_err());        assert(backend.memory_of(TabId(4)).is_none());    }
 
     #[test]
     fn null_backend_reports_unavailable() {
         let mut backend = NullBackend;
-        assert!(backend.availability().is_err());
-        assert!(backend.boot(&cfg(5, NetMode::Airgapped)).is_err());
-    }
+        assert(backend.availability().is_err());        assert(backend.boot(&cfg(5, NetMode::Airgapped)).is_err());    }
 }

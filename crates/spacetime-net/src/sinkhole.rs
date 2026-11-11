@@ -58,9 +58,7 @@ impl Sinkhole {
         }
     }
 
-    pub fn profile(&self) -> SinkholeProfile {
-        self.profile
-    }
+    pub fn profile(&self) -> SinkholeProfile { self.profile }
 
     pub fn set_profile(&mut self, profile: SinkholeProfile) {
         self.profile = profile;
@@ -103,17 +101,11 @@ impl Sinkhole {
     }
 
     /// Everything the implant has sent so far (the forensic payload).
-    pub fn captured(&self) -> &BTreeMap<String, Vec<u8>> {
-        &self.captured
-    }
+    pub fn captured(&self) -> &BTreeMap<String, Vec<u8>> { &self.captured }
 
-    pub fn exchanges(&self) -> &[Exchange] {
-        &self.exchanges
-    }
+    pub fn exchanges(&self) -> &[Exchange] { &self.exchanges }
 
-    pub fn captured_bytes(&self) -> u64 {
-        self.captured.values().map(|v| v.len() as u64).sum()
-    }
+    pub fn captured_bytes(&self) -> u64 { self.captured.values().map(|v| v.len() as u64).sum() }
 
     /// Human summary of the captured traffic, e.g. for the console drawer.
     pub fn transcript(&self, endpoint: &str) -> Option<String> {
@@ -130,31 +122,23 @@ mod tests {
     fn c2_profile_answers_ping_with_pong() {
         let mut sink = Sinkhole::default();
         let reply = sink.respond("185.220.101.1:4444", b"PING");
-        assert_eq!(reply, b"PONG\n");
-        assert_eq!(sink.captured_bytes(), 4);
-    }
+        assert_eq(reply, b"PONG\n");        assert_eq(sink.captured_bytes(), 4);    }
 
     #[test]
     fn http_profile_returns_plausible_response() {
         let mut sink = Sinkhole::new(SinkholeProfile::HttpOk);
         let reply = sink.respond("1.2.3.4:80", b"GET / HTTP/1.1\r\n\r\n");
         let text = String::from_utf8(reply).unwrap();
-        assert!(text.starts_with("HTTP/1.1 200 OK"));
-        assert!(text.contains("\"status\":\"ok\""));
-    }
+        assert(text.starts_with("HTTP/1.1 200 OK"));        assert(text.contains("\"status\":\"ok\""));    }
 
     #[test]
     fn tarpit_records_but_never_speaks() {
         let mut sink = Sinkhole::new(SinkholeProfile::Tarpit);
-        assert!(sink.respond("evil:1", b"hello").is_empty());
-        assert_eq!(sink.exchanges().len(), 1);
-    }
+        assert(sink.respond("evil:1", b"hello").is_empty());        assert_eq(sink.exchanges().len(), 1);    }
 
     #[test]
     fn transcript_is_human_readable() {
         let mut sink = Sinkhole::default();
         sink.respond("evil:1", b"GET /cmd?id=42");
-        assert!(sink.transcript("evil:1").unwrap().contains("cmd"));
-        assert!(sink.transcript("nope:1").is_none());
-    }
+        assert(sink.transcript("evil:1").unwrap().contains("cmd"));        assert(sink.transcript("nope:1").is_none());    }
 }

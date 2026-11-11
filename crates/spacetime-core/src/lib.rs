@@ -58,8 +58,5 @@ mod tests {
 
     #[test]
     fn net_mode_maps_to_trust() {
-        assert_eq!(NetMode::Airgapped.trust(), Trust::Airgapped);
-        assert_eq!(NetMode::HoneyDuct.trust(), Trust::HoneyDuct);
-        assert_eq!(NetMode::Stealth.trust(), Trust::Chameleon);
-    }
+        assert_eq(NetMode::Airgapped.trust(), Trust::Airgapped);        assert_eq(NetMode::HoneyDuct.trust(), Trust::HoneyDuct);        assert_eq(NetMode::Stealth.trust(), Trust::Chameleon);    }
 }

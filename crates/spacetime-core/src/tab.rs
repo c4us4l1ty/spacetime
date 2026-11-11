@@ -192,9 +192,7 @@ impl Tab {
     }
 
     /// True when the warden has throttled this tab.
-    pub fn is_choked(&self) -> bool {
-        self.state == TabState::Choked
-    }
+    pub fn is_choked(&self) -> bool { self.state == TabState::Choked }
 }
 
 /// Errors from tree operations.
@@ -395,9 +393,7 @@ impl TabTree {
     }
 
     /// The active tab.
-    pub fn focus(&self) -> Option<TabId> {
-        self.focus
-    }
+    pub fn focus(&self) -> Option<TabId> { self.focus }
 
     /// Switch tabs. The warden immediately chokes the old tab to 5 % of a core
     /// and restores the new one, so a crypto-miner in the background suffocates
@@ -447,14 +443,10 @@ impl TabTree {
         }
     }
 
-    pub fn live_count(&self) -> usize {
-        self.tabs.len()
-    }
+    pub fn live_count(&self) -> usize { self.tabs.len() }
 
     /// Sum of RAM charged to tabs, excluding the shared base image.
-    pub fn private_ram_mb(&self) -> u64 {
-        self.tabs.values().map(|t| t.private_ram_mb).sum()
-    }
+    pub fn private_ram_mb(&self) -> u64 { self.tabs.values().map(|t| t.private_ram_mb).sum() }
 
     /// Sum of shared pages across tabs; because the zygote clone is CoW this is
     /// charged to the host exactly once, so it is reported as savings.
@@ -513,13 +505,8 @@ mod tests {
         let a = tree.open("opencut.app", TabKind::Web, Trust::Chameleon);
         let b = tree.open("wannacry.exe", TabKind::File, Trust::Disposable);
         tree.set_focus(a).unwrap();
-        assert_eq!(tree.get(a).unwrap().state, TabState::Running);
-        assert_eq!(tree.get(a).unwrap().resources.cpu_permille, 750);
-        tree.set_focus(b).unwrap();
-        assert_eq!(tree.get(a).unwrap().state, TabState::Choked);
-        assert_eq!(tree.get(a).unwrap().resources.cpu_permille, 50);
-        assert_eq!(tree.get(b).unwrap().resources.cpu_permille, 750);
-    }
+        assert_eq(tree.get(a).unwrap().state, TabState::Running);        assert_eq(tree.get(a).unwrap().resources.cpu_permille, 750);        tree.set_focus(b).unwrap();
+        assert_eq(tree.get(a).unwrap().state, TabState::Choked);        assert_eq(tree.get(a).unwrap().resources.cpu_permille, 50);        assert_eq(tree.get(b).unwrap().resources.cpu_permille, 750);    }
 
     #[test]
     fn branch_records_lineage_and_charges_less_ram() {
@@ -528,11 +515,7 @@ mod tests {
         tree.get_mut(parent).unwrap().private_ram_mb = 800;
         let child = tree.branch(parent).unwrap();
         let child_tab = tree.get(child).unwrap();
-        assert_eq!(child_tab.parent, Some(parent));
-        assert!(child_tab.private_ram_mb < 800);
-        assert_eq!(tree.ancestry(child), vec![parent, child]);
-        assert_eq!(tree.walk()[1].0, 1);
-    }
+        assert_eq(child_tab.parent, Some(parent));        assert(child_tab.private_ram_mb < 800);        assert_eq(tree.ancestry(child), vec![parent, child]);        assert_eq(tree.walk()[1].0, 1);    }
 
     #[test]
     fn closing_parent_vaporises_descendants() {
@@ -540,12 +523,8 @@ mod tests {
         let root = tree.open("root", TabKind::Terminal, Trust::Airgapped);
         let a = tree.branch(root).unwrap();
         let b = tree.branch(a).unwrap();
-        assert_eq!(tree.live_count(), 3);
-        let removed = tree.close(root).unwrap();
-        assert_eq!(removed, vec![root, a, b]);
-        assert_eq!(tree.live_count(), 0);
-        assert!(tree.get(b).is_none());
-    }
+        assert_eq(tree.live_count(), 3);        let removed = tree.close(root).unwrap();
+        assert_eq(removed, vec![root, a, b]);        assert_eq(tree.live_count(), 0);        assert(tree.get(b).is_none());    }
 
     #[test]
     fn focus_next_cycles() {
@@ -554,10 +533,8 @@ mod tests {
         let b = tree.open("b", TabKind::Web, Trust::Chameleon);
         tree.set_focus(a).unwrap();
         tree.focus_next();
-        assert_eq!(tree.focus(), Some(b));
-        tree.focus_next();
-        assert_eq!(tree.focus(), Some(a));
-    }
+        assert_eq(tree.focus(), Some(b));        tree.focus_next();
+        assert_eq(tree.focus(), Some(a));    }
 
     #[test]
     fn allow_background_compute_opts_out_of_throttle() {
@@ -567,15 +544,12 @@ mod tests {
         tree.set_focus(a).unwrap();
         tree.get_mut(b).unwrap().allow_background_compute = true;
         tree.set_focus(a).unwrap();
-        assert_eq!(tree.get(b).unwrap().resources.cpu_permille, 750);
-    }
+        assert_eq(tree.get(b).unwrap().resources.cpu_permille, 750);    }
 
     #[test]
     fn unknown_tab_errors() {
         let mut tree = TabTree::new();
-        assert_eq!(tree.close(TabId(99)), Err(TabError::Unknown(TabId(99))));
-        assert_eq!(tree.branch(TabId(42)), Err(TabError::Unknown(TabId(42))));
-    }
+        assert_eq(tree.close(TabId(99)), Err(TabError::Unknown(TabId(99))));        assert_eq(tree.branch(TabId(42)), Err(TabError::Unknown(TabId(42))));    }
 
     #[test]
     fn json_snapshot_has_every_tab() {
@@ -583,7 +557,5 @@ mod tests {
         let a = tree.open("a", TabKind::Web, Trust::Chameleon);
         tree.branch(a).unwrap();
         let json = tree.to_json();
-        assert_eq!(json.u64_of("live"), 2);
-        assert_eq!(json.get("tabs").unwrap().as_arr().unwrap().len(), 2);
-    }
+        assert_eq(json.u64_of("live"), 2);        assert_eq(json.get("tabs").unwrap().as_arr().unwrap().len(), 2);    }
 }

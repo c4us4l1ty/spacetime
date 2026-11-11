@@ -92,9 +92,10 @@ pub struct Hash(pub [u8; 32]);
 impl Hash {
     /// Lowercase hex representation (64 characters).
     pub fn to_hex(self) -> String {
+        use std::fmt::Write as _;
         let mut out = String::with_capacity(64);
         for byte in self.0 {
-            out.push_str(&format!("{byte:02x}"));
+            let _ = write!(out, "{byte:02x}");
         }
         out
     }
@@ -202,27 +203,22 @@ mod tests {
 
     #[test]
     fn empty_string_vector() {
-        assert_eq!(
+        assert_eq(
             sha256(b"").to_hex(),
-            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        );
-    }
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        );    }
 
     #[test]
     fn known_vector_abc() {
-        assert_eq!(
+        assert_eq(
             sha256(b"abc").to_hex(),
-            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-        );
-    }
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        );    }
 
     #[test]
     fn long_input_spans_blocks() {
         let data = vec![0x61u8; 1000];
         let a = sha256(&data);
         let b = sha256(&data);
-        assert_eq!(a, b);
-        assert_ne!(a, sha256(&data[..999]));
-        assert_eq!(a.short(8).len(), 8);
-    }
+        assert_eq(a, b);        assert_ne(a, sha256(&data[..999]));        assert_eq(a.short(8).len(), 8);    }
 }
