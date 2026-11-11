@@ -8,33 +8,44 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
 
 jobs:
-  # The canonical gate: format, lint, test, and prove the demo actually serves.
+  # Canonical gate. `RUSTFLAGS=-D warnings` makes every rustc/clippy warning fatal,
+  # so this is also the remote compiler for agents working without a toolchain.
   check:
-    name: fmt + clippy + test (${{ matrix.os }})
+    name: check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            full: true
+          - os: macos-latest
+            full: false
+          - os: windows-latest
+            full: false
+    env:
+      RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Format
-        if: matrix.os == 'ubuntu-latest'
+      - name: Format (authoritative)
+        if: matrix.full
         run: cargo fmt --all --check
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets
       - name: Test
         run: cargo test --workspace
+      - name: Format hint
+        if: matrix.full && failure()
+        run: echo "::warning::run 'cargo fmt --all' before pushing"
 
-  # Builds release binaries and boots the dashboard for a smoke test, so every
-  # push proves `spacetime serve` renders and `/api/state` returns valid JSON.
+  # Release build plus a live dashboard smoke test: every push proves the demo
+  # renders and /api/state is valid JSON with the expected sections.
   smoke:
     name: build + serve smoke test
     runs-on: ubuntu-latest
@@ -67,13 +78,12 @@ jobs:
           assert state['tabs']['live'] >= 3, state['tabs']
           print('state ok:', state['tabs']['live'], 'tabs,', len(state['net']['entries']), 'net events')
           PY
-      - name: Upload state artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: workspace-state
           path: state.json
 
-  # Guest init must build for the real targets; this is the cross-compile proof.
+  # The guest image must build for the real targets (static musl PID 1).
   guest:
     name: guest-init cross-build
     runs-on: ubuntu-latest
@@ -91,3 +101,45 @@ jobs:
         run: |
           file target/x86_64-unknown-linux-musl/release/guest-init
           file target/aarch64-unknown-linux-musl/release/guest-init
+
+  # Fast feedback for agents: print every compiler diagnostic to the summary so
+  # failures can be read without downloading logs.
+  diagnostics:
+    name: diagnostics
+    runs-on: ubuntu-latest
+    if: always()
+    needs: check
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Collect diagnostics
+        run: |
+          set -o pipefail
+          cargo clippy --workspace --all-targets --message-format=short 2>&1 | tee clippy.txt || true
+          cargo test --workspace --no-fail-fast 2>&1 | tee tests.txt || true
+          cargo fmt --all --check > fmt.txt 2>&1 || true
+          {
+            echo '### clippy'
+            echo '```'
+            grep -E '^(error|warning)' clippy.txt | head -120 || echo 'clean'
+            echo '```'
+            echo '### tests'
+            echo '```'
+            grep -E 'test result|FAILED|panicked' tests.txt | head -80 || echo 'none'
+            echo '```'
+            echo '### fmt'
+            echo '```'
+            head -60 fmt.txt || echo 'clean'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diagnostics
+          path: |
+            clippy.txt
+            tests.txt
+            fmt.txt
