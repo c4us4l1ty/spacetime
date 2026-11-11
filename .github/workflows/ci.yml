@@ -145,6 +145,7 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
+          echo "downloaded files:"; ls -la || true
           body=/tmp/body.md
           {
             echo "### CI diagnostics for ${SHA:0:7}"
@@ -162,9 +163,12 @@ jobs:
             done
           } > "$body"
           BYTES=$(wc -c < "$body")
+          echo "comment body bytes: $BYTES"
           if [ "$BYTES" -lt 400 ]; then
-            echo "Nothing useful captured; skipping comment."; exit 0
+            echo "(no logs captured; still posting a note so the failure is visible)" 
+            echo "No compiler logs were captured for this run (artifacts missing or empty). See the failing jobs directly." >> "$body"
           fi
+          cp "$body" /tmp/summary.md
           jq -n --rawfile b "$body" '{body: $b}' > /tmp/payload.json
           curl -sS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \

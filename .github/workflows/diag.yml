@@ -1,0 +1,44 @@
+name: diag
+
+# Throwaway diagnostic workflow: compiles with full (non-short) output and posts
+# it as a commit comment, so a machine without a Rust toolchain can read errors.
+on:
+  workflow_dispatch:
+  push:
+    branches: ['arena/**']
+
+permissions:
+  contents: write
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build with full output
+        run: |
+          touch diag.log
+          cargo build --workspace --all-targets > diag.log 2>&1 || true
+          grep -nE "^(error(\[[^]]+\])?:|warning:|help:|  --> )" diag.log | head -400 > diag.filtered || true
+          wc -l diag.log diag.filtered || true
+      - name: Post to commit comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### build diagnostics ${SHA:0:7}"
+            echo '```'
+            head -400 diag.filtered 2>/dev/null || echo "(no errors captured)"
+            echo '```'
+          } > body.md
+          jq -n --rawfile b body.md '{body: $b}' > payload.json
+          curl -sS -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/commits/$SHA/comments" \
+            -d @payload.json -o resp.json -w "http %{http_code}\n" || true
+          head -c 200 resp.json
