@@ -115,9 +115,7 @@ impl LedgerState {
                     self.last_evidence_digest = Some(event.observation.digest.clone());
                 }
                 ActionOp::ClaimDone { .. } => self.goal_status = GoalStatus::Verified,
-                ActionOp::Echo { .. }
-                | ActionOp::Sleep { .. }
-                | ActionOp::Flaky { .. } => {}
+                ActionOp::Echo { .. } | ActionOp::Sleep { .. } | ActionOp::Flaky { .. } => {}
             },
             Verdict::Unverified => {
                 if matches!(&event.action.op, ActionOp::ClaimDone { .. }) {

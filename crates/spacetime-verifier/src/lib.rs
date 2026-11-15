@@ -5,7 +5,7 @@
 //! differential/mutation metrology. Real clock/RNG shims and model-written adversarial tests
 //! remain later work.
 
-use spacetime_exec::{Runner, RunStatus};
+use spacetime_exec::{RunStatus, Runner};
 use spacetime_ledger::LedgerState;
 use spacetime_types::{Action, ActionOp, Observation, Verdict, VerifierProof, VerifierSource};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -214,7 +214,11 @@ pub fn false_pass_rate(
     let verifier = CrucibleVerifier;
     let mut verdicts = Vec::with_capacity(runs as usize);
     for _ in 0..runs {
-        verdicts.push(verifier.verify_candidate(candidate, fixture, runner).verdict);
+        verdicts.push(
+            verifier
+                .verify_candidate(candidate, fixture, runner)
+                .verdict,
+        );
     }
     verdict_flip_rate(&verdicts)
 }

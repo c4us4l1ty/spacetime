@@ -73,7 +73,11 @@ impl ScriptedCortex {
             )?);
         }
 
-        Ok(Self { actions, cursor: 0, metadata })
+        Ok(Self {
+            actions,
+            cursor: 0,
+            metadata,
+        })
     }
 
     pub fn first_action(&self) -> Result<Action> {
