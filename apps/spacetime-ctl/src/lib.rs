@@ -155,7 +155,9 @@ pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
     let ledger = ledger_path.display();
     println!("status={status:?} events={events} ledger={ledger}");
     if status != GoalStatus::Verified {
-        return Err(SpacetimeError::new(format!("goal not verified: {status:?}")));
+        return Err(SpacetimeError::new(format!(
+            "goal not verified: {status:?}"
+        )));
     }
     Ok(())
 }
@@ -260,7 +262,10 @@ mod tests {
     fn incomplete_goal_is_not_reported_as_success() -> Result<()> {
         let paths = TempPaths::new("incomplete")?;
         let task = paths.dir.join("incomplete.task");
-        fs::write(&task, "schema_version=1\naction produce_evidence evidence=x\n")?;
+        fs::write(
+            &task,
+            "schema_version=1\naction produce_evidence evidence=x\n",
+        )?;
         assert!(run_task(&task, &paths.ledger).is_err());
         let state = fs::read_to_string(paths.state())?;
         assert!(state.contains("\"goal_status\":\"in_progress\""));

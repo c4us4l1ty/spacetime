@@ -444,10 +444,7 @@ mod tests {
             alpha: u8,
         }
 
-        let bytes = canonical_json_bytes(&Example {
-            zebra: 1,
-            alpha: 2,
-        })?;
+        let bytes = canonical_json_bytes(&Example { zebra: 1, alpha: 2 })?;
         let text = String::from_utf8(bytes).expect("canonical JSON is UTF-8");
         assert_eq!(text, r#"{"alpha":2,"zebra":1}"#);
         Ok(())

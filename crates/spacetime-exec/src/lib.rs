@@ -200,12 +200,7 @@ mod tests {
     #[test]
     fn zero_sleep_completes() {
         let runner = ScriptedRunner::new().expect("runner");
-        let result = runner.run(&action(
-            ActionOp::Sleep {
-                milliseconds: 0,
-            },
-            1_000,
-        ));
+        let result = runner.run(&action(ActionOp::Sleep { milliseconds: 0 }, 1_000));
         assert_eq!(result.status, RunStatus::Completed);
     }
 }

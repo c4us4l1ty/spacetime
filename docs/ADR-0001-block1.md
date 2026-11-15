@@ -35,6 +35,8 @@ the supreme constraint.
    non-canonical rewrites, whitespace changes, or key reordering instead of only semantic tampering.
 10. **Failure is not success.** `spacetime-ctl run` exits non-zero when the final goal is not
     `Verified`, while still writing the state sidecar for inspection.
+11. **Reproducible dependency resolution.** `Cargo.lock` is committed and CI uses `--locked` so
+    local builds and CI resolve identical crate versions.
 
 ## Consequences
 
@@ -45,3 +47,4 @@ the supreme constraint.
 - Ledger verification is byte-canonical; an attacker cannot rewrite a line with reordered keys or
   extra whitespace and keep the chain valid.
 - Unverified, failed, and incomplete goals are reported as command failures, not silent success.
+- The committed `Cargo.lock` pins the dependency versions proven by CI.

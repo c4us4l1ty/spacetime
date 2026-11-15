@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  actions: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -28,57 +27,35 @@ jobs:
           components: rustfmt, clippy
 
       - name: Format check
-        continue-on-error: true
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        continue-on-error: true
-        run: cargo clippy --workspace --all-targets --message-format=short
-
-      - name: Capture Cargo.lock
-        continue-on-error: true
-        run: |
-          echo "===CARGO_LOCK_BEGIN==="
-          cat Cargo.lock
-          echo "===CARGO_LOCK_END==="
-
-      - name: Upload Cargo.lock
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: cargo-lock
-          path: Cargo.lock
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Tests
-        continue-on-error: true
-        run: cargo test --workspace --all-targets
+        run: cargo test --workspace --all-targets --locked
 
       - name: Release build
-        continue-on-error: true
-        run: cargo build --workspace --release
+        run: cargo build --workspace --release --locked
 
       - name: CLI smoke - happy path
-        continue-on-error: true
         run: |
-          cargo run --release -p spacetime-ctl -- run --task bench/tasks/block1_hello.task --cortex scripted --ledger target/block1.jsonl
-          cargo run --release -p spacetime-ctl -- ledger verify target/block1.jsonl
-          cargo run --release -p spacetime-ctl -- replay target/block1.jsonl > target/replay.json
+          cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_hello.task --cortex scripted --ledger target/block1.jsonl
+          cargo run --release --locked -p spacetime-ctl -- ledger verify target/block1.jsonl
+          cargo run --release --locked -p spacetime-ctl -- replay target/block1.jsonl > target/replay.json
           cmp target/block1.jsonl.state target/replay.json
 
       - name: CLI smoke - false claim
-        continue-on-error: true
         run: |
-          ! cargo run --release -p spacetime-ctl -- run --task bench/tasks/block1_false_claim.task --cortex scripted --ledger target/false.jsonl
-          cargo run --release -p spacetime-ctl -- ledger verify target/false.jsonl
+          ! cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_false_claim.task --cortex scripted --ledger target/false.jsonl
+          cargo run --release --locked -p spacetime-ctl -- ledger verify target/false.jsonl
           grep -q '"goal_status":"unverified"' target/false.jsonl.state
 
       - name: CLI smoke - timeout
-        continue-on-error: true
         run: |
-          ! cargo run --release -p spacetime-ctl -- run --task bench/tasks/block1_timeout.task --cortex scripted --ledger target/timeout.jsonl
-          cargo run --release -p spacetime-ctl -- ledger verify target/timeout.jsonl
+          ! cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_timeout.task --cortex scripted --ledger target/timeout.jsonl
+          cargo run --release --locked -p spacetime-ctl -- ledger verify target/timeout.jsonl
           grep -q '"goal_status":"failed"' target/timeout.jsonl.state
 
       - name: Machine baseline
-        continue-on-error: true
-        run: cargo run --release -p spacetime-ctl -- machine
+        run: cargo run --release --locked -p spacetime-ctl -- machine
