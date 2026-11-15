@@ -15,7 +15,7 @@
 | "The malware-sandbox *justification* is decorative / procrastination" | **Half right.** Defer SMBIOS, CPUID spoofing, blast-radius UI, persona games. But see §3 — the critique deletes the sandbox at the exact moment it makes running hostile code the core loop. |
 | "A machine must never touch another machine through a UI more than once" | **Right instinct, wrong law.** Becomes: *one UI interaction per irreducible gate* (§5). |
 | "Protocol autopsy / distill to a native operator" | **Best idea in the document.** Promote to a first-class subsystem. |
-| "MicroVM = causal collider / fork-server" | **Right, but it's optimizing the free variable** (§2). Fork costs milliseconds; sampling costs tens of seconds. |
+| "MicroVM = causal collider / fork-server" | **Useful, but not the universal tier.** Sampling usually dominates; use WASI/process forks for cheap candidates, Ark cells for shared-kernel Linux tasks, and microVMs at trust boundaries (§2, §8). |
 | "Best-of-8 converts 15% into 72.8%" | **Wrong math** (independence assumption) and it measures the wrong bottleneck. |
 | "Markdown memory is epistemic rot" | **Right diagnosis, overcorrected prescription** (§6). Prose needs TTL and provenance, not prohibition. |
 | "Executable state-graph, frontier-only prompts" | **Strong.** Adopt, with three additions: negative results, operator health, and a planner (§6, §7). |
@@ -95,11 +95,11 @@ So: **the moment you delete the isolation story as "decorative", the organism's 
 
 The synthesis is not "keep the museum" and not "burn it":
 
-> **The fork *is* the isolation.** They are the same primitive. You don't build two systems; you build one CoW-microVM fork-server and it serves *both* the thermal cycler and the hostile-code boundary. Delete the *museum* (SMBIOS tables, synthetic Dell serials, blast-radius dashboards, persona generators) from Phase 1–2. Do not delete the boundary.
+> **Keep the isolation boundary, but stop treating one microVM per process or tab as the only primitive.** Use WASI for narrow operators, many namespace-based cells inside a shared Ark for workloads allowed to share a guest kernel, and disposable microVMs when a workload needs its own kernel trust domain. A process fork can be a cheap search primitive; it is not automatically a VM snapshot or a security boundary.
 
-Concretely: `persona seeds`, `CPUID spoofing`, `honeytokens`, `forensic UI` → Phase 4+, or never for the organism. `Process-per-VM + seccomp + cgroup + no-network kernel` → Phase 0, because your catalysts are useless without it.
+Concretely: `persona seeds`, `CPUID spoofing`, `honeytokens`, `forensic UI` → Phase 4+, or never for the organism. The first execution design should establish a small host control plane, resource-limited Ark cells, and a disposable quarantine path. Do **not** put unknown build scripts or suspected hostile code in a shared Work Ark merely because it has namespaces. The Ark kernel protects the host only subject to the VMM/device/control-channel attack surface; cells in that Ark still share the guest kernel.
 
-One more honest note on "causal time": the reason to control causal time is not only parallel search. It is that **untrusted execution must be reversible, and in the limit, observable.** A fork you can `SIGKILL` is the cheapest possible "undo". That is a security property as much as a search property, and it's the argument that keeps the sandbox alive after the museum burns.
+One more honest note on "causal time": the reason to control causal time is not only parallel search. It is that **untrusted execution must be reversible, and in the limit, observable.** A process fork can branch process memory; a filesystem snapshot or disposable VM can cover a wider state boundary. These provide undo points at different costs and with different guarantees. That is a useful search property and a security property, but the mechanism must match the threat model.
 
 ---
 
@@ -207,34 +207,69 @@ What actually happens at scale: weekly schema drift, silent field renames, quiet
 
 ---
 
-## 8. The execution ladder — the 4GB answer the critique misses
+## 8. The execution ladder — fit the boundary to risk, not to tab count
 
-If everything is a microVM fork, you have ~3 concurrent branches on 4GB, and no headroom for compilers or test suites. But **most of the cycling doesn't need a VM at all**: LLM uncertainty usually concerns *which program to write*, not *which operating system state to be in*. You only need a full VM fork when the *environment* diverges (package installs, service state, a mutated filesystem, hostile code).
+One hardware microVM per UI tab should **not** be Spacetime's default on a 4GB machine. The better unit is a **trust domain**: one hardware-isolated Linux VM (an **Ark**) can host many lighter execution cells, provided those cells are allowed to share the Ark's guest kernel. Tabs remain user-facing workspaces; they do not each imply a new kernel.
 
-Match the boundary to the hostility:
+This separates three different promises:
 
-| Tier | Mechanism | Fork cost | Use when |
+1. **Host boundary:** the Ark guest kernel is separated from the host by the VMM and hardware virtualization. That is a meaningful containment layer, not an absolute guarantee: the VMM, virtual devices, and host-side services such as the vsock broker remain attack surfaces.
+2. **Cell boundary:** Linux namespaces, mounts, cgroups, seccomp, and per-cell filesystems constrain processes within an Ark. They do **not** give each cell an independent kernel. A guest-kernel compromise can defeat the cell boundaries and put every cell in that Ark at risk.
+3. **Operator boundary:** WASI can restrict a small module to explicitly granted capabilities, but the Wasmtime runtime and its host-call interface remain part of the trusted computing base.
+
+### 8.1 The Ark: one guest kernel per trust domain
+
+The Ark pattern is a credible memory-saving direction for compatible workloads. A shared, read-only base image means cells in the same Ark can reuse the guest kernel's page cache for the same underlying files. Give each cell its own mount/PID/network/IPC namespaces, read-only base filesystem, ephemeral OverlayFS upper layer, seccomp policy, and cgroup limits. `clone3()` can create namespaces; it does **not** by itself configure seccomp, establish a resource-limited cgroup, or make a cell safe against bugs in the shared kernel. Those are explicit supervisor responsibilities.
+
+The key rule is **one Ark equals one kernel-compromise domain**:
+
+- `Ark-Work` may host cells whose workloads are allowed to share a guest kernel.
+- Unknown repositories, package install/build scripts, and suspected malware should go to `Ark-Quarantine` (or a fresh disposable quarantine VM), not into Work by default.
+- Two cells in the same Ark are not mutually protected from a guest-kernel exploit. A shared Quarantine Ark also does not isolate hostile samples from one another; use a fresh disposable Ark per sample when that cross-sample boundary matters, or explicitly accept that the samples share one trust domain.
+- Never put secrets or trusted sessions in an Ark that also runs code considered hostile to that trust domain.
+
+The page-cache benefit is real when cells use the same backing files, but it is not a promise that all app memory is shared. Private heaps, stacks, page tables, modified overlay data, and GUI/browser working sets still cost memory. A host page cache or storage backend may also share some data in a multi-VM design, so the actual comparison must be measured rather than assumed.
+
+### 8.2 WASI capsules for the cheap, narrow work
+
+Use WASI/Wasmtime for small operators: deterministic transforms, parsers, protocol helpers, and verifier steps that can work through a narrow, explicit interface. Give each module only the input buffers, output handles, and other capabilities it needs; impose memory, fuel/time, and concurrency limits. Do not treat WASI as a general way to run arbitrary Linux applications, and do not execute untrusted modules inside the UI/supervisor process. A restricted worker process gives defense in depth if the runtime or a host-call implementation has a bug.
+
+The Cloudflare Workers analogy is useful at the level of lightweight, capability-oriented execution, but it is not evidence that Workers use this Wasmtime/WASI design; their isolate model is different. Treat any proposed per-module RAM or maximum-concurrency figures as hypotheses to benchmark with Spacetime's actual modules and data.
+
+### 8.3 Zygotes and branching: useful only where they fit
+
+A fork server can help a **fork-safe** runtime that has expensive, reusable initialized state. Linux copy-on-write can initially share preloaded anonymous pages between children, while a shared Ark already shares file-backed cache pages. But this is not a universal launch mechanism: threads, inherited locks/file descriptors, runtime behavior, page-table work, and pages dirtied after the fork all affect safety and savings. Android's Zygote is a purpose-built design, not proof that arbitrary Python, Node, Rust, browser, or GUI processes can be safely forked after preloading.
+
+Likewise, `fork()` creates a copy-on-write process/address space, not a complete independent VM or deterministic world. Use it for cheap candidate runs where the runtime is fork-safe and the verifier controls side effects. Use separate overlays or snapshots when filesystem state diverges, and a separate quarantine VM when the kernel trust boundary must differ. The proposed sub-millisecond launch, 1.5 ms for eight branches, and 64 KB-per-branch figures are targets—not guarantees—and should not be used in product promises before measurement.
+
+### 8.4 A revised execution ladder
+
+| Tier | Mechanism | Use when | Boundary and caveat |
 |---|---|---|---|
-| **0** | in-process, no sandbox, pure function | µs | your own compiled operators, deterministic transforms — the 1000s/sec tier |
-| **1** | process sandbox (`bwrap` + seccomp + cgroup, no net) | ~1 ms, 5 MB | generated code you will inspect; stateless runs; compile + test |
-| **2** | warm-snapshot microVM | 10–50 ms, ~30 MB | scraped repos, build scripts, anything hostile or stateful |
-| **3** | microVM, no net driver, autopsy on exit | 50 ms+ | malware, n-day specimens, adversarial bundles |
+| **0** | Host-side trusted code | Spacetime's own UI, supervisor, and small audited helpers | No model-generated or untrusted code in the host process. |
+| **1** | WASI module in a constrained worker | Pure operators, parsers, transforms, and narrow verifiers | Capability-limited, not arbitrary Linux; runtime and host calls are trusted components. |
+| **2** | Cell inside a shared Ark | Ordinary Linux tools/apps that may share one guest-kernel trust domain | Namespaces and cgroups limit processes/resources; cells are **not** kernel-isolated from each other. |
+| **3** | Disposable quarantine microVM | Unknown binaries, hostile build scripts, malware, or work requiring a separate guest kernel | Higher memory/startup cost; no shared secrets; default to no network and destroy after the job. |
 
-Consequences: the cheap tier gives you AFL-class cycle rates on the workloads where cycling actually pays (payloads, parameters, hypotheses); the expensive tier is used only when the *state* is the variable. Tier 0–1 is where 90% of your thermal cycles should live; Tier 2–3 is where your security story lives. Same fork-server underneath, three policies — and no 500MB browser anywhere.
+This is a different claim from "everything is a microVM" and from "containers are as safe as VMs." It is **use the lightest execution tier that satisfies the threat model**, while keeping concurrent work within the actual RAM and CPU budget. A 2-core CPU remains a 2-core CPU; isolation does not create throughput. Idle cells can be stopped or queued, and expensive branches should be concurrency-limited.
 
-This is also the answer to "isolation is decorative": **Tier 2/3 are the isolation product**, and they're cheap precisely because everything above them is not a VM.
+The RAM table in the brainstorm is a useful benchmark hypothesis, not a verified budget. Zram's compression ratio is workload-dependent and costs CPU; compressed guest pages still consume host memory. Measure host and guest resident memory, per-cell private memory, page-cache sharing, overlay growth, GUI/browser cost, zram CPU, and peak branch memory on the target laptop. Do not claim a fixed 2.5 GB of headroom or a fixed cells-per-VM count until that test exists.
+
+### 8.5 Networking and control-plane rules inside an Ark
+
+A cell with `net = none` must have no usable egress path—not merely a policy label. Do not pass it network interfaces, inherited network sockets, or an unrestricted vsock service. A networked cell should receive only an explicit brokered channel; the host proxy must identify the cell from a supervisor-owned channel/credential, not trust a `tab_id` supplied by guest data. Deny host-local, LAN, and metadata destinations at the broker, and keep the Ark's control socket unavailable to ordinary cells. `LD_PRELOAD` interception alone is not a complete boundary for arbitrary binaries.
 
 ---
 
-## 9. Revised architecture (five primitives + a console)
+## 9. Revised architecture (tiered execution + a console)
 
-1. **Fork-server / cycler.** Warm golden snapshots per toolchain; `vsock`-injected candidate; deterministic shims (clock, entropy, network replay); verifier; `SIGKILL`; state diff. Two classes of cycle (data-tier, source-tier). Batch-sample from a single LLM turn.
-2. **Golden images with pre-warmed toolchains and a shared build cache.** *This is the cycle-rate lever, not the hypervisor.* Dependencies compiled once into the CAS (`sccache`/`ccache` pointed at it) so a mutation recompiles only the changed crate. Without this, "5,000 ms per branch" is a fantasy on a weak CPU.
-3. **Operator registry ("Pauling graph") with a supply chain.** Typed effects, verifier reference, mutation score, version, health check, quarantine, rollback, and a first-class `DEAD` state.
-4. **Dissection chamber + distiller.** A real browser exists *only* here, and only to cross an irreducible gate or to capture a trace once. Output is a native operator + a captured trace as evidence.
-5. **Ledger + verifier library.** Hash-chained, append-only, replayable. **This is the moat**: the library of *verifiers* you accumulate is worth more than the operators, because verifiers are the only thing that makes any of the rest trustworthy.
+1. **Execution-domain manager.** Keep the host UI/supervisor separate from untrusted execution. Manage a small number of Arks by trust domain (for example, Work and Quarantine), not one VM per tab. Make the trust boundary explicit in policy and in the UI.
+2. **Ark cell manager and resource governor.** Inside each Ark, create per-cell namespaces and ephemeral overlays; apply seccomp, capability drops, and per-cell cgroup CPU/memory/process limits before launching code. Share an immutable base image where appropriate. Treat zram and runtime zygotes as optional optimizations enabled only after measurement.
+3. **WASI worker and tiered cycler.** Run narrow operators in a constrained Wasmtime worker. Use WASI instances or process-level CoW forks for cheap, controlled candidates; use Ark cells when Linux state differs; use a separate quarantine VM when the kernel trust domain must differ. Keep deterministic shims, verifiers, `SIGKILL`, and state diffs, but do not make every candidate a VM snapshot.
+4. **Operator registry and dissection chamber.** Keep typed effects, verifier references, mutation score, health checks, quarantine, rollback, and a first-class `DEAD` state. Use a real browser only for irreducible gates or trace capture; do not turn it into the default worker.
+5. **Policy, egress, and audit ledger.** Enforce per-cell network capabilities at a broker, keep secrets out of untrusted cells, and append actions/results/verifier proofs to the host-owned hash-chained ledger. A compromised cell must not be able to rewrite the policy or ledger.
 
-**UI:** a telemetry console (branch tree, operator registry, verifier pass rates, cost/attention meters, blockers). The user-requested tabbed GUI multiplexer is a Phase-3 *use* feature, not a Phase-0 *organism* feature. Same fork-server; different front end.
+**UI:** build a telemetry console first: branch tree, operator registry, verifier pass rates, resource/cost meters, ledger, and blockers. Prototype it in **static HTML before choosing or writing the Rust UI**. The prototype should make each workspace's execution tier, Ark/trust domain, network policy, and resource use visible—especially the warning that cells in one Ark share a kernel. The tabbed GUI multiplexer remains a later *use* feature, not a prerequisite for the organism.
 
 ---
 
@@ -286,7 +321,7 @@ This bench is worth more than the first three months of the VMM roadmap, and it 
 
 ---
 
-## 12. Concessions (where the critique beat my earlier review)
+## 12. Concessions and architecture updates
 
 Being explicit, because a review that concedes nothing is useless:
 
@@ -294,9 +329,11 @@ Being explicit, because a review that concedes nothing is useless:
 2. **Persona spoofing, SMBIOS, honeytokens, blast-radius dashboards: demoted to Phase 4+/optional.** I defended these as OPSEC. They are real, but they are the *polish* of a capability that doesn't exist yet. Deferring them is correct.
 3. **Protocol distillation promoted to a first-class subsystem.** I had it as "skill crystallization" (replay a trace). Compiling to a native operator is strictly better, and I under-weighted it.
 4. **`EconBench` retargeted.** I proposed "deploy a site, run a smoke test" — too soft. Retarget to planted invariants, differential equality, and protocol distillation: verifiers you cannot argue with.
-5. **The console-first UI is a better Phase-1 target than the tab multiplexer.** I put tabs first because the user asked for tabs. The critique is right about the *organism*'s priority; the tab multiplexer is a Phase-3 product feature.
+5. **The console-first UI is a better Phase-1 target than the tab multiplexer.** I put tabs first because the user asked for tabs. The critique is right about the *organism*'s priority; the tab multiplexer is a later product feature.
+6. **One hardware VM per tab is not the default.** The revised direction is WASI for narrow operators, many namespace-based cells inside a shared Ark for workloads allowed to share one guest-kernel trust domain, and disposable microVMs when a separate kernel boundary is required. This adopts the Ark proposal's resource-saving structure without treating namespace cells as equivalent to separate VMs. All RAM, launch-time, and Zygote-sharing numbers remain benchmark hypotheses until measured on the target 4GB laptop.
+7. **The UI is HTML-first.** Prototype the console and its execution/trust states in static HTML before choosing or writing the Rust UI implementation.
 
-What I do not concede: the sandbox (§3), determinism and verifier independence (§4), the irreducible gates and their legal weight (§5), negative results in memory (§6), the maintenance treadmill (§7), and the fact that **demand, not verification, is the binding constraint** (§10).
+What remains load-bearing: containment for untrusted execution (with the right boundary for the threat), determinism and verifier independence (§4), the irreducible gates and their legal weight (§5), negative results in memory (§6), the maintenance treadmill (§7), and the fact that **demand, not verification, is the binding constraint** (§10).
 
 ---
 
@@ -306,3 +343,5 @@ What I do not concede: the sandbox (§3), determinism and verifier independence 
 2. **Is a browser allowed to exist at all in v1?** (My answer: one hardened gate-pass Chrome behind CDP, used rarely, never as the primary interface. If "no browser at all", then the first target must have zero attestation — which means local/OTS targets only.)
 3. **How much wall-clock per decision are you willing to accept?** This sets the population size, and therefore the entire concurrency budget.
 4. **Do you accept the legal line** (scope, local forks, disclosure, your identity)? It determines which of §10 is even admissible.
+5. **Which workloads may share an Ark kernel?** A strong default is to send unknown repositories and their build/install scripts to Quarantine. If they run in Ark-Work, they share its guest-kernel failure domain with every other Work cell; is that trade-off acceptable?
+6. **Which exact 4GB laptop and host OS define the benchmark?** Measure Ark baseline, cell private memory, page-cache reuse, GUI/browser working sets, branch peaks, and CPU under realistic concurrency before committing to RAM or latency claims.
