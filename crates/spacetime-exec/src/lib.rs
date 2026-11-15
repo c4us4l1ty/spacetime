@@ -94,10 +94,7 @@ fn mix64(mut value: u64) -> u64 {
 }
 
 fn fixed_rng_byte(seed: u64, index: usize) -> u8 {
-    let value = mix64(
-        seed.wrapping_add(index as u64)
-            .wrapping_add(RNG_MIX_OFFSET),
-    );
+    let value = mix64(seed.wrapping_add(index as u64).wrapping_add(RNG_MIX_OFFSET));
     ((value >> 24) & 0xff) as u8
 }
 
@@ -396,18 +393,15 @@ fn capability_error(action: &Action) -> Option<String> {
     let expected_args_digest = match canonical_json_bytes(&action.op) {
         Ok(bytes) => sha256_hex(bytes.as_slice()),
         Err(error) => {
-            return Some(format!("capability args could not be canonicalized: {error}"));
+            return Some(format!(
+                "capability args could not be canonicalized: {error}"
+            ));
         }
     };
     if action.args_digest.as_str() != expected_args_digest.as_str() {
         return Some("action args digest does not match its operation".to_string());
     }
-    if action
-        .expected_verifier
-        .as_deref()
-        .unwrap_or("")
-        .is_empty()
-    {
+    if action.expected_verifier.as_deref().unwrap_or("").is_empty() {
         return Some("action has no expected verifier".to_string());
     }
     None

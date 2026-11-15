@@ -114,7 +114,10 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     }));
     gates.push(capture("machine_baseline", check_machine_baseline));
     gates.push(capture("determinism_controls", check_determinism_controls));
-    gates.push(capture("capability_enforcement", check_capability_enforcement));
+    gates.push(capture(
+        "capability_enforcement",
+        check_capability_enforcement,
+    ));
     gates.push(capture("verifier_panel", check_verifier_panel));
     gates.push(capture("adversarial_corpus", check_adversarial_corpus));
     gates.push(capture("operator_population", check_operator_population));

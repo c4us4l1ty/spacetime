@@ -19,33 +19,26 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        continue-on-error: true
         uses: actions/checkout@v4
 
       - name: Install Rust
-        continue-on-error: true
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
 
       - name: Format check
-        continue-on-error: true
         run: cargo fmt --all -- --check
 
       - name: Clippy
-        continue-on-error: true
-        run: cargo clippy --workspace --all-targets --locked --message-format=short -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Tests
-        continue-on-error: true
         run: cargo test --workspace --all-targets --locked
 
       - name: Release build
-        continue-on-error: true
         run: cargo build --workspace --release --locked
 
       - name: CLI smoke - happy path
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_hello.task --cortex scripted --ledger target/block1.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/block1.jsonl
@@ -53,21 +46,18 @@ jobs:
           cmp target/block1.jsonl.state target/replay.json
 
       - name: CLI smoke - false claim
-        continue-on-error: true
         run: |
           ! cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_false_claim.task --cortex scripted --ledger target/false.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/false.jsonl
           grep -q '"goal_status":"unverified"' target/false.jsonl.state
 
       - name: CLI smoke - timeout
-        continue-on-error: true
         run: |
           ! cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_timeout.task --cortex scripted --ledger target/timeout.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/timeout.jsonl
           grep -q '"goal_status":"failed"' target/timeout.jsonl.state
 
       - name: Crucible smoke - determinism and metrology
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- crucible verify --task bench/tasks/block1_hello.task > target/crucible-verify.txt
           grep -q 'verdict=pass' target/crucible-verify.txt
@@ -103,7 +93,6 @@ jobs:
           grep -q 'real_operator_study=false' target/crucible-fixture-population.txt
 
       - name: End-to-end verification
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml > target/verify.stdout
           cat target/verify.toml
@@ -132,7 +121,6 @@ jobs:
           grep -q '^resource_gate_evaluator = "unmeasured_fail_pass_self_test"$' target/verify.toml
 
       - name: Machine baseline
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- machine
           cargo run --release --locked -p spacetime-ctl -- machine gate > target/machine-gate.txt

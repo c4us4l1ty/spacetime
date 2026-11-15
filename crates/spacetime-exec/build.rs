@@ -8,9 +8,8 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
-    let out_dir = PathBuf::from(
-        env::var_os("OUT_DIR").expect("Cargo must set OUT_DIR for build scripts"),
-    );
+    let out_dir =
+        PathBuf::from(env::var_os("OUT_DIR").expect("Cargo must set OUT_DIR for build scripts"));
     let compiler = env::var_os("CC").unwrap_or_else(|| OsString::from("cc"));
     let shim_source = PathBuf::from("shim/spacetime_shim.c");
     let probe_source = PathBuf::from("shim/spacetime_probe.c");
@@ -19,13 +18,7 @@ fn main() {
 
     let shim_status = Command::new(&compiler)
         .args([
-            "-std=c11",
-            "-O2",
-            "-Wall",
-            "-Wextra",
-            "-Werror",
-            "-shared",
-            "-fPIC",
+            "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-shared", "-fPIC",
         ])
         .arg(&shim_source)
         .arg("-o")
@@ -33,7 +26,10 @@ fn main() {
         .arg("-ldl")
         .status()
         .expect("run the system C compiler for the shim");
-    assert!(shim_status.success(), "C compiler failed for spacetime_shim.c");
+    assert!(
+        shim_status.success(),
+        "C compiler failed for spacetime_shim.c"
+    );
 
     let probe_status = Command::new(&compiler)
         .args(["-std=c11", "-O2", "-Wall", "-Wextra", "-Werror"])
@@ -42,10 +38,16 @@ fn main() {
         .arg(&probe)
         .status()
         .expect("run the system C compiler for the probe");
-    assert!(probe_status.success(), "C compiler failed for spacetime_probe.c");
+    assert!(
+        probe_status.success(),
+        "C compiler failed for spacetime_probe.c"
+    );
 
     println!("cargo:rustc-env=SPACETIME_SHIM_PATH={}", shim.display());
-    println!("cargo:rustc-env=SPACETIME_SHIM_PROBE_PATH={}", probe.display());
+    println!(
+        "cargo:rustc-env=SPACETIME_SHIM_PROBE_PATH={}",
+        probe.display()
+    );
     println!("cargo:rerun-if-changed=shim/spacetime_shim.c");
     println!("cargo:rerun-if-changed=shim/spacetime_probe.c");
     println!("cargo:rerun-if-env-changed=CC");
