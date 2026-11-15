@@ -3,6 +3,7 @@
 //! This reports cheap host facts only. It makes no RAM, CPU, boot-time, or latency claims.
 
 use spacetime_types::Result;
+use std::fmt::Write as _;
 use std::fs;
 use std::process::Command;
 
@@ -95,7 +96,22 @@ fn value_after_colon(text: &str, key: &str) -> Option<String> {
 }
 
 fn quote(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
+    let mut out = String::with_capacity(value.len() + 2);
+    for character in value.chars() {
+        match character {
+            '\\' => out.push_str("\\\\"),
+            '"' => out.push_str("\\\""),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            control if control.is_control() => {
+                let code = u32::from(control);
+                let _ = write!(out, "\\u{code:04X}");
+            }
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -109,5 +125,11 @@ mod tests {
         assert!(toml.contains("baseline_only_performance_claims_unmeasured"));
         assert!(!toml.contains("boot_ms"));
         Ok(())
+    }
+
+    #[test]
+    fn quote_escapes_toml_basic_strings() {
+        assert_eq!(quote("a\\b\"c\n"), "a\\\\b\\\"c\\n");
+        assert_eq!(quote("\u{1}"), "\\u0001");
     }
 }

@@ -74,6 +74,7 @@ impl ScriptedRunner {
             .arg(seconds.to_string())
             .current_dir(self.work_dir.path())
             .env_clear()
+            .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
@@ -194,5 +195,17 @@ mod tests {
             20,
         ));
         assert!(matches!(result.status, RunStatus::Error(_)));
+    }
+
+    #[test]
+    fn zero_sleep_completes() {
+        let runner = ScriptedRunner::new().expect("runner");
+        let result = runner.run(&action(
+            ActionOp::Sleep {
+                milliseconds: 0,
+            },
+            1_000,
+        ));
+        assert_eq!(result.status, RunStatus::Completed);
     }
 }

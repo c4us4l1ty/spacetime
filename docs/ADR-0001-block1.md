@@ -31,6 +31,10 @@ the supreme constraint.
    recorded as `unverified`; the goal stays incomplete.
 8. **Snapshot-first types exist early.** `WorkspaceId`, `SurfaceId`, `PreviewMode`, and
    `LivenessState` are first-class data even though no live surface is implemented yet.
+9. **Canonical ledger bytes.** Stored JSONL lines are canonicalized; verification rejects
+   non-canonical rewrites, whitespace changes, or key reordering instead of only semantic tampering.
+10. **Failure is not success.** `spacetime-ctl run` exits non-zero when the final goal is not
+    `Verified`, while still writing the state sidecar for inspection.
 
 ## Consequences
 
@@ -38,3 +42,6 @@ the supreme constraint.
 - Block 1 is deterministic, offline, and cheap enough to satisfy the First Law.
 - Security claims are intentionally narrow: this block proves tamper evidence and replay, not host
   isolation. The plan's later blocks remain responsible for the real isolation boundary.
+- Ledger verification is byte-canonical; an attacker cannot rewrite a line with reordered keys or
+  extra whitespace and keep the chain valid.
+- Unverified, failed, and incomplete goals are reported as command failures, not silent success.

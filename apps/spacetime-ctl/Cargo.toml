@@ -13,6 +13,9 @@ spacetime-exec.workspace = true
 spacetime-verifier.workspace = true
 spacetime-bench.workspace = true
 
+[dev-dependencies]
+serde_json.workspace = true
+
 [lib]
 name = "spacetime_ctl"
 path = "src/lib.rs"

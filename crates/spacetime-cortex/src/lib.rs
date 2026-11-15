@@ -27,10 +27,11 @@ pub struct ScriptedCortex {
 
 impl ScriptedCortex {
     pub fn from_file(path: &Path) -> Result<Self> {
-        let bytes = fs::read(path)?;
-        if bytes.len() > MAX_TASK_BYTES {
+        let metadata = fs::metadata(path)?;
+        if metadata.len() > MAX_TASK_BYTES as u64 {
             return Err(SpacetimeError::new("task file exceeds 64 KiB resource cap"));
         }
+        let bytes = fs::read(path)?;
         let text = String::from_utf8(bytes)
             .map_err(|_| SpacetimeError::new("task file is not valid UTF-8"))?;
 
@@ -209,6 +210,19 @@ mod tests {
         let first = cortex.next_action(&state)?.expect("first action");
         assert!(matches!(&first.op, ActionOp::ProduceEvidence { .. }));
         assert_eq!(first.id, spacetime_types::ActionId::new("action-000000"));
+        Ok(())
+    }
+
+    #[test]
+    fn oversized_task_is_rejected_before_reading() -> Result<()> {
+        let pid = std::process::id();
+        let suffix = MAX_TASK_BYTES;
+        let path = std::env::temp_dir().join(format!("spacetime-cortex-oversize-{pid}-{suffix}"));
+        let data = vec![b'#'; MAX_TASK_BYTES + 1];
+        fs::write(&path, data)?;
+        let result = ScriptedCortex::from_file(&path);
+        let _ = fs::remove_file(&path);
+        assert!(result.is_err());
         Ok(())
     }
 }

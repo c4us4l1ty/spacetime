@@ -59,7 +59,13 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 pub fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>> {
-    Ok(serde_json::to_vec(value)?)
+    let value = serde_json::to_value(value)?;
+    Ok(serde_json::to_vec(&value)?)
+}
+
+pub fn canonical_json_string<T: Serialize>(value: &T) -> Result<String> {
+    let value = serde_json::to_value(value)?;
+    Ok(serde_json::to_string(&value)?)
 }
 
 macro_rules! string_id {
@@ -362,7 +368,7 @@ impl Event {
     }
 
     pub fn to_json_string(&self) -> Result<String> {
-        Ok(serde_json::to_string(self)?)
+        canonical_json_string(self)
     }
 
     pub fn from_json_str(line: &str) -> Result<Self> {
@@ -427,6 +433,23 @@ mod tests {
         assert_eq!(binding, decoded);
         assert_eq!(decoded.workspace_id.as_str(), "ws-1");
         assert_eq!(decoded.surface_id.as_str(), "surface-1");
+        Ok(())
+    }
+
+    #[test]
+    fn canonical_json_sorts_object_keys() -> Result<()> {
+        #[derive(Serialize)]
+        struct Example {
+            zebra: u8,
+            alpha: u8,
+        }
+
+        let bytes = canonical_json_bytes(&Example {
+            zebra: 1,
+            alpha: 2,
+        })?;
+        let text = String::from_utf8(bytes).expect("canonical JSON is UTF-8");
+        assert_eq!(text, r#"{"alpha":2,"zebra":1}"#);
         Ok(())
     }
 }

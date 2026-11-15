@@ -154,12 +154,16 @@ pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
     let events = state.event_count;
     let ledger = ledger_path.display();
     println!("status={status:?} events={events} ledger={ledger}");
+    if status != GoalStatus::Verified {
+        return Err(SpacetimeError::new(format!("goal not verified: {status:?}")));
+    }
     Ok(())
 }
 
 fn state_path(ledger_path: &Path) -> PathBuf {
-    let ledger = ledger_path.display();
-    PathBuf::from(format!("{ledger}.state"))
+    let mut state = ledger_path.as_os_str().to_os_string();
+    state.push(".state");
+    PathBuf::from(state)
 }
 
 #[cfg(test)]
@@ -216,7 +220,7 @@ mod tests {
     #[test]
     fn false_claim_does_not_advance_goal() -> Result<()> {
         let paths = TempPaths::new("false")?;
-        run_task(&fixture("block1_false_claim.task"), &paths.ledger)?;
+        assert!(run_task(&fixture("block1_false_claim.task"), &paths.ledger).is_err());
         let state = Ledger::replay(&paths.ledger)?;
         assert_eq!(state.goal_status, GoalStatus::Unverified);
         Ok(())
@@ -225,7 +229,7 @@ mod tests {
     #[test]
     fn timeout_is_a_failure_not_a_pass() -> Result<()> {
         let paths = TempPaths::new("timeout")?;
-        run_task(&fixture("block1_timeout.task"), &paths.ledger)?;
+        assert!(run_task(&fixture("block1_timeout.task"), &paths.ledger).is_err());
         let state = Ledger::replay(&paths.ledger)?;
         assert_eq!(state.goal_status, GoalStatus::Failed);
         Ok(())
@@ -250,5 +254,45 @@ mod tests {
         fs::write(&truncated.ledger, lines.join("\n"))?;
         assert!(Ledger::verify(&truncated.ledger).is_err());
         Ok(())
+    }
+
+    #[test]
+    fn incomplete_goal_is_not_reported_as_success() -> Result<()> {
+        let paths = TempPaths::new("incomplete")?;
+        let task = paths.dir.join("incomplete.task");
+        fs::write(&task, "schema_version=1\naction produce_evidence evidence=x\n")?;
+        assert!(run_task(&task, &paths.ledger).is_err());
+        let state = fs::read_to_string(paths.state())?;
+        assert!(state.contains("\"goal_status\":\"in_progress\""));
+        Ok(())
+    }
+
+    #[test]
+    fn non_canonical_ledger_line_is_rejected() -> Result<()> {
+        let paths = TempPaths::new("canonical")?;
+        run_task(&fixture("block1_hello.task"), &paths.ledger)?;
+        let text = fs::read_to_string(&paths.ledger)?;
+        let first_line = text.lines().next().expect("first line");
+        let event = spacetime_types::Event::from_json_str(first_line)?;
+        let non_canonical = serde_json::to_string(&event)?;
+        assert_ne!(non_canonical, first_line);
+        let mut lines: Vec<String> = text.lines().map(str::to_string).collect();
+        lines[0] = non_canonical;
+        fs::write(&paths.ledger, lines.join("\n") + "\n")?;
+        assert!(Ledger::verify(&paths.ledger).is_err());
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn state_path_preserves_non_utf8_bytes() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let path = PathBuf::from(OsString::from_vec(vec![b'f', b'o', b'o', 0xff]));
+        let state = state_path(&path);
+        let mut expected = path.into_os_string();
+        expected.push(".state");
+        assert_eq!(state.as_os_str(), expected.as_os_str());
     }
 }

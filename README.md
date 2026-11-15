@@ -34,4 +34,6 @@ cargo run -p spacetime-ctl -- replay target/block1.jsonl
 cargo run -p spacetime-ctl -- machine
 ```
 
+The false-claim and timeout fixtures intentionally exit non-zero after writing their state; the happy path exits zero.
+
 See `BUILD-PLAN.md` for the blocked roadmap and `docs/ADR-0001-block1.md` for Block 1 decisions.

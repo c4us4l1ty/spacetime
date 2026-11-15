@@ -7,7 +7,7 @@ use spacetime_types::{
 };
 use std::collections::BTreeMap;
 use std::fs::{self, OpenOptions};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 
 pub fn genesis_hash() -> String {
@@ -15,8 +15,9 @@ pub fn genesis_hash() -> String {
 }
 
 pub fn head_path(path: &Path) -> PathBuf {
-    let shown = path.display();
-    PathBuf::from(format!("{shown}.head"))
+    let mut head = path.as_os_str().to_os_string();
+    head.push(".head");
+    PathBuf::from(head)
 }
 
 fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
@@ -44,7 +45,7 @@ impl Head {
     }
 
     pub fn to_json_string(&self) -> Result<String> {
-        Ok(serde_json::to_string(self)?)
+        spacetime_types::canonical_json_string(self)
     }
 
     pub fn read(path: &Path) -> Result<Self> {
@@ -87,7 +88,7 @@ impl LedgerState {
     }
 
     pub fn to_json_string(&self) -> Result<String> {
-        let mut out = serde_json::to_string(self)?;
+        let mut out = spacetime_types::canonical_json_string(self)?;
         out.push('\n');
         Ok(out)
     }
@@ -200,15 +201,20 @@ impl Ledger {
             return Err(SpacetimeError::new("unsupported ledger head schema"));
         }
 
-        let content = fs::read_to_string(path)?;
+        let file = fs::File::open(path)?;
+        let reader = BufReader::new(file);
         let mut prev = genesis_hash();
         let mut events = Vec::new();
 
-        for (index, line) in content.lines().enumerate() {
+        for (index, line_result) in reader.lines().enumerate() {
+            let line = line_result?;
             if line.trim().is_empty() {
                 return Err(SpacetimeError::new("blank ledger line"));
             }
-            let event = Event::from_json_str(line)?;
+            let event = Event::from_json_str(&line)?;
+            if line != event.to_json_string()? {
+                return Err(SpacetimeError::new("non-canonical ledger line"));
+            }
             if event.schema_version != SCHEMA_VERSION {
                 return Err(SpacetimeError::new("unsupported event schema"));
             }
@@ -268,5 +274,26 @@ mod tests {
         assert!(json.ends_with('\n'));
         assert!(json.contains("\"goal_status\":\"in_progress\""));
         Ok(())
+    }
+
+    #[test]
+    fn head_json_is_canonical() -> Result<()> {
+        let head = Head::genesis();
+        let json = head.to_json_string()?;
+        assert!(json.starts_with("{\"count\":0"));
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn head_path_preserves_non_utf8_bytes() {
+        use std::ffi::OsString;
+        use std::os::unix::ffi::OsStringExt;
+
+        let path = PathBuf::from(OsString::from_vec(vec![b'f', b'o', b'o', 0xff]));
+        let head = head_path(&path);
+        let mut expected = path.into_os_string();
+        expected.push(".head");
+        assert_eq!(head.as_os_str(), expected.as_os_str());
     }
 }
