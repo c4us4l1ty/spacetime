@@ -105,6 +105,13 @@ impl ScriptedCortex {
             None => Ok(spacetime_types::VerifierSource::FixtureSuite),
         }
     }
+
+    pub fn expected_verdict(&self) -> Result<spacetime_types::Verdict> {
+        match self.metadata.get("expected_verdict") {
+            Some(raw) => raw.parse::<spacetime_types::Verdict>(),
+            None => Ok(spacetime_types::Verdict::Pass),
+        }
+    }
 }
 
 impl Cortex for ScriptedCortex {
@@ -257,6 +264,19 @@ mod tests {
         let result = ScriptedCortex::from_file(&path);
         let _ = fs::remove_file(&path);
         assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn parses_block2_expected_verdict() -> Result<()> {
+        let path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/tasks/block2_flaky.task");
+        let cortex = ScriptedCortex::from_file(&path)?;
+        assert_eq!(cortex.expected_verdict()?, spacetime_types::Verdict::Error);
+        assert_eq!(
+            cortex.verifier_source()?,
+            spacetime_types::VerifierSource::FixtureSuite
+        );
         Ok(())
     }
 }

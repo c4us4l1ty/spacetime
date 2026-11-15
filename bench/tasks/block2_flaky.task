@@ -1,6 +1,7 @@
 # Block 2 negative path: a flaky candidate must be classified ERROR, never promoted.
 schema_version=1
 verifier_source=fixture_suite
+expected_verdict=error
 expected_digest=sha256:flaky-even
 space_id=space-block2-flaky
 workspace_id=ws-block2-flaky

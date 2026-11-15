@@ -7,8 +7,8 @@ use spacetime_types::{
     sha256_hex, DecisionKind, Event, GoalStatus, PolicyDecision, Result, SpacetimeError,
 };
 use spacetime_verifier::{
-    differential_score, false_pass_rate, mutation_score_bps, Candidate, CrucibleVerifier, Fixture,
-    FixtureVerifier, Verifier,
+    differential_score, false_pass_report, mutation_score_bps, verifier_source_priority, Candidate,
+    CrucibleVerifier, Fixture, FixtureVerifier, Verifier,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -22,6 +22,7 @@ Commands:
   crucible verify --task <file>
   crucible false-pass --task <file> --runs <n>
   crucible differential --limit <n>
+  crucible sources
   machine
   digest <text>
   help
@@ -88,24 +89,27 @@ fn cmd_crucible(args: &[String]) -> Result<()> {
         "verify" => cmd_crucible_verify(&args[1..]),
         "false-pass" => cmd_crucible_false_pass(&args[1..]),
         "differential" => cmd_crucible_differential(&args[1..]),
+        "sources" => cmd_crucible_sources(),
         _ => Err(SpacetimeError::new(format!(
             "unknown crucible subcommand: {subcommand}"
         ))),
     }
 }
 
-fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> {
+pub(crate) fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> {
     let cortex = ScriptedCortex::from_file(task_path)?;
     let action = cortex.first_action()?;
     let expected_digest = cortex
         .expected_digest()
         .ok_or_else(|| SpacetimeError::new("task has no expected_digest"))?;
     let source = cortex.verifier_source()?;
+    let expected_verdict = cortex.expected_verdict()?;
     let candidate = Candidate::new("scripted-candidate", action);
     let fixture = Fixture {
         id: "scripted-fixture".to_string(),
         source,
         expected_digest,
+        expected_verdict,
         determinism_runs: 2,
         mutation_threshold_bps: 8_000,
     };
@@ -118,13 +122,23 @@ fn cmd_crucible_verify(args: &[String]) -> Result<()> {
     let runner = ScriptedRunner::new()?;
     let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
     println!(
-        "verdict={} verifier_id={} source={:?} determinism_runs={} mutation_score_bps={} evidence_digest={}",
+        "verdict={} verifier_id={}",
         proof.verdict.as_str(),
-        proof.verifier_id,
+        proof.verifier_id
+    );
+    println!(
+        "source={:?} source_priority={} expected_verdict={}",
         proof.source,
-        proof.determinism_runs,
-        proof.mutation_score_bps,
-        proof.evidence_digest,
+        proof.source_priority,
+        fixture.expected_verdict.as_str()
+    );
+    println!(
+        "determinism_runs={} mutation_score_bps={} evidence_digest={}",
+        proof.determinism_runs, proof.mutation_score_bps, proof.evidence_digest
+    );
+    println!(
+        "execution_profile_digest={}",
+        proof.execution_profile_digest
     );
     if proof.verdict != spacetime_types::Verdict::Pass {
         return Err(SpacetimeError::new(format!(
@@ -140,12 +154,19 @@ fn cmd_crucible_false_pass(args: &[String]) -> Result<()> {
     let runs = flag(args, "--runs")?.parse::<u32>()?;
     let (candidate, fixture) = crucible_inputs(Path::new(task.as_str()))?;
     let runner = ScriptedRunner::new()?;
-    let rate = false_pass_rate(&candidate, &fixture, &runner, runs);
-    println!("false_pass_rate={rate:.4} runs={runs}");
-    if rate > 0.01 {
+    let (rate, leak_rate) = false_pass_report(&candidate, &fixture, &runner, runs);
+    println!("false_pass_rate={rate:.4} false_pass_leaks={leak_rate:.4} runs={runs}");
+    if rate > 0.01 || leak_rate > 0.01 {
         return Err(SpacetimeError::new(format!(
-            "false-PASS rate {rate:.4} exceeds the 1% kill gate"
+            "false-PASS rate {rate:.4} or leak rate {leak_rate:.4} exceeds the 1% kill gate"
         )));
+    }
+    Ok(())
+}
+
+fn cmd_crucible_sources() -> Result<()> {
+    for source in verifier_source_priority() {
+        println!("priority={} source={:?}", source.priority(), source);
     }
     Ok(())
 }
@@ -218,7 +239,7 @@ pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
     while let Some(action) = cortex.next_action(&state)? {
         let decision = PolicyDecision {
             decision: DecisionKind::Allow,
-            reason: "block1 placeholder; no external effects".to_string(),
+            reason: "blocks 1-2 placeholder; no external effects".to_string(),
         };
         let result = runner.run(&action);
         let proof = verifier.verify(&action, &result.observation, &result.status, &state);
@@ -251,7 +272,7 @@ pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn state_path(ledger_path: &Path) -> PathBuf {
+pub(crate) fn state_path(ledger_path: &Path) -> PathBuf {
     let mut state = ledger_path.as_os_str().to_os_string();
     state.push(".state");
     PathBuf::from(state)

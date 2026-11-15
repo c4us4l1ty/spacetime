@@ -1,13 +1,16 @@
 //! Verifiers for Spacetime.
 //!
 //! Block 1's `FixtureVerifier` keeps the ledger honest about claims. Block 2's
-//! `CrucibleVerifier` adds deterministic double-run checks, independent provenance, and
-//! differential/mutation metrology. Real clock/RNG shims and model-written adversarial tests
-//! remain later work.
+//! `CrucibleVerifier` adds configurable determinism runs, independent provenance, a declarative
+//! execution profile, mutation gating, and differential metrology. Real clock/RNG/socket shims
+//! and live model-written adversarial tests remain later work.
 
-use spacetime_exec::{RunStatus, Runner};
+use spacetime_exec::{FIXED_DETERMINISM_PROFILE, RunStatus, Runner};
 use spacetime_ledger::LedgerState;
-use spacetime_types::{Action, ActionOp, Observation, Verdict, VerifierProof, VerifierSource};
+use spacetime_types::{
+    Action, ActionOp, Observation, Verdict, VerifierProof, VerifierSource,
+    VERIFIER_SOURCE_PRIORITY,
+};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub const FIXTURE_VERIFIER_ID: &str = "fixture-verifier-v1";
@@ -39,6 +42,7 @@ impl Verifier for FixtureVerifier {
                 FIXTURE_VERIFIER_ID,
                 Verdict::Error,
                 observation.digest.clone(),
+                observation.determinism_profile_digest.clone(),
                 VerifierSource::FixtureSuite,
                 1,
                 0,
@@ -53,6 +57,7 @@ impl Verifier for FixtureVerifier {
                         FIXTURE_VERIFIER_ID,
                         Verdict::Pass,
                         actual.clone(),
+                        observation.determinism_profile_digest.clone(),
                         VerifierSource::FixtureSuite,
                         1,
                         0,
@@ -65,6 +70,7 @@ impl Verifier for FixtureVerifier {
                             .last_evidence_digest
                             .clone()
                             .unwrap_or_else(|| observation.digest.clone()),
+                        observation.determinism_profile_digest.clone(),
                         VerifierSource::FixtureSuite,
                         1,
                         0,
@@ -79,6 +85,7 @@ impl Verifier for FixtureVerifier {
                 FIXTURE_VERIFIER_ID,
                 Verdict::Pass,
                 observation.digest.clone(),
+                observation.determinism_profile_digest.clone(),
                 VerifierSource::FixtureSuite,
                 1,
                 0,
@@ -102,15 +109,25 @@ pub struct Candidate {
     pub id: String,
     pub action: Action,
     pub artifact_digest: String,
+    pub mutation_score_bps: u16,
 }
 
 impl Candidate {
     pub fn new(id: impl Into<String>, action: Action) -> Self {
+        Self::with_mutation_score(id, action, 10_000)
+    }
+
+    pub fn with_mutation_score(
+        id: impl Into<String>,
+        action: Action,
+        mutation_score_bps: u16,
+    ) -> Self {
         let artifact_digest = action.args_digest.clone();
         Self {
             id: id.into(),
             action,
             artifact_digest,
+            mutation_score_bps,
         }
     }
 }
@@ -120,6 +137,7 @@ pub struct Fixture {
     pub id: String,
     pub source: VerifierSource,
     pub expected_digest: String,
+    pub expected_verdict: Verdict,
     pub determinism_runs: u32,
     pub mutation_threshold_bps: u16,
 }
@@ -134,18 +152,46 @@ impl CrucibleVerifier {
         fixture: &Fixture,
         runner: &dyn Runner,
     ) -> VerifierProof {
-        let first = runner.run(&candidate.action);
-        let second = runner.run(&candidate.action);
+        if fixture.determinism_runs < 2 {
+            return proof(
+                CRUCIBLE_VERIFIER_ID,
+                Verdict::Error,
+                "unavailable".to_string(),
+                FIXED_DETERMINISM_PROFILE.digest(),
+                fixture.source,
+                fixture.determinism_runs,
+                candidate.mutation_score_bps,
+                "fixture requires at least two determinism runs",
+            );
+        }
+        if candidate.mutation_score_bps < fixture.mutation_threshold_bps {
+            return proof(
+                CRUCIBLE_VERIFIER_ID,
+                Verdict::Fail,
+                candidate.artifact_digest.clone(),
+                FIXED_DETERMINISM_PROFILE.digest(),
+                fixture.source,
+                fixture.determinism_runs,
+                candidate.mutation_score_bps,
+                "candidate mutation score is below the fixture threshold",
+            );
+        }
 
-        if first.status != second.status || first.observation.digest != second.observation.digest {
+        let mut results = Vec::new();
+        for _ in 0..fixture.determinism_runs {
+            results.push(runner.run(&candidate.action));
+        }
+        let first = results.first().expect("determinism_runs >= 2");
+        if results.iter().skip(1).any(|result| result != first) {
             return proof(
                 CRUCIBLE_VERIFIER_ID,
                 Verdict::Error,
                 first.observation.digest.clone(),
+                first.observation.determinism_profile_digest.clone(),
                 fixture.source,
                 fixture.determinism_runs,
-                0,
-                "determinism disagreement between two runs",
+                candidate.mutation_score_bps,
+                "determinism disagreement between runs",
             );
         }
         if let RunStatus::Error(reason) = &first.status {
@@ -153,20 +199,22 @@ impl CrucibleVerifier {
                 CRUCIBLE_VERIFIER_ID,
                 Verdict::Error,
                 first.observation.digest.clone(),
+                first.observation.determinism_profile_digest.clone(),
                 fixture.source,
                 fixture.determinism_runs,
-                0,
-                reason,
+                candidate.mutation_score_bps,
+                reason.as_str(),
             );
         }
-        if first.observation.digest != fixture.expected_digest {
+        if first.observation.digest.as_str() != fixture.expected_digest.as_str() {
             return proof(
                 CRUCIBLE_VERIFIER_ID,
                 Verdict::Fail,
                 first.observation.digest.clone(),
+                first.observation.determinism_profile_digest.clone(),
                 fixture.source,
                 fixture.determinism_runs,
-                0,
+                candidate.mutation_score_bps,
                 "candidate digest does not match fixture oracle",
             );
         }
@@ -175,10 +223,11 @@ impl CrucibleVerifier {
             CRUCIBLE_VERIFIER_ID,
             Verdict::Pass,
             first.observation.digest.clone(),
+            first.observation.determinism_profile_digest.clone(),
             fixture.source,
             fixture.determinism_runs,
-            fixture.mutation_threshold_bps,
-            "two identical runs matched the independent fixture oracle",
+            candidate.mutation_score_bps,
+            "identical determinism runs matched the independent fixture oracle",
         )
     }
 }
@@ -205,12 +254,23 @@ pub fn verdict_flip_rate(verdicts: &[Verdict]) -> f64 {
     flips as f64 / (verdicts.len() - 1) as f64
 }
 
-pub fn false_pass_rate(
+pub fn false_pass_leak_rate(verdicts: &[Verdict], expected: Verdict) -> f64 {
+    if verdicts.is_empty() {
+        return 0.0;
+    }
+    let leaks = verdicts
+        .iter()
+        .filter(|verdict| **verdict != expected || (**verdict == Verdict::Pass && expected != Verdict::Pass))
+        .count();
+    leaks as f64 / verdicts.len() as f64
+}
+
+pub fn false_pass_report(
     candidate: &Candidate,
     fixture: &Fixture,
     runner: &dyn Runner,
     runs: u32,
-) -> f64 {
+) -> (f64, f64) {
     let verifier = CrucibleVerifier;
     let mut verdicts = Vec::with_capacity(runs as usize);
     for _ in 0..runs {
@@ -220,7 +280,19 @@ pub fn false_pass_rate(
                 .verdict,
         );
     }
-    verdict_flip_rate(&verdicts)
+    (
+        verdict_flip_rate(&verdicts),
+        false_pass_leak_rate(&verdicts, fixture.expected_verdict),
+    )
+}
+
+pub fn false_pass_rate(
+    candidate: &Candidate,
+    fixture: &Fixture,
+    runner: &dyn Runner,
+    runs: u32,
+) -> f64 {
+    false_pass_report(candidate, fixture, runner, runs).0
 }
 
 #[derive(Debug, Default)]
@@ -236,6 +308,10 @@ impl UnstableVerifier {
             Verdict::Fail
         }
     }
+}
+
+pub fn verifier_source_priority() -> &'static [VerifierSource] {
+    &VERIFIER_SOURCE_PRIORITY
 }
 
 fn reference_transform(input: u64) -> u64 {
@@ -286,6 +362,7 @@ fn proof(
     verifier_id: &str,
     verdict: Verdict,
     evidence_digest: String,
+    execution_profile_digest: String,
     source: VerifierSource,
     determinism_runs: u32,
     mutation_score_bps: u16,
@@ -295,7 +372,9 @@ fn proof(
         verifier_id: verifier_id.to_string(),
         verdict,
         source,
+        source_priority: source.priority(),
         evidence_digest,
+        execution_profile_digest,
         determinism_runs,
         mutation_score_bps,
         reason: reason.to_string(),
@@ -334,11 +413,12 @@ mod tests {
         Candidate::new("test-candidate", action(op))
     }
 
-    fn fixture(expected: &str) -> Fixture {
+    fn fixture(expected: &str, expected_verdict: Verdict) -> Fixture {
         Fixture {
             id: "test-fixture".to_string(),
             source: VerifierSource::FixtureSuite,
             expected_digest: spacetime_types::sha256_hex(expected.as_bytes()),
+            expected_verdict,
             determinism_runs: 2,
             mutation_threshold_bps: 8_000,
         }
@@ -350,12 +430,18 @@ mod tests {
         let candidate = candidate(ActionOp::Echo {
             text: "stable".to_string(),
         });
-        let fixture = fixture("stable");
+        let fixture = fixture("stable", Verdict::Pass);
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
         assert_eq!(proof.verdict, Verdict::Pass);
         assert_eq!(proof.determinism_runs, 2);
         assert_eq!(proof.source, VerifierSource::FixtureSuite);
+        assert_eq!(proof.source_priority, 1);
         assert!(!proof.evidence_digest.is_empty());
+        assert_eq!(
+            proof.execution_profile_digest,
+            FIXED_DETERMINISM_PROFILE.digest()
+        );
+        assert_eq!(proof.mutation_score_bps, 10_000);
     }
 
     #[test]
@@ -364,19 +450,35 @@ mod tests {
         let candidate = candidate(ActionOp::Flaky {
             token: "flaky".to_string(),
         });
-        let fixture = fixture("flaky-even");
+        let fixture = fixture("flaky-even", Verdict::Error);
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
         assert_eq!(proof.verdict, Verdict::Error);
     }
 
     #[test]
-    fn deterministic_candidate_has_zero_false_pass_rate() {
+    fn deterministic_candidate_has_zero_false_pass_leaks() {
         let runner = ScriptedRunner::new().expect("runner");
         let candidate = candidate(ActionOp::Echo {
             text: "stable".to_string(),
         });
-        let fixture = fixture("stable");
-        assert_eq!(false_pass_rate(&candidate, &fixture, &runner, 50), 0.0);
+        let fixture = fixture("stable", Verdict::Pass);
+        let (flip_rate, leak_rate) = false_pass_report(&candidate, &fixture, &runner, 50);
+        assert_eq!(flip_rate, 0.0);
+        assert_eq!(leak_rate, 0.0);
+    }
+
+    #[test]
+    fn flaky_candidate_has_no_false_pass_leaks() {
+        let runner = ScriptedRunner::new().expect("runner");
+        let candidate = candidate(ActionOp::Flaky {
+            token: "flaky".to_string(),
+        });
+        let fixture = fixture("flaky-even", Verdict::Error);
+        let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+        assert_eq!(proof.verdict, Verdict::Error);
+        let (flip_rate, leak_rate) = false_pass_report(&candidate, &fixture, &runner, 50);
+        assert_eq!(flip_rate, 0.0);
+        assert_eq!(leak_rate, 0.0);
     }
 
     #[test]
@@ -384,6 +486,34 @@ mod tests {
         let unstable = UnstableVerifier::default();
         let verdicts: Vec<Verdict> = (0..50).map(|_| unstable.next_verdict()).collect();
         assert!(verdict_flip_rate(&verdicts) > 0.01);
+        assert!(false_pass_leak_rate(&verdicts, Verdict::Pass) > 0.01);
+    }
+
+    #[test]
+    fn trivial_adversarial_candidate_is_mutation_gated() {
+        let runner = ScriptedRunner::new().expect("runner");
+        let candidate = Candidate::with_mutation_score(
+            "trivial-candidate",
+            action(ActionOp::Echo {
+                text: "stable".to_string(),
+            }),
+            0,
+        );
+        let mut fixture = fixture("stable", Verdict::Fail);
+        fixture.source = VerifierSource::AdversarialModel;
+        let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+        assert_eq!(proof.verdict, Verdict::Fail);
+        assert_eq!(proof.mutation_score_bps, 0);
+    }
+
+    #[test]
+    fn verifier_source_priority_matches_plan() {
+        let sources = verifier_source_priority();
+        assert_eq!(sources, &VERIFIER_SOURCE_PRIORITY[..]);
+        assert_eq!(sources.len(), 5);
+        for (index, source) in sources.iter().enumerate() {
+            assert_eq!(source.priority(), (index + 1) as u8);
+        }
     }
 
     #[test]

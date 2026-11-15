@@ -1,0 +1,13 @@
+# Block 2 flaky family: scheduler-style disagreement must be ERROR, never promoted.
+schema_version=1
+verifier_source=fixture_suite
+expected_verdict=error
+expected_digest=sha256:scheduler-even
+space_id=space-block2-scheduler
+workspace_id=ws-block2-scheduler
+surface_id=surface-block2-scheduler
+goal_id=goal-block2-scheduler
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+action flaky token=scheduler

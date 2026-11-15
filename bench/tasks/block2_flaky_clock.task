@@ -1,0 +1,13 @@
+# Block 2 flaky family: fixed-clock-style disagreement must be ERROR, never promoted.
+schema_version=1
+verifier_source=fixture_suite
+expected_verdict=error
+expected_digest=sha256:clock-even
+space_id=space-block2-clock
+workspace_id=ws-block2-clock
+surface_id=surface-block2-clock
+goal_id=goal-block2-clock
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+action flaky token=clock

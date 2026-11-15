@@ -1,9 +1,11 @@
-//! Capability-limited scripted runner for Spacetime Block 1.
+//! Capability-limited scripted runner for Spacetime Blocks 1-2.
 //!
-//! This is not a kernel sandbox. It exposes no network capability and only four scripted
-//! operations. Real namespaces, cgroups, Ark cells, and quarantine microVMs arrive in later blocks.
+//! This is not a kernel sandbox. It exposes no network capability and only five scripted
+//! operations. Real namespaces, cgroups, Ark cells, clock/RNG/socket shims, and quarantine
+//! microVMs arrive in later blocks.
 
-use spacetime_types::{Action, ActionOp, Observation, SpacetimeError, Taint};
+use spacetime_types::{sha256_hex, Action, ActionOp, Observation, SpacetimeError, Taint};
+use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -12,6 +14,38 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeterminismProfile {
+    pub clock: &'static str,
+    pub rng_seed: u64,
+    pub locale: &'static str,
+    pub temp_root: &'static str,
+    pub environment: &'static str,
+    pub network: &'static str,
+}
+
+pub const FIXED_DETERMINISM_PROFILE: DeterminismProfile = DeterminismProfile {
+    clock: "fixed_scripted_clock",
+    rng_seed: 0,
+    locale: "C",
+    temp_root: "runner_owned_pid_scoped",
+    environment: "cleared",
+    network: "none_by_construction",
+};
+
+impl DeterminismProfile {
+    pub fn digest(&self) -> String {
+        let mut material = String::new();
+        let _ = writeln!(material, "clock={}", self.clock);
+        let _ = writeln!(material, "rng_seed={}", self.rng_seed);
+        let _ = writeln!(material, "locale={}", self.locale);
+        let _ = writeln!(material, "temp_root={}", self.temp_root);
+        let _ = writeln!(material, "environment={}", self.environment);
+        let _ = writeln!(material, "network={}", self.network);
+        sha256_hex(material.as_bytes())
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RunStatus {
@@ -58,6 +92,7 @@ impl Drop for TempDir {
 pub struct ScriptedRunner {
     work_dir: TempDir,
     flaky_counter: AtomicU64,
+    profile_digest: String,
 }
 
 impl ScriptedRunner {
@@ -65,13 +100,26 @@ impl ScriptedRunner {
         Ok(Self {
             work_dir: TempDir::new("spacetime-block1")?,
             flaky_counter: AtomicU64::new(0),
+            profile_digest: FIXED_DETERMINISM_PROFILE.digest(),
         })
+    }
+
+    pub fn determinism_profile() -> DeterminismProfile {
+        FIXED_DETERMINISM_PROFILE
+    }
+
+    pub fn determinism_profile_digest(&self) -> &str {
+        &self.profile_digest
     }
 
     fn run_flaky(&self, action: &Action, token: &str) -> RunResult {
         let count = self.flaky_counter.fetch_add(1, Ordering::Relaxed);
         let parity = if count % 2 == 0 { "even" } else { "odd" };
-        completed_result(action, format!("{token}-{parity}"))
+        completed_result(
+            action,
+            format!("{token}-{parity}"),
+            &self.profile_digest,
+        )
     }
 
     fn run_sleep(&self, action: &Action, milliseconds: u64) -> RunResult {
@@ -88,7 +136,9 @@ impl ScriptedRunner {
             .spawn()
         {
             Ok(child) => child,
-            Err(error) => return error_result(action, error.to_string()),
+            Err(error) => {
+                return error_result(action, error.to_string(), &self.profile_digest);
+            }
         };
 
         let started = Instant::now();
@@ -96,17 +146,23 @@ impl ScriptedRunner {
             match child.try_wait() {
                 Ok(Some(_)) => {
                     let _ = child.wait();
-                    return completed_result(action, String::new());
+                    return completed_result(action, String::new(), &self.profile_digest);
                 }
                 Ok(None) => {
                     if started.elapsed() >= timeout {
                         let _ = child.kill();
                         let _ = child.wait();
-                        return error_result(action, format!("timeout after {budget_millis}ms"));
+                        return error_result(
+                            action,
+                            format!("timeout after {budget_millis}ms"),
+                            &self.profile_digest,
+                        );
                     }
                     thread::sleep(Duration::from_millis(5));
                 }
-                Err(error) => return error_result(action, error.to_string()),
+                Err(error) => {
+                    return error_result(action, error.to_string(), &self.profile_digest);
+                }
             }
         }
     }
@@ -115,33 +171,40 @@ impl ScriptedRunner {
 impl Runner for ScriptedRunner {
     fn run(&self, action: &Action) -> RunResult {
         match &action.op {
-            ActionOp::ProduceEvidence { evidence } => completed_result(action, evidence.clone()),
-            ActionOp::Echo { text } => completed_result(action, text.clone()),
-            ActionOp::ClaimDone { .. } => completed_result(action, "claim_done".to_string()),
+            ActionOp::ProduceEvidence { evidence } => {
+                completed_result(action, evidence.clone(), &self.profile_digest)
+            }
+            ActionOp::Echo { text } => {
+                completed_result(action, text.clone(), &self.profile_digest)
+            }
+            ActionOp::ClaimDone { .. } => {
+                completed_result(action, "claim_done".to_string(), &self.profile_digest)
+            }
             ActionOp::Sleep { milliseconds } => self.run_sleep(action, *milliseconds),
             ActionOp::Flaky { token } => self.run_flaky(action, token),
         }
     }
 }
 
-fn completed_result(action: &Action, bytes: String) -> RunResult {
+fn completed_result(action: &Action, bytes: String, profile_digest: &str) -> RunResult {
     RunResult {
-        observation: observation(action, bytes),
+        observation: observation(action, bytes, profile_digest),
         status: RunStatus::Completed,
     }
 }
 
-fn error_result(action: &Action, reason: String) -> RunResult {
+fn error_result(action: &Action, reason: String, profile_digest: &str) -> RunResult {
     RunResult {
-        observation: observation(action, reason.clone()),
+        observation: observation(action, reason.clone(), profile_digest),
         status: RunStatus::Error(reason),
     }
 }
 
-fn observation(action: &Action, bytes: String) -> Observation {
+fn observation(action: &Action, bytes: String, profile_digest: &str) -> Observation {
     Observation {
         action_id: action.id.clone(),
         digest: spacetime_types::sha256_hex(bytes.as_bytes()),
+        determinism_profile_digest: profile_digest.to_string(),
         bytes,
         provenance: Taint::UntrustedToolOutput,
         redactions: Vec::new(),
@@ -225,5 +288,26 @@ mod tests {
         let first = runner.run(&action);
         let second = runner.run(&action);
         assert_ne!(first.observation.digest, second.observation.digest);
+    }
+
+    #[test]
+    fn determinism_profile_is_fixed_and_recorded() {
+        let runner = ScriptedRunner::new().expect("runner");
+        assert_eq!(
+            ScriptedRunner::determinism_profile(),
+            FIXED_DETERMINISM_PROFILE
+        );
+        let result = runner.run(&action(
+            ActionOp::Echo {
+                text: "hello".to_string(),
+            },
+            1_000,
+        ));
+        assert_eq!(
+            result.observation.determinism_profile_digest,
+            FIXED_DETERMINISM_PROFILE.digest()
+        );
+        let expected = FIXED_DETERMINISM_PROFILE.digest();
+        assert_eq!(runner.determinism_profile_digest(), expected.as_str());
     }
 }
