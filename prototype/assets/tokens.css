@@ -1,0 +1,292 @@
+/* ==========================================================================
+   Spacetime — design tokens
+   A quiet, near-black "deep space" chrome with a violet event-horizon accent
+   and a teal telemetry accent. All colour lives here so the shell and the
+   host surfaces stay in sync.
+   ========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* type */
+  --font-ui: "Inter", "Inter var", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, "SF Mono",
+    "Cascadia Code", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+
+  /* surfaces */
+  --bg-window: #040509;
+  --bg-sidebar: #0a0c11;
+  --bg-chrome: #0a0c12;
+  --bg-content: #0b0d13;
+  --bg-raised: #11141c;
+  --bg-raised-2: #171b25;
+  --bg-inset: #06070b;
+  --bg-hover: rgba(255, 255, 255, 0.045);
+  --bg-active: rgba(255, 255, 255, 0.075);
+  --bg-sunken: rgba(0, 0, 0, 0.28);
+
+  /* lines */
+  --line: rgba(255, 255, 255, 0.065);
+  --line-soft: rgba(255, 255, 255, 0.04);
+  --line-strong: rgba(255, 255, 255, 0.13);
+
+  /* text */
+  --text: #e9ebf2;
+  --text-2: #a6adbc;
+  --text-3: #737b8e;
+  --text-4: #4c5365;
+
+  /* accents */
+  --violet: #a78bfa;
+  --violet-strong: #8b5cf6;
+  --violet-soft: rgba(167, 139, 250, 0.14);
+  --violet-line: rgba(167, 139, 250, 0.32);
+  --teal: #5eead4;
+  --teal-soft: rgba(94, 234, 212, 0.12);
+  --teal-line: rgba(94, 234, 212, 0.3);
+  --blue: #7dd3fc;
+  --green: #4ade80;
+  --amber: #fbbf24;
+  --orange: #fb923c;
+  --red: #f87171;
+  --pink: #f0abfc;
+
+  --dot-ok: #4ade80;
+  --dot-idle: #737b8e;
+  --dot-warn: #fbbf24;
+  --dot-bad: #f87171;
+
+  /* geometry */
+  --r-xl: 16px;
+  --r-lg: 12px;
+  --r-md: 9px;
+  --r-sm: 6px;
+  --gap: 8px;
+  --sidebar-w: 250px;
+  --sidebar-w-collapsed: 62px;
+  --toolbar-h: 46px;
+  --ribbon-h: 26px;
+  --statusbar-h: 26px;
+
+  /* effects */
+  --shadow-panel: 0 30px 70px -20px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-pop: 0 18px 44px -12px rgba(0, 0, 0, 0.8),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  --glow-violet: 0 0 22px -4px rgba(167, 139, 250, 0.55);
+  --ease: cubic-bezier(0.22, 0.82, 0.24, 1);
+
+  /* tier colours, used by both tabs and the console */
+  --tier-vm: #a78bfa;
+  --tier-cell: #7dd3fc;
+  --tier-wasi: #5eead4;
+  --tier-host: #fbbf24;
+
+  /* opacity / motion helpers */
+  --dur-fast: 120ms;
+  --dur: 200ms;
+}
+
+/* --------------------------------------------------------------------------
+   Small shared primitives (chips, dots, bars, keys) used across screens
+   -------------------------------------------------------------------------- */
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dot-idle);
+  flex: none;
+  display: inline-block;
+}
+.dot.ok {
+  background: var(--dot-ok);
+  box-shadow: 0 0 7px rgba(74, 222, 128, 0.6);
+}
+.dot.warn {
+  background: var(--dot-warn);
+  box-shadow: 0 0 7px rgba(251, 191, 36, 0.5);
+}
+.dot.bad {
+  background: var(--dot-bad);
+  box-shadow: 0 0 7px rgba(248, 113, 113, 0.6);
+}
+.dot.violet {
+  background: var(--violet);
+  box-shadow: 0 0 7px rgba(167, 139, 250, 0.6);
+}
+.dot.teal {
+  background: var(--teal);
+  box-shadow: 0 0 7px rgba(94, 234, 212, 0.55);
+}
+.dot.pulse {
+  animation: dot-pulse 2.4s var(--ease) infinite;
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+}
+
+.chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text-2);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+.chip .icon {
+  width: 11px;
+  height: 11px;
+}
+.chip.ok {
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.28);
+  background: rgba(74, 222, 128, 0.09);
+}
+.chip.warn {
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(251, 191, 36, 0.09);
+}
+.chip.bad {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.3);
+  background: rgba(248, 113, 113, 0.1);
+}
+.chip.violet {
+  color: #c4b5fd;
+  border-color: var(--violet-line);
+  background: var(--violet-soft);
+}
+.chip.teal {
+  color: #99f6e4;
+  border-color: var(--teal-line);
+  background: var(--teal-soft);
+}
+.chip.neutral {
+  color: var(--text-3);
+}
+.chip.xs {
+  height: 17px;
+  padding: 0 6px;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.kbd,
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.bar {
+  position: relative;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+.bar > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--violet-strong), var(--teal));
+  display: block;
+}
+.bar.warn > i {
+  background: linear-gradient(90deg, var(--amber), var(--orange));
+}
+.bar.bad > i {
+  background: linear-gradient(90deg, var(--orange), var(--red));
+}
+.bar.flat > i {
+  background: var(--teal);
+}
+
+.sep {
+  width: 1px;
+  height: 10px;
+  background: var(--line-strong);
+  flex: none;
+}
+
+.tier-dot {
+  display: inline-block;
+  vertical-align: middle;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  flex: none;
+  background: var(--tier-vm);
+}
+.tier-dot.cell {
+  background: var(--tier-cell);
+}
+.tier-dot.wasi {
+  background: var(--tier-wasi);
+}
+.tier-dot.host {
+  background: var(--tier-host);
+}
+
+.scroll-fade {
+  position: relative;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.muted {
+  color: var(--text-3);
+}
+.dim {
+  color: var(--text-4);
+}
+.nowrap {
+  white-space: nowrap;
+}
