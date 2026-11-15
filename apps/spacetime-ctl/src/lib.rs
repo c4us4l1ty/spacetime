@@ -111,15 +111,12 @@ fn cmd_digest(text: &str) -> Result<()> {
 }
 
 fn flag(args: &[String], name: &str) -> Result<String> {
-    for index in 0..args.len() {
-        if args[index].as_str() == name {
-            return args
-                .get(index + 1)
-                .cloned()
-                .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")));
-        }
-    }
-    Err(SpacetimeError::new(format!("missing flag {name}")))
+    let Some(index) = args.iter().position(|arg| arg == name) else {
+        return Err(SpacetimeError::new(format!("missing flag {name}")));
+    };
+    args.get(index + 1)
+        .cloned()
+        .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))
 }
 
 pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
@@ -161,7 +158,8 @@ pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
 }
 
 fn state_path(ledger_path: &Path) -> PathBuf {
-    PathBuf::from(format!("{}.state", ledger_path.display()))
+    let ledger = ledger_path.display();
+    PathBuf::from(format!("{ledger}.state"))
 }
 
 #[cfg(test)]

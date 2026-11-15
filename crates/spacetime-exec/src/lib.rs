@@ -29,6 +29,7 @@ pub trait Runner {
     fn run(&self, action: &Action) -> RunResult;
 }
 
+#[derive(Debug)]
 struct TempDir {
     path: PathBuf,
 }
@@ -66,8 +67,9 @@ impl ScriptedRunner {
     }
 
     fn run_sleep(&self, action: &Action, milliseconds: u64) -> RunResult {
-        let timeout = Duration::from_millis(action.budget_millis.max(1));
-        let seconds = (milliseconds + 999) / 1000;
+        let budget_millis = action.budget_millis;
+        let timeout = Duration::from_millis(budget_millis.max(1));
+        let seconds = milliseconds.div_ceil(1000);
         let mut child = match Command::new("/bin/sleep")
             .arg(seconds.to_string())
             .current_dir(self.work_dir.path())
@@ -93,7 +95,7 @@ impl ScriptedRunner {
                         let _ = child.wait();
                         return error_result(
                             action,
-                            format!("timeout after {}ms", action.budget_millis),
+                            format!("timeout after {budget_millis}ms"),
                         );
                     }
                     thread::sleep(Duration::from_millis(5));

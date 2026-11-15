@@ -15,7 +15,8 @@ pub fn genesis_hash() -> String {
 }
 
 pub fn head_path(path: &Path) -> PathBuf {
-    PathBuf::from(format!("{}.head", path.display()))
+    let shown = path.display();
+    PathBuf::from(format!("{shown}.head"))
 }
 
 fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {

@@ -276,10 +276,11 @@ impl Action {
         budget_millis: u64,
         expected_verifier: Option<String>,
     ) -> Result<Self> {
-        let args_digest = sha256_hex(&canonical_json_bytes(&op)?);
+        let sequence = seq.0;
+        let args_digest = sha256_hex(canonical_json_bytes(&op)?.as_slice());
         Ok(Self {
             schema_version: SCHEMA_VERSION,
-            id: ActionId::new(format!("action-{:06}", seq.0)),
+            id: ActionId::new(format!("action-{sequence:06}")),
             space_id,
             goal_id,
             binding,
