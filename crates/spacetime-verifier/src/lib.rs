@@ -32,11 +32,7 @@ impl Verifier for FixtureVerifier {
         state: &LedgerState,
     ) -> VerifierProof {
         if let RunStatus::Error(reason) = status {
-            return proof(
-                Verdict::Error,
-                observation.digest.clone(),
-                reason.as_str(),
-            );
+            return proof(Verdict::Error, observation.digest.clone(), reason.as_str());
         }
 
         match &action.op {
@@ -57,13 +53,13 @@ impl Verifier for FixtureVerifier {
                     ),
                 }
             }
-            ActionOp::ProduceEvidence { .. }
-            | ActionOp::Echo { .. }
-            | ActionOp::Sleep { .. } => proof(
-                Verdict::Pass,
-                observation.digest.clone(),
-                "fixture action completed",
-            ),
+            ActionOp::ProduceEvidence { .. } | ActionOp::Echo { .. } | ActionOp::Sleep { .. } => {
+                proof(
+                    Verdict::Pass,
+                    observation.digest.clone(),
+                    "fixture action completed",
+                )
+            }
         }
     }
 }

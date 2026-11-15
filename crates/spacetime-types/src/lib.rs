@@ -65,9 +65,7 @@ pub fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>> {
 
 macro_rules! string_id {
     ($name:ident) => {
-        #[derive(
-            Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
-        )]
+        #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
         #[serde(transparent)]
         pub struct $name(String);
 
@@ -144,7 +142,9 @@ impl FromStr for SurfaceKind {
             "terminal" => Ok(Self::Terminal),
             "framebuffer" => Ok(Self::Framebuffer),
             "browser_cdp" => Ok(Self::BrowserCdp),
-            _ => Err(SpacetimeError::new(format!("unknown surface_kind: {value}"))),
+            _ => Err(SpacetimeError::new(format!(
+                "unknown surface_kind: {value}"
+            ))),
         }
     }
 }
@@ -169,7 +169,9 @@ impl FromStr for PreviewMode {
             "snapshot_on_switch" => Ok(Self::SnapshotOnSwitch),
             "headless" => Ok(Self::Headless),
             "terminal_buffer" => Ok(Self::TerminalBuffer),
-            _ => Err(SpacetimeError::new(format!("unknown preview_mode: {value}"))),
+            _ => Err(SpacetimeError::new(format!(
+                "unknown preview_mode: {value}"
+            ))),
         }
     }
 }

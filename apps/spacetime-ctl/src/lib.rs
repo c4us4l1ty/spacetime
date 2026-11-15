@@ -77,9 +77,7 @@ fn cmd_run(args: &[String]) -> Result<()> {
     let cortex = flag(args, "--cortex")?;
     let ledger = flag(args, "--ledger")?;
     if cortex != "scripted" {
-        return Err(SpacetimeError::new(format!(
-            "unsupported cortex: {cortex}"
-        )));
+        return Err(SpacetimeError::new(format!("unsupported cortex: {cortex}")));
     }
     run_task(Path::new(&task), Path::new(&ledger))?;
     println!("ok");
@@ -182,8 +180,7 @@ mod tests {
         fn new(label: &str) -> Result<Self> {
             let id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
             let pid = std::process::id();
-            let dir = std::env::temp_dir()
-                .join(format!("spacetime-ctl-{label}-{pid}-{id}"));
+            let dir = std::env::temp_dir().join(format!("spacetime-ctl-{label}-{pid}-{id}"));
             fs::create_dir_all(&dir)?;
             let ledger = dir.join("ledger.jsonl");
             Ok(Self { dir, ledger })

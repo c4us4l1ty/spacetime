@@ -107,13 +107,9 @@ impl ScriptedRunner {
 impl Runner for ScriptedRunner {
     fn run(&self, action: &Action) -> RunResult {
         match &action.op {
-            ActionOp::ProduceEvidence { evidence } => {
-                completed_result(action, evidence.clone())
-            }
+            ActionOp::ProduceEvidence { evidence } => completed_result(action, evidence.clone()),
             ActionOp::Echo { text } => completed_result(action, text.clone()),
-            ActionOp::ClaimDone { .. } => {
-                completed_result(action, "claim_done".to_string())
-            }
+            ActionOp::ClaimDone { .. } => completed_result(action, "claim_done".to_string()),
             ActionOp::Sleep { milliseconds } => self.run_sleep(action, *milliseconds),
         }
     }
@@ -193,7 +189,9 @@ mod tests {
     fn timeout_is_an_error_not_a_pass() {
         let runner = ScriptedRunner::new().expect("runner");
         let result = runner.run(&action(
-            ActionOp::Sleep { milliseconds: 2_000 },
+            ActionOp::Sleep {
+                milliseconds: 2_000,
+            },
             20,
         ));
         assert!(matches!(result.status, RunStatus::Error(_)));

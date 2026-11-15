@@ -105,16 +105,9 @@ fn binding_from_metadata(metadata: &BTreeMap<String, String>) -> Result<Workspac
         return Err(SpacetimeError::new("unsupported task schema version"));
     }
 
-    let surface_kind = SurfaceKind::from_str(&value_or(
-        metadata,
-        "surface_kind",
-        "framebuffer",
-    ))?;
-    let preview_mode = PreviewMode::from_str(&value_or(
-        metadata,
-        "preview_mode",
-        "snapshot_on_action",
-    ))?;
+    let surface_kind = SurfaceKind::from_str(&value_or(metadata, "surface_kind", "framebuffer"))?;
+    let preview_mode =
+        PreviewMode::from_str(&value_or(metadata, "preview_mode", "snapshot_on_action"))?;
     let liveness = LivenessState::from_str(&value_or(metadata, "liveness", "running"))?;
 
     Ok(WorkspaceBinding {
@@ -209,8 +202,8 @@ mod tests {
 
     #[test]
     fn parses_happy_path_fixture() -> Result<()> {
-        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../bench/tasks/block1_hello.task");
+        let path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/tasks/block1_hello.task");
         let mut cortex = ScriptedCortex::from_file(&path)?;
         let state = LedgerState::new();
         let first = cortex.next_action(&state)?.expect("first action");

@@ -13,15 +13,14 @@ pub fn baseline_toml() -> Result<String> {
     let filesystems = read("/proc/filesystems");
 
     let kernel = uname().unwrap_or_else(|| "unmeasured".to_string());
-    let cpu_model = value_after_colon(&cpuinfo, "model name")
-        .unwrap_or_else(|| "unmeasured".to_string());
+    let cpu_model =
+        value_after_colon(&cpuinfo, "model name").unwrap_or_else(|| "unmeasured".to_string());
     let memory_total_kb = value_after_colon(&meminfo, "MemTotal")
         .and_then(|value| value.split_whitespace().next().map(str::to_string))
         .unwrap_or_else(|| "unmeasured".to_string());
 
     let swap_present = swaps.lines().count() > 1;
-    let zram_detected =
-        swaps.contains("zram") || fs::metadata("/sys/block/zram0").is_ok();
+    let zram_detected = swaps.contains("zram") || fs::metadata("/sys/block/zram0").is_ok();
     let kvm_available = fs::metadata("/dev/kvm").is_ok();
 
     let mut cow = Vec::new();

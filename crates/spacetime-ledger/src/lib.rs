@@ -211,9 +211,10 @@ impl Ledger {
             if event.schema_version != SCHEMA_VERSION {
                 return Err(SpacetimeError::new("unsupported event schema"));
             }
-            let expected_seq = EventSeq(u64::try_from(index).map_err(|_| {
-                SpacetimeError::new("ledger index does not fit in u64")
-            })?);
+            let expected_seq = EventSeq(
+                u64::try_from(index)
+                    .map_err(|_| SpacetimeError::new("ledger index does not fit in u64"))?,
+            );
             if event.seq != expected_seq {
                 return Err(SpacetimeError::new("ledger sequence mismatch"));
             }
