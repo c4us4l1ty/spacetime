@@ -305,7 +305,7 @@ fn proof(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use spacetime_exec::{Runner, ScriptedRunner};
+    use spacetime_exec::ScriptedRunner;
     use spacetime_types::{
         EventSeq, GoalId, LivenessState, PreviewMode, SpaceId, SurfaceId, SurfaceKind,
         WorkspaceBinding, WorkspaceId,
