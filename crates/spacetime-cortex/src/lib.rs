@@ -23,6 +23,7 @@ pub trait Cortex {
 pub struct ScriptedCortex {
     actions: Vec<Action>,
     cursor: usize,
+    metadata: BTreeMap<String, String>,
 }
 
 impl ScriptedCortex {
@@ -72,7 +73,33 @@ impl ScriptedCortex {
             )?);
         }
 
-        Ok(Self { actions, cursor: 0 })
+        Ok(Self { actions, cursor: 0, metadata })
+    }
+
+    pub fn first_action(&self) -> Result<Action> {
+        self.actions
+            .first()
+            .cloned()
+            .ok_or_else(|| SpacetimeError::new("task has no actions"))
+    }
+
+    pub fn expected_digest(&self) -> Option<String> {
+        let raw = self.metadata.get("expected_digest")?;
+        if raw == "none" {
+            return None;
+        }
+        if let Some(preimage) = raw.strip_prefix("sha256:") {
+            Some(spacetime_types::sha256_hex(preimage.as_bytes()))
+        } else {
+            Some(raw.clone())
+        }
+    }
+
+    pub fn verifier_source(&self) -> Result<spacetime_types::VerifierSource> {
+        match self.metadata.get("verifier_source") {
+            Some(raw) => raw.parse::<spacetime_types::VerifierSource>(),
+            None => Ok(spacetime_types::VerifierSource::FixtureSuite),
+        }
     }
 }
 
@@ -152,6 +179,9 @@ fn parse_action_line(
         },
         "claim_done" => ActionOp::ClaimDone {
             expected_digest: parse_expected_digest(fields.get("expected_digest"))?,
+        },
+        "flaky" => ActionOp::Flaky {
+            token: required(&fields, "token")?.to_string(),
         },
         _ => return Err(SpacetimeError::new(format!("unknown action: {name}"))),
     };

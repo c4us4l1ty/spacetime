@@ -222,6 +222,44 @@ pub enum Verdict {
     Unverified,
 }
 
+impl Verdict {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Verdict::Pass => "pass",
+            Verdict::Fail => "fail",
+            Verdict::Error => "error",
+            Verdict::Unverified => "unverified",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerifierSource {
+    FixtureSuite,
+    SpecOracle,
+    DifferentialReference,
+    AdversarialModel,
+    Mutation,
+}
+
+impl FromStr for VerifierSource {
+    type Err = SpacetimeError;
+
+    fn from_str(value: &str) -> Result<Self> {
+        match value {
+            "fixture_suite" => Ok(Self::FixtureSuite),
+            "spec_oracle" => Ok(Self::SpecOracle),
+            "differential_reference" => Ok(Self::DifferentialReference),
+            "adversarial_model" => Ok(Self::AdversarialModel),
+            "mutation" => Ok(Self::Mutation),
+            _ => Err(SpacetimeError::new(format!(
+                "unknown verifier_source: {value}"
+            ))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DecisionKind {
@@ -254,6 +292,7 @@ pub enum ActionOp {
     Echo { text: String },
     Sleep { milliseconds: u64 },
     ClaimDone { expected_digest: Option<String> },
+    Flaky { token: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -318,6 +357,7 @@ pub struct Observation {
 pub struct VerifierProof {
     pub verifier_id: String,
     pub verdict: Verdict,
+    pub source: VerifierSource,
     pub evidence_digest: String,
     pub determinism_runs: u32,
     pub mutation_score_bps: u16,

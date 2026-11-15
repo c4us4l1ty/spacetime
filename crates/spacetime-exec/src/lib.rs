@@ -57,13 +57,21 @@ impl Drop for TempDir {
 #[derive(Debug)]
 pub struct ScriptedRunner {
     work_dir: TempDir,
+    flaky_counter: AtomicU64,
 }
 
 impl ScriptedRunner {
     pub fn new() -> Result<Self, SpacetimeError> {
         Ok(Self {
             work_dir: TempDir::new("spacetime-block1")?,
+            flaky_counter: AtomicU64::new(0),
         })
+    }
+
+    fn run_flaky(&self, action: &Action, token: &str) -> RunResult {
+        let count = self.flaky_counter.fetch_add(1, Ordering::Relaxed);
+        let parity = if count % 2 == 0 { "even" } else { "odd" };
+        completed_result(action, format!("{token}-{parity}"))
     }
 
     fn run_sleep(&self, action: &Action, milliseconds: u64) -> RunResult {
@@ -111,6 +119,7 @@ impl Runner for ScriptedRunner {
             ActionOp::Echo { text } => completed_result(action, text.clone()),
             ActionOp::ClaimDone { .. } => completed_result(action, "claim_done".to_string()),
             ActionOp::Sleep { milliseconds } => self.run_sleep(action, *milliseconds),
+            ActionOp::Flaky { token } => self.run_flaky(action, token),
         }
     }
 }
@@ -202,5 +211,19 @@ mod tests {
         let runner = ScriptedRunner::new().expect("runner");
         let result = runner.run(&action(ActionOp::Sleep { milliseconds: 0 }, 1_000));
         assert_eq!(result.status, RunStatus::Completed);
+    }
+
+    #[test]
+    fn flaky_action_disagrees_on_two_calls() {
+        let runner = ScriptedRunner::new().expect("runner");
+        let action = action(
+            ActionOp::Flaky {
+                token: "flaky".to_string(),
+            },
+            1_000,
+        );
+        let first = runner.run(&action);
+        let second = runner.run(&action);
+        assert_ne!(first.observation.digest, second.observation.digest);
     }
 }
