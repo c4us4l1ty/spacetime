@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1016">
+  <meta name="description" content="Spacetime execution and verification console prototype">
+  <title>Spacetime — Control Room</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#overview" aria-label="Spacetime home" data-view="overview">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="20" r="15.5" stroke="currentColor" stroke-width="1.4" opacity=".42"/>
+            <ellipse cx="20" cy="20" rx="15.5" ry="6.8" stroke="currentColor" stroke-width="1.4" transform="rotate(-36 20 20)"/>
+            <circle cx="28.5" cy="10.5" r="3.1" fill="#9ee8ca"/>
+            <circle cx="13" cy="25.5" r="2" fill="currentColor" opacity=".7"/>
+          </svg>
+        </span>
+        <span class="brand-wordmark">
+          <strong>SPACETIME</strong>
+          <small>CONTROL PLANE</small>
+        </span>
+      </a>
+
+      <div class="sidebar-section">
+        <p class="nav-label">Monitor</p>
+        <nav class="primary-nav">
+          <button class="nav-link is-active" type="button" data-view="overview">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.2"/><rect x="11.5" y="2.5" width="6" height="4" rx="1.2"/><rect x="11.5" y="8.5" width="6" height="9" rx="1.2"/><rect x="2.5" y="10.5" width="6" height="7" rx="1.2"/></svg>
+            <span>Overview</span>
+          </button>
+          <button class="nav-link" type="button" data-view="workspaces">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6.5h6l1.7 2h7.3v7.7a1.3 1.3 0 0 1-1.3 1.3H3.8a1.3 1.3 0 0 1-1.3-1.3z"/><path d="M2.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h4l1.7 2h6.7a1.3 1.3 0 0 1 1.3 1.3v1.7"/></svg>
+            <span>Workspaces</span>
+            <span class="nav-count" id="nav-workspace-count">4</span>
+          </button>
+          <button class="nav-link" type="button" data-view="runs">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3.5h8l4 4v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1Z"/><path d="M12 3.8v4h4M6.5 11h7M6.5 14h5"/></svg>
+            <span>Runs &amp; experiments</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="nav-label">Trust &amp; evidence</p>
+        <nav class="primary-nav">
+          <button class="nav-link" type="button" data-view="operators">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 16.3 6v8L10 17.5 3.7 14V6z"/><path d="m3.9 6.1 6.1 3.5 6.1-3.5M10 9.6v7.6"/></svg>
+            <span>Operator registry</span>
+          </button>
+          <button class="nav-link" type="button" data-view="verifiers">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 16 5v4.8c0 3.6-2.5 6.1-6 7.7-3.5-1.6-6-4.1-6-7.7V5z"/><path d="m7 9.8 2 2 4-4"/></svg>
+            <span>Verifiers</span>
+          </button>
+          <button class="nav-link" type="button" data-view="ledger">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 3.2h12v13.6H4z"/><path d="M7 6.5h6M7 9.8h6M7 13.1h3"/><path d="M2.5 5v11.2a1 1 0 0 0 1 1H14"/></svg>
+            <span>Audit ledger</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-section">
+        <p class="nav-label">Human control</p>
+        <nav class="primary-nav">
+          <button class="nav-link" type="button" data-view="blockers">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8 18 16.5H2z"/><path d="M10 7v4.2M10 14.2v.1"/></svg>
+            <span>Attention queue</span>
+            <span class="nav-count nav-count--alert" id="nav-blocker-count">2</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-ark-card">
+          <div class="sidebar-ark-heading">
+            <span class="status-dot status-dot--mint"></span>
+            <span>Demo environment</span>
+            <span class="tiny-label">MOCK</span>
+          </div>
+          <p>Nothing here is connected to a VM, model, or host policy.</p>
+          <div class="sidebar-ark-meta"><span>4 GB profile</span><span>·</span><span>Local preview</span></div>
+        </div>
+        <button class="sidebar-help" type="button" data-action="show-about">
+          <span class="help-mark">?</span>
+          <span>Prototype notes</span>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>
+        </button>
+        <div class="sidebar-footer"><span class="avatar">S</span><span><strong>Local session</strong><small>Prototype operator</small></span><span class="more-dots" aria-hidden="true">···</span></div>
+      </div>
+    </aside>
+
+    <main class="main-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-menu icon-button" type="button" aria-label="Toggle navigation" data-action="toggle-sidebar">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
+          </button>
+          <div class="breadcrumbs"><span>SPACETIME</span><span class="breadcrumb-slash">/</span><strong id="breadcrumb-current">OVERVIEW</strong></div>
+        </div>
+        <div class="topbar-actions">
+          <div class="host-profile"><span class="host-led"></span><span>4 GB target profile</span></div>
+          <span class="demo-chip"><span></span> SIMULATED</span>
+          <button class="button button--primary button--small" type="button" data-open-dialog="workspace">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>
+            <span>New workspace</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="prototype-banner" id="prototype-banner" role="status">
+          <span class="banner-icon" aria-hidden="true">i</span>
+          <div><strong>Static UI prototype</strong><span> All metrics and interactions are demo data. No VM, agent, network policy, or audit service is connected.</span></div>
+          <button class="banner-dismiss" type="button" aria-label="Dismiss prototype notice" data-action="dismiss-banner">×</button>
+        </div>
+
+        <!-- OVERVIEW -->
+        <section class="view is-visible" id="view-overview" data-view-panel="overview" aria-labelledby="overview-title">
+          <div class="page-heading">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> SYSTEM SNAPSHOT <span class="eyebrow-separator">/</span> DEMO FIXTURE</div>
+              <h1 id="overview-title">Execution overview</h1>
+              <p class="page-subtitle">One control plane for isolated work, resource budgets, and outcomes that can be proved.</p>
+            </div>
+            <div class="heading-actions">
+              <button class="button button--secondary" type="button" data-open-dialog="run">
+                <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 8 5-8 5z"/></svg>
+                Queue experiment
+              </button>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card metric-card--memory">
+              <div class="metric-top"><span>Estimated RAM</span><span class="metric-icon metric-icon--mint"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="5" width="12" height="10" rx="2"/><path d="M7 2.8v2.1M10 2.8v2.1M13 2.8v2.1M7 15v2.2M10 15v2.2M13 15v2.2M1.8 8v4M18.2 8v4"/></svg></span></div>
+              <div class="metric-value"><strong id="metric-memory">1.67</strong><span>GB <i>/ 4 GB</i></span></div>
+              <div class="metric-meter"><span style="width:42%"></span></div>
+              <div class="metric-foot"><span class="status-dot status-dot--mint"></span>Illustrative budget, not live telemetry</div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span>Active workspaces</span><span class="metric-icon metric-icon--blue"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6.5h6l1.7 2h7.3v7.7a1.3 1.3 0 0 1-1.3 1.3H3.8a1.3 1.3 0 0 1-1.3-1.3z"/><path d="M2.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h4l1.7 2h6.7a1.3 1.3 0 0 1 1.3 1.3v1.7"/></svg></span></div>
+              <div class="metric-value"><strong id="metric-active">3</strong><span><i id="metric-total">of 4</i> open</span></div>
+              <div class="metric-sparkline" aria-label="Illustrative activity trend"><i style="height:28%"></i><i style="height:40%"></i><i style="height:34%"></i><i style="height:61%"></i><i style="height:48%"></i><i style="height:76%"></i><i style="height:58%"></i><i style="height:88%"></i><i style="height:68%"></i><i style="height:100%"></i><i style="height:82%"></i><i style="height:92%"></i></div>
+              <div class="metric-foot" id="metric-review-note">1 workspace held for review</div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-top"><span>Independent re-checks</span><span class="metric-icon metric-icon--violet"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5 16 5v4.8c0 3.6-2.5 6.1-6 7.7-3.5-1.6-6-4.1-6-7.7V5z"/><path d="m7 9.8 2 2 4-4"/></svg></span></div>
+              <div class="metric-value"><strong>48<span class="metric-slash">/</span>50</strong><span><i>last checks</i></span></div>
+              <div class="metric-status-line"><span class="status-pill status-pill--good">96% agreement</span><span class="micro-copy">2 need inspection</span></div>
+              <div class="metric-foot">Agreement is not a proof of correctness</div>
+            </article>
+            <article class="metric-card metric-card--attention">
+              <div class="metric-top"><span>Needs your attention</span><span class="metric-icon metric-icon--amber"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.8 18 16.5H2z"/><path d="M10 7v4.2M10 14.2v.1"/></svg></span></div>
+              <div class="metric-value"><strong id="metric-blockers">2</strong><span><i>open blockers</i></span></div>
+              <button class="inline-link" type="button" data-view="blockers">Review attention queue <span>→</span></button>
+              <div class="metric-foot">The agent pauses at policy gates</div>
+            </article>
+          </div>
+
+          <div class="dashboard-grid dashboard-grid--top">
+            <section class="panel domain-panel" aria-labelledby="domains-title">
+              <div class="panel-heading">
+                <div><div class="panel-kicker">ISOLATION MAP</div><h2 id="domains-title">Execution domains</h2></div>
+                <button class="quiet-button" type="button" data-view="workspaces">All workspaces <span>→</span></button>
+              </div>
+              <div class="domain-list" id="domain-list"></div>
+              <div class="panel-note"><span class="note-mark">i</span><span>Cells inside the same Ark share a guest kernel. Separate Arks mark separate kernel trust domains.</span></div>
+            </section>
+
+            <section class="panel attention-panel" aria-labelledby="attention-title">
+              <div class="panel-heading">
+                <div><div class="panel-kicker">HUMAN CONTROL</div><h2 id="attention-title">Attention queue</h2></div>
+                <span class="count-bubble" id="attention-count">2</span>
+              </div>
+              <div class="attention-list" id="attention-preview"></div>
+              <button class="button button--secondary button--full" type="button" data-view="blockers">Open attention queue <span>→</span></button>
+            </section>
+          </div>
+
+          <div class="dashboard-grid dashboard-grid--bottom">
+            <section class="panel runs-panel" aria-labelledby="recent-runs-title">
+              <div class="panel-heading">
+                <div><div class="panel-kicker">VERIFY BEFORE PROMOTION</div><h2 id="recent-runs-title">Recent runs</h2></div>
+                <button class="quiet-button" type="button" data-view="runs">View all <span>→</span></button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Run</th><th>Execution</th><th>Result / evidence</th><th>State</th><th></th></tr></thead>
+                  <tbody id="recent-runs-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel activity-panel" aria-labelledby="activity-title">
+              <div class="panel-heading">
+                <div><div class="panel-kicker">APPEND-ONLY · DEMO</div><h2 id="activity-title">Activity</h2></div>
+                <span class="live-label"><span></span> SESSION</span>
+              </div>
+              <div class="activity-list" id="activity-list"></div>
+              <form class="steering-form" id="steering-form">
+                <label class="sr-only" for="steering-input">Add a steering note for the next cycle</label>
+                <input id="steering-input" type="text" maxlength="180" placeholder="Steer the next cycle…" autocomplete="off">
+                <button type="submit" aria-label="Send steering note"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3 8.5 12-5-4.5 12-2.1-5zM8.4 10.5 15 3.5"/></svg></button>
+              </form>
+              <p class="form-hint">Demo note only · appears in this session's activity</p>
+            </section>
+          </div>
+        </section>
+
+        <!-- WORKSPACES -->
+        <section class="view" id="view-workspaces" data-view-panel="workspaces" aria-labelledby="workspaces-title" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> EXECUTION <span class="eyebrow-separator">/</span> ISOLATION</div><h1 id="workspaces-title">Workspaces</h1><p class="page-subtitle">A workspace is a logical task environment; its execution tier defines the actual boundary.</p></div>
+            <div class="heading-actions"><button class="button button--primary" type="button" data-open-dialog="workspace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>New workspace</button></div>
+          </div>
+          <div class="info-strip info-strip--amber"><span class="info-strip-icon">!</span><div><strong>Shared Ark means shared kernel.</strong> Namespace cells separate normal process, mount, and network views; they do not protect one cell from a guest-kernel exploit in another.</div><button type="button" class="text-button" data-action="show-about">Read prototype notes</button></div>
+          <div class="list-toolbar">
+            <div class="filter-tabs" role="group" aria-label="Filter workspaces">
+              <button class="filter-tab is-selected" type="button" data-workspace-filter="all">All <span id="filter-all-count">4</span></button>
+              <button class="filter-tab" type="button" data-workspace-filter="active">Active</button>
+              <button class="filter-tab" type="button" data-workspace-filter="quarantine">Quarantine</button>
+            </div>
+            <label class="search-box"><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="7.8" cy="7.8" r="5.3"/><path d="m12 12 3.8 3.8"/></svg><input id="workspace-search" type="search" placeholder="Find a workspace…" aria-label="Find a workspace"></label>
+          </div>
+          <div class="workspace-grid" id="workspace-grid"></div>
+          <div class="empty-state" id="workspace-empty" hidden><span class="empty-orbit">◎</span><h3>No matching workspaces</h3><p>Try a different search or filter.</p></div>
+        </section>
+
+        <!-- RUNS -->
+        <section class="view" id="view-runs" data-view-panel="runs" aria-labelledby="runs-title" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> EXPERIMENTS <span class="eyebrow-separator">/</span> SELECTION</div><h1 id="runs-title">Runs &amp; experiments</h1><p class="page-subtitle">Candidates are cheap to generate; claims only advance after independent verification.</p></div>
+            <div class="heading-actions"><button class="button button--primary" type="button" data-open-dialog="run"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 8 5-8 5z"/></svg>Queue experiment</button></div>
+          </div>
+          <div class="experiment-banner"><div class="experiment-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.6 9.2A1.8 1.8 0 0 0 6 21h12a1.8 1.8 0 0 0 1.6-2.8L14 9V3"/><path d="M7.5 15h9"/></svg></div><div><div class="panel-kicker">POPULATION-PER-TURN</div><h2>One sample can produce a candidate set.</h2><p>Use the lowest tier that fits the task. A process fork is not a VM snapshot, and neither is proof.</p></div><button class="button button--secondary" type="button" data-open-dialog="run">Create run</button></div>
+          <div class="metric-grid metric-grid--compact">
+            <article class="mini-stat"><span>Candidates in cycle</span><strong id="cycle-candidate-count">4</strong><small id="cycle-experiment-count">Across 1 active experiment</small></article>
+            <article class="mini-stat"><span>Verified today</span><strong>26</strong><small>Independent checks passed</small></article>
+            <article class="mini-stat"><span>Quarantined</span><strong>1</strong><small>Awaiting human review</small></article>
+          </div>
+          <section class="panel full-panel">
+            <div class="panel-heading"><div><div class="panel-kicker">RUN HISTORY</div><h2>Experiment runs</h2></div><div class="table-tools"><span class="table-count" id="run-count-label">4 runs</span><button class="icon-button icon-button--outline" type="button" aria-label="Refresh demo runs" data-action="refresh-runs"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M14.8 7a5.4 5.4 0 0 0-9.5-1.5L3.5 7.2M3.2 4.2v3h3M3.2 11a5.4 5.4 0 0 0 9.5 1.5l1.8-1.7M14.8 13.8v-3h-3"/></svg></button></div></div>
+            <div class="table-wrap"><table class="data-table data-table--runs"><thead><tr><th>Experiment</th><th>Tier</th><th>Candidate set</th><th>Verifier</th><th>Updated</th><th>Status</th><th></th></tr></thead><tbody id="runs-table-body"></tbody></table></div>
+          </section>
+        </section>
+
+        <!-- OPERATORS -->
+        <section class="view" id="view-operators" data-view-panel="operators" aria-labelledby="operators-title" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> REUSE <span class="eyebrow-separator">/</span> HEALTH</div><h1 id="operators-title">Operator registry</h1><p class="page-subtitle">Reusable actions are versioned, tested, and allowed to become unhealthy or dead.</p></div>
+            <div class="heading-actions"><button class="button button--secondary" type="button" data-action="show-about">Registry policy <span>↗</span></button></div>
+          </div>
+          <div class="info-strip info-strip--blue"><span class="info-strip-icon">i</span><div><strong>Promotion requires evidence.</strong> An operator's health is based on its verifier and recent checks—not on the agent saying it worked.</div></div>
+          <div class="registry-stats">
+            <div class="registry-stat"><span>Registered</span><strong>18</strong><small>Across 4 tool families</small></div>
+            <div class="registry-stat"><span>Healthy</span><strong class="text-mint">15</strong><small>Last check within TTL</small></div>
+            <div class="registry-stat"><span>Quarantined</span><strong class="text-amber">2</strong><small>Drift or failed checks</small></div>
+            <div class="registry-stat"><span>Dead</span><strong class="text-red">1</strong><small>Retained with evidence</small></div>
+          </div>
+          <section class="panel full-panel">
+            <div class="panel-heading"><div><div class="panel-kicker">TYPED EFFECTS + HEALTH CHECKS</div><h2>Operators</h2></div><label class="search-box"><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="7.8" cy="7.8" r="5.3"/><path d="m12 12 3.8 3.8"/></svg><input id="operator-search" type="search" placeholder="Search operators…" aria-label="Search operators"></label></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Operator</th><th>Runtime</th><th>Effect scope</th><th>Verifier</th><th>Last green</th><th>Health</th><th></th></tr></thead><tbody id="operators-table-body"></tbody></table></div>
+          </section>
+        </section>
+
+        <!-- VERIFIERS -->
+        <section class="view" id="view-verifiers" data-view-panel="verifiers" aria-labelledby="verifiers-title" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> REALITY ORACLE <span class="eyebrow-separator">/</span> PROOF</div><h1 id="verifiers-title">Verifier library</h1><p class="page-subtitle">A claim without a verifier remains unverified and cannot advance a goal.</p></div>
+            <div class="heading-actions"><span class="status-pill status-pill--good">Verifier-owned by supervisor</span></div>
+          </div>
+          <div class="verifier-principle"><div class="principle-glyph"><svg viewBox="0 0 26 26" aria-hidden="true"><path d="M13 2.5 21 6v6.4c0 4.8-3.3 8.1-8 11.1-4.7-3-8-6.3-8-11.1V6z"/><path d="m9 13 2.6 2.6L17.5 9"/></svg></div><div><strong>Separate the claim from the proof.</strong><p>Verifiers should be deterministic where possible, independent from the generator, and explicit about what they do <em>not</em> prove.</p></div></div>
+          <section class="panel full-panel">
+            <div class="panel-heading"><div><div class="panel-kicker">MACHINE-CHECKABLE POSTCONDITIONS</div><h2>Available verifiers</h2></div><span class="table-count">6 in demo library</span></div>
+            <div class="verifier-grid" id="verifier-grid"></div>
+          </section>
+        </section>
+
+        <!-- LEDGER -->
+        <section class="view" id="view-ledger" data-view-panel="ledger" aria-labelledby="ledger-title" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> AUDIT <span class="eyebrow-separator">/</span> REPLAY</div><h1 id="ledger-title">Audit ledger</h1><p class="page-subtitle">Actions, results, and verifier evidence—append-only in the intended design.</p></div>
+            <div class="heading-actions"><button class="button button--secondary" type="button" data-action="export-ledger"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M5 7.8 8 10.8l3-3M3 12.5v1h10v-1"/></svg>Export demo JSON</button></div>
+          </div>
+          <div class="info-strip info-strip--amber"><span class="info-strip-icon">!</span><div><strong>Illustrative ledger only.</strong> These sample hashes are not cryptographic proof and are not backed by a real append-only service.</div></div>
+          <div class="ledger-summary-grid">
+            <div class="ledger-summary"><span>Chain status</span><strong><span class="status-dot status-dot--mint"></span> Demo intact</strong><small>Illustrative state only</small></div>
+            <div class="ledger-summary"><span>Events in view</span><strong id="ledger-event-count">6</strong><small>Current prototype session</small></div>
+            <div class="ledger-summary"><span>Latest sequence</span><strong id="ledger-latest">#00421</strong><small>Mock sequence number</small></div>
+          </div>
+          <section class="panel full-panel">
+            <div class="panel-heading"><div><div class="panel-kicker">HASH-CHAIN VIEW</div><h2>Recent events</h2></div><label class="search-box"><svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="7.8" cy="7.8" r="5.3"/><path d="m12 12 3.8 3.8"/></svg><input id="ledger-search" type="search" placeholder="Filter events…" aria-label="Filter ledger events"></label></div>
+            <div class="ledger-list" id="ledger-list"></div>
+          </section>
+        </section>
+
+        <!-- BLOCKERS -->
+        <section class="view" id="view-blockers" data-view-panel="blockers" aria-labelledby="blockers-title" hidden>
+          <div class="page-heading">
+            <div><div class="eyebrow"><span class="eyebrow-line"></span> HUMAN CONTROL <span class="eyebrow-separator">/</span> STEERING</div><h1 id="blockers-title">Attention queue</h1><p class="page-subtitle">Approvals and blockers wait here; the agent can pause or pivot instead of silently crossing a gate.</p></div>
+            <div class="heading-actions"><span class="queue-status"><span class="status-dot status-dot--amber"></span> <span id="blocker-heading-count">2 open items</span></span></div>
+          </div>
+          <div class="blocker-layout">
+            <section class="panel blocker-panel">
+              <div class="panel-heading"><div><div class="panel-kicker">REQUIRES HUMAN CONTEXT</div><h2>Open blockers</h2></div><span class="count-bubble count-bubble--amber" id="blocker-open-count">2</span></div>
+              <div id="blocker-list" class="blocker-list"></div>
+              <div class="empty-state empty-state--compact" id="blocker-empty" hidden><span class="empty-orbit">✓</span><h3>Queue clear</h3><p>Resolved demo items remain in the ledger.</p></div>
+            </section>
+            <aside class="panel steering-panel">
+              <div class="panel-kicker">DIRECTOR INPUT</div><h2>Steer the next cycle</h2><p>Send a short instruction to the next model turn. This prototype only records the note locally; nothing will run.</p>
+              <form class="steering-form steering-form--large" id="blocker-steering-form"><label class="sr-only" for="blocker-steering-input">Your steering note</label><textarea id="blocker-steering-input" maxlength="300" placeholder="e.g. Keep the run offline; prioritize reproducing the failing case."></textarea><div class="steering-form-footer"><span id="steering-char-count">0 / 300</span><button class="button button--primary button--small" type="submit">Queue note <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 10-4-4 10-1.8-4.2zM7.2 9.8 13 4"/></svg></button></div></form>
+              <div class="steering-footnote"><span class="status-dot status-dot--blue"></span> Delivered at a turn boundary in the intended design</div>
+            </aside>
+          </div>
+          <section class="panel resolved-panel"><div class="panel-heading"><div><div class="panel-kicker">HISTORY</div><h2>Recently resolved</h2></div></div><div id="resolved-blockers" class="resolved-list"></div></section>
+        </section>
+
+        <footer class="page-footer"><span>SPACETIME · UI CONCEPT 0.1</span><span>Prototype state is local and illustrative <span class="footer-sep">·</span> No runtime or services connected</span></footer>
+      </div>
+    </main>
+  </div>
+
+  <dialog class="modal" id="workspace-dialog" aria-labelledby="workspace-dialog-title">
+    <form id="workspace-form" class="modal-form">
+      <div class="modal-heading"><div><div class="panel-kicker">NEW EXECUTION CONTEXT</div><h2 id="workspace-dialog-title">Create workspace</h2></div><button class="icon-button modal-close" type="button" aria-label="Close dialog" data-action="close-dialog"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m4 4 10 10M14 4 4 14"/></svg></button></div>
+      <label class="field-label" for="workspace-name">Workspace name</label><input class="text-input" id="workspace-name" name="name" type="text" placeholder="e.g. Parser differential run" maxlength="72" required>
+      <label class="field-label" for="workspace-tier">Execution tier</label>
+      <select class="text-input" id="workspace-tier" name="tier">
+        <option value="wasi">WASI worker · narrow operator</option>
+        <option value="ark">Shared Ark cell · Linux app/tool</option>
+        <option value="quarantine">Quarantine microVM · separate guest kernel</option>
+      </select>
+      <div class="tier-explainer" id="tier-explainer"><span class="info-strip-icon">i</span><p>Capability-limited module. Use for a small operator that fits the WASI interface; runtime and host calls remain trusted components.</p></div>
+      <div class="field-row"><div><label class="field-label" for="workspace-network">Network access</label><select class="text-input" id="workspace-network" name="network"><option value="none">None (default)</option><option value="brokered">Brokered egress only</option></select></div><div><label class="field-label" for="workspace-memory">Memory ceiling</label><select class="text-input" id="workspace-memory" name="memory"><option value="128">128 MB</option><option value="256" selected>256 MB</option><option value="512">512 MB</option><option value="1024">1 GB</option></select></div></div>
+      <div class="modal-warning"><span class="warning-icon">!</span><span>Demo only. Creating a workspace updates this page's mock state; it does not launch code.</span></div>
+      <div class="modal-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancel</button><button class="button button--primary" type="submit">Create mock workspace <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="run-dialog" aria-labelledby="run-dialog-title">
+    <form id="run-form" class="modal-form">
+      <div class="modal-heading"><div><div class="panel-kicker">POPULATION + VERIFICATION</div><h2 id="run-dialog-title">Queue experiment</h2></div><button class="icon-button modal-close" type="button" aria-label="Close dialog" data-action="close-dialog"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m4 4 10 10M14 4 4 14"/></svg></button></div>
+      <label class="field-label" for="run-name">Experiment name</label><input class="text-input" id="run-name" name="name" type="text" placeholder="e.g. Differential parser candidates" maxlength="72" required>
+      <div class="field-row"><div><label class="field-label" for="run-tier">Execution tier</label><select class="text-input" id="run-tier" name="tier"><option value="wasi">WASI worker</option><option value="ark">Shared Ark cell</option><option value="quarantine">Quarantine microVM</option></select></div><div><label class="field-label" for="run-candidates">Candidate count</label><select class="text-input" id="run-candidates" name="candidates"><option value="1">1 candidate</option><option value="4">4 candidates</option><option value="8" selected>8 candidates</option></select></div></div>
+      <label class="field-label" for="run-verifier">Verifier</label><select class="text-input" id="run-verifier" name="verifier"><option>Differential equality</option><option>Build + test suite</option><option>Protocol trace replay</option><option>Manual review only</option></select>
+      <div class="modal-warning"><span class="warning-icon">!</span><span>Queued runs are simulated. An agent will not execute this experiment.</span></div>
+      <div class="modal-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancel</button><button class="button button--primary" type="submit">Add to demo queue <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal modal--detail" id="detail-dialog" aria-labelledby="detail-title">
+    <div class="modal-form">
+      <div class="modal-heading"><div><div class="panel-kicker" id="detail-kicker">DETAILS</div><h2 id="detail-title">Workspace details</h2></div><button class="icon-button modal-close" type="button" aria-label="Close dialog" data-action="close-dialog"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m4 4 10 10M14 4 4 14"/></svg></button></div>
+      <div id="detail-body" class="detail-body"></div>
+      <div class="modal-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Close</button></div>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
