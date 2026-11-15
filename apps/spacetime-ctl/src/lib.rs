@@ -121,11 +121,8 @@ pub(crate) fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> 
     let determinism_runs = cortex.determinism_runs()?;
     let mutation_threshold_bps = cortex.mutation_threshold_bps()?;
     let candidate_mutation_score_bps = cortex.candidate_mutation_score_bps()?;
-    let candidate = Candidate::with_mutation_score(
-        "scripted-candidate",
-        action,
-        candidate_mutation_score_bps,
-    );
+    let candidate =
+        Candidate::with_mutation_score("scripted-candidate", action, candidate_mutation_score_bps);
     let fixture = Fixture {
         id: "scripted-fixture".to_string(),
         source,
@@ -321,9 +318,7 @@ fn cmd_crucible_panel(args: &[String]) -> Result<()> {
 fn cmd_crucible_adversarial(args: &[String]) -> Result<()> {
     let dir = optional_flag(args, "--dir")
         .map(PathBuf::from)
-        .unwrap_or_else(|| {
-            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial")
-        });
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial"));
     let report = adversarial_report(&dir)?;
     println!(
         "adversarial_fixtures={} mismatches={} expected_pass={} expected_fail={} expected_error={} expected_unverified={}",
@@ -745,7 +740,10 @@ mod tests {
         assert_eq!(resolution.verdict, Verdict::Pass);
         assert_eq!(resolution.sources.len(), 5);
         assert_eq!(resolution.conflicts, 0);
-        assert_eq!(resolution.selected_source, Some(VerifierSource::FixtureSuite));
+        assert_eq!(
+            resolution.selected_source,
+            Some(VerifierSource::FixtureSuite)
+        );
         Ok(())
     }
 }

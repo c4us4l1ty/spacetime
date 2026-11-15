@@ -577,7 +577,10 @@ fn check_determinism_controls() -> Result<String> {
         probe.profile_digest.as_str() == expected.as_str(),
         "control probe recorded the wrong profile digest",
     )?;
-    Ok("clock=fixed rng_seed=fixed locale=C env=cleared stdin=null network=none_by_construction".to_string())
+    Ok(
+        "clock=fixed rng_seed=fixed locale=C env=cleared stdin=null network=none_by_construction"
+            .to_string(),
+    )
 }
 
 fn check_verifier_panel() -> Result<String> {

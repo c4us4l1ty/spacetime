@@ -147,11 +147,7 @@ fn value_or(metadata: &BTreeMap<String, String>, key: &str, default: &str) -> St
         .unwrap_or_else(|| default.to_string())
 }
 
-fn metadata_number<T>(
-    metadata: &BTreeMap<String, String>,
-    key: &str,
-    default: T,
-) -> Result<T>
+fn metadata_number<T>(metadata: &BTreeMap<String, String>, key: &str, default: T) -> Result<T>
 where
     T: FromStr,
     SpacetimeError: From<T::Err>,
@@ -328,10 +324,7 @@ mod tests {
         assert_eq!(result.1, 9_000);
         assert_eq!(result.2, 7_500);
         assert_eq!(result.3, spacetime_types::Verdict::Fail);
-        assert_eq!(
-            result.4,
-            spacetime_types::VerifierSource::AdversarialModel
-        );
+        assert_eq!(result.4, spacetime_types::VerifierSource::AdversarialModel);
         Ok(())
     }
 }

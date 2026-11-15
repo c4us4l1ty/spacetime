@@ -199,6 +199,7 @@ impl ScriptedRunner {
 impl ScriptedRunner {
     pub fn probe_controls(&self) -> spacetime_types::Result<ControlProbe> {
         let script = concat!(
+            "unset PATH\n",
             "probe_line=\n",
             "if IFS= read -r probe_line; then :; fi\n",
             "printf 'env=<%s|%s|%s> cwd=<%s> stdin=<%s> locale=<%s>' ",

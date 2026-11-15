@@ -390,10 +390,7 @@ pub fn resolve_panel(entries: &[PanelVerdict]) -> PanelResolution {
         .iter()
         .filter(|entry| entry.verdict != selected.verdict)
         .count();
-    let verdict = if sorted
-        .iter()
-        .any(|entry| entry.verdict == Verdict::Error)
-    {
+    let verdict = if sorted.iter().any(|entry| entry.verdict == Verdict::Error) {
         Verdict::Error
     } else if sorted
         .iter()
@@ -765,8 +762,18 @@ mod tests {
     #[test]
     fn panel_pass_requires_all_sources() {
         let panel = VerifierPanel::new()
-            .push(VerifierSource::FixtureSuite, Verdict::Pass, "a".into(), 10_000)
-            .push(VerifierSource::SpecOracle, Verdict::Pass, "b".into(), 10_000)
+            .push(
+                VerifierSource::FixtureSuite,
+                Verdict::Pass,
+                "a".into(),
+                10_000,
+            )
+            .push(
+                VerifierSource::SpecOracle,
+                Verdict::Pass,
+                "b".into(),
+                10_000,
+            )
             .push(
                 VerifierSource::DifferentialReference,
                 Verdict::Pass,
@@ -782,7 +789,10 @@ mod tests {
             .push(VerifierSource::Mutation, Verdict::Pass, "e".into(), 10_000);
         let resolution = panel.resolve();
         assert_eq!(resolution.verdict, Verdict::Pass);
-        assert_eq!(resolution.selected_source, Some(VerifierSource::FixtureSuite));
+        assert_eq!(
+            resolution.selected_source,
+            Some(VerifierSource::FixtureSuite)
+        );
         assert_eq!(resolution.selected_priority, 1);
         assert_eq!(resolution.sources, VERIFIER_SOURCE_PRIORITY.to_vec());
         assert_eq!(resolution.conflicts, 0);
@@ -791,12 +801,25 @@ mod tests {
     #[test]
     fn panel_conflict_is_not_promoted() {
         let panel = VerifierPanel::new()
-            .push(VerifierSource::FixtureSuite, Verdict::Pass, "a".into(), 10_000)
-            .push(VerifierSource::SpecOracle, Verdict::Fail, "b".into(), 10_000);
+            .push(
+                VerifierSource::FixtureSuite,
+                Verdict::Pass,
+                "a".into(),
+                10_000,
+            )
+            .push(
+                VerifierSource::SpecOracle,
+                Verdict::Fail,
+                "b".into(),
+                10_000,
+            );
         let resolution = panel.resolve();
         assert_ne!(resolution.verdict, Verdict::Pass);
         assert!(resolution.conflicts > 0);
-        assert_eq!(resolution.selected_source, Some(VerifierSource::FixtureSuite));
+        assert_eq!(
+            resolution.selected_source,
+            Some(VerifierSource::FixtureSuite)
+        );
     }
 
     #[test]
@@ -810,7 +833,12 @@ mod tests {
     #[test]
     fn unverified_source_blocks_promotion() {
         let panel = VerifierPanel::new()
-            .push(VerifierSource::FixtureSuite, Verdict::Pass, "a".into(), 10_000)
+            .push(
+                VerifierSource::FixtureSuite,
+                Verdict::Pass,
+                "a".into(),
+                10_000,
+            )
             .push(
                 VerifierSource::SpecOracle,
                 Verdict::Unverified,

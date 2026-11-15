@@ -48,9 +48,7 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
         target_profile: TARGET_PROFILE.to_string(),
         memory_budget_kb: TARGET_MEMORY_BUDGET_KB,
         measurements: BTreeMap::new(),
-        reasons: vec![
-            "no measurement file supplied; 4 GB potato machine unmeasured".to_string(),
-        ],
+        reasons: vec!["no measurement file supplied; 4 GB potato machine unmeasured".to_string()],
     };
     let Some(path) = measurement_path else {
         return Ok(gate);
@@ -68,10 +66,7 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
             .ok_or_else(|| SpacetimeError::new(format!("invalid measurement line: {line}")))?;
         let key = key.trim().to_string();
         let value = value.trim();
-        if key == "schema_version"
-            || key == "target_profile"
-            || key == "measurement_host"
-        {
+        if key == "schema_version" || key == "target_profile" || key == "measurement_host" {
             metadata.insert(key, value.to_string());
         } else {
             measurements.insert(key, value.parse::<u64>()?);
@@ -128,10 +123,7 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
     } else {
         ResourceGateStatus::Pass
     };
-    gate.reasons = fail_reasons
-        .into_iter()
-        .chain(unmeasured_reasons)
-        .collect();
+    gate.reasons = fail_reasons.into_iter().chain(unmeasured_reasons).collect();
     Ok(gate)
 }
 
@@ -274,7 +266,10 @@ mod tests {
         assert_eq!(gate.status, ResourceGateStatus::Unmeasured);
         assert_eq!(gate.target_profile, TARGET_PROFILE);
         assert!(gate.measurements.is_empty());
-        assert!(gate.reasons.iter().any(|reason| reason.contains("no measurement")));
+        assert!(gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("no measurement")));
         Ok(())
     }
 
@@ -287,7 +282,10 @@ mod tests {
         let gate = resource_gate(Some(path.as_path()))?;
         let _ = fs::remove_file(&path);
         assert_eq!(gate.status, ResourceGateStatus::Fail);
-        assert!(gate.reasons.iter().any(|reason| reason.contains("wrong target_profile")));
+        assert!(gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("wrong target_profile")));
         Ok(())
     }
 
@@ -313,7 +311,10 @@ mod tests {
         let gate = resource_gate(Some(path.as_path()))?;
         let _ = fs::remove_file(&path);
         assert_eq!(gate.status, ResourceGateStatus::Fail);
-        assert!(gate.reasons.iter().any(|reason| reason.contains("4 GB budget")));
+        assert!(gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("4 GB budget")));
         Ok(())
     }
 }
