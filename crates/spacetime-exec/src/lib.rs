@@ -115,11 +115,7 @@ impl ScriptedRunner {
     fn run_flaky(&self, action: &Action, token: &str) -> RunResult {
         let count = self.flaky_counter.fetch_add(1, Ordering::Relaxed);
         let parity = if count % 2 == 0 { "even" } else { "odd" };
-        completed_result(
-            action,
-            format!("{token}-{parity}"),
-            &self.profile_digest,
-        )
+        completed_result(action, format!("{token}-{parity}"), &self.profile_digest)
     }
 
     fn run_sleep(&self, action: &Action, milliseconds: u64) -> RunResult {
@@ -174,9 +170,7 @@ impl Runner for ScriptedRunner {
             ActionOp::ProduceEvidence { evidence } => {
                 completed_result(action, evidence.clone(), &self.profile_digest)
             }
-            ActionOp::Echo { text } => {
-                completed_result(action, text.clone(), &self.profile_digest)
-            }
+            ActionOp::Echo { text } => completed_result(action, text.clone(), &self.profile_digest),
             ActionOp::ClaimDone { .. } => {
                 completed_result(action, "claim_done".to_string(), &self.profile_digest)
             }

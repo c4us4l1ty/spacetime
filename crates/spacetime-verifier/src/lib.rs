@@ -5,11 +5,10 @@
 //! execution profile, mutation gating, and differential metrology. Real clock/RNG/socket shims
 //! and live model-written adversarial tests remain later work.
 
-use spacetime_exec::{FIXED_DETERMINISM_PROFILE, RunStatus, Runner};
+use spacetime_exec::{RunStatus, Runner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::LedgerState;
 use spacetime_types::{
-    Action, ActionOp, Observation, Verdict, VerifierProof, VerifierSource,
-    VERIFIER_SOURCE_PRIORITY,
+    Action, ActionOp, Observation, Verdict, VerifierProof, VerifierSource, VERIFIER_SOURCE_PRIORITY,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -260,7 +259,9 @@ pub fn false_pass_leak_rate(verdicts: &[Verdict], expected: Verdict) -> f64 {
     }
     let leaks = verdicts
         .iter()
-        .filter(|verdict| **verdict != expected || (**verdict == Verdict::Pass && expected != Verdict::Pass))
+        .filter(|verdict| {
+            **verdict != expected || (**verdict == Verdict::Pass && expected != Verdict::Pass)
+        })
         .count();
     leaks as f64 / verdicts.len() as f64
 }
@@ -358,6 +359,7 @@ pub fn mutation_score_bps(limit: u64) -> u16 {
     (caught * 10_000 / mutants.len()) as u16
 }
 
+#[allow(clippy::too_many_arguments)]
 fn proof(
     verifier_id: &str,
     verdict: Verdict,

@@ -12,7 +12,7 @@ use spacetime_types::{
 };
 use spacetime_verifier::{
     differential_score, false_pass_leak_rate, false_pass_report, mutation_score_bps,
-    verifier_source_priority, verdict_flip_rate, Candidate, CrucibleVerifier, UnstableVerifier,
+    verdict_flip_rate, verifier_source_priority, Candidate, CrucibleVerifier, UnstableVerifier,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -82,16 +82,16 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     gates.push(capture("block1_non_canonical", || {
         check_non_canonical(&root)
     }));
-    gates.push(capture("block1_incomplete_goal", || check_incomplete(&root)));
+    gates.push(capture("block1_incomplete_goal", || {
+        check_incomplete(&root)
+    }));
     gates.push(capture("crucible_deterministic", || {
         check_crucible_deterministic(&root)
     }));
     gates.push(capture("crucible_flaky_family", || {
         check_flaky_family(&root)
     }));
-    gates.push(capture("crucible_false_pass", || {
-        check_false_pass(&root)
-    }));
+    gates.push(capture("crucible_false_pass", || check_false_pass(&root)));
     gates.push(capture("crucible_unstable_operator", || {
         check_unstable_operator()
     }));
@@ -107,7 +107,7 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     gates.push(capture("determinism_profile", || {
         check_determinism_profile(&root)
     }));
-    gates.push(capture("machine_baseline", || check_machine_baseline()));
+    gates.push(capture("machine_baseline", check_machine_baseline));
 
     let report = render_report(&gates);
     let out_path = Path::new(out.as_str());
@@ -352,7 +352,10 @@ fn check_crucible_deterministic(_root: &TempRoot) -> Result<String> {
     let runner = ScriptedRunner::new()?;
     let proof = CrucibleVerifier.verify_candidate(&candidate, &config, &runner);
     let expected_profile = FIXED_DETERMINISM_PROFILE.digest();
-    ensure(proof.verdict == Verdict::Pass, "deterministic fixture failed")?;
+    ensure(
+        proof.verdict == Verdict::Pass,
+        "deterministic fixture failed",
+    )?;
     ensure(
         config.expected_verdict == Verdict::Pass,
         "deterministic fixture has wrong expected verdict",
@@ -495,7 +498,10 @@ fn check_determinism_profile(_root: &TempRoot) -> Result<String> {
         profile.clock == "fixed_scripted_clock",
         "determinism profile clock is not fixed",
     )?;
-    ensure(profile.rng_seed == 0, "determinism profile RNG seed changed")?;
+    ensure(
+        profile.rng_seed == 0,
+        "determinism profile RNG seed changed",
+    )?;
     ensure(profile.locale == "C", "determinism profile locale changed")?;
     ensure(
         profile.environment == "cleared",
@@ -514,7 +520,10 @@ fn check_determinism_profile(_root: &TempRoot) -> Result<String> {
         result.observation.determinism_profile_digest.as_str() == expected.as_str(),
         "observation did not record the fixed determinism profile",
     )?;
-    Ok(format!("profile_digest={} network=none_by_construction", expected))
+    Ok(format!(
+        "profile_digest={} network=none_by_construction",
+        expected
+    ))
 }
 
 fn check_machine_baseline() -> Result<String> {
