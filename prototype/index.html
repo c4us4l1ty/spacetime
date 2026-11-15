@@ -4,15 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0a1016">
-  <meta name="description" content="Spacetime execution and verification console prototype">
-  <title>Spacetime — Control Room</title>
+  <meta name="description" content="Spacetime workspace shell and execution control prototype">
+  <title>Spacetime — Workspace Shell</title>
   <link rel="stylesheet" href="./styles.css">
   <script src="./app.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
-      <a class="brand" href="#overview" aria-label="Spacetime home" data-view="overview">
+      <a class="brand" href="#workspace" aria-label="Spacetime home" data-view="workspace">
         <span class="brand-mark" aria-hidden="true">
           <svg viewBox="0 0 40 40" fill="none">
             <circle cx="20" cy="20" r="15.5" stroke="currentColor" stroke-width="1.4" opacity=".42"/>
@@ -30,11 +30,15 @@
       <div class="sidebar-section">
         <p class="nav-label">Monitor</p>
         <nav class="primary-nav">
-          <button class="nav-link is-active" type="button" data-view="overview">
+          <button class="nav-link is-active" type="button" data-view="workspace" title="Workspace shell">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M2.5 7h15M7 7v10"/><path d="M10 11h4M10 14h4"/></svg>
+            <span>Workspace shell</span>
+          </button>
+          <button class="nav-link" type="button" data-view="overview" title="Overview">
             <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="2.5" width="6" height="6" rx="1.2"/><rect x="11.5" y="2.5" width="6" height="4" rx="1.2"/><rect x="11.5" y="8.5" width="6" height="9" rx="1.2"/><rect x="2.5" y="10.5" width="6" height="7" rx="1.2"/></svg>
             <span>Overview</span>
           </button>
-          <button class="nav-link" type="button" data-view="workspaces">
+          <button class="nav-link" type="button" data-view="workspaces" title="Workspaces">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2.5 6.5h6l1.7 2h7.3v7.7a1.3 1.3 0 0 1-1.3 1.3H3.8a1.3 1.3 0 0 1-1.3-1.3z"/><path d="M2.5 6.5V4.8a1.3 1.3 0 0 1 1.3-1.3h4l1.7 2h6.7a1.3 1.3 0 0 1 1.3 1.3v1.7"/></svg>
             <span>Workspaces</span>
             <span class="nav-count" id="nav-workspace-count">4</span>
@@ -100,7 +104,7 @@
           <button class="mobile-menu icon-button" type="button" aria-label="Toggle navigation" data-action="toggle-sidebar">
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/></svg>
           </button>
-          <div class="breadcrumbs"><span>SPACETIME</span><span class="breadcrumb-slash">/</span><strong id="breadcrumb-current">OVERVIEW</strong></div>
+          <div class="breadcrumbs"><span>SPACETIME</span><span class="breadcrumb-slash">/</span><strong id="breadcrumb-current">WORKSPACE SHELL</strong></div>
         </div>
         <div class="topbar-actions">
           <div class="host-profile"><span class="host-led"></span><span>4 GB target profile</span></div>
@@ -119,8 +123,92 @@
           <button class="banner-dismiss" type="button" aria-label="Dismiss prototype notice" data-action="dismiss-banner">×</button>
         </div>
 
+        <!-- WORKSPACE SHELL -->
+        <section class="view is-visible workspace-view" id="view-workspace" data-view-panel="workspace" aria-labelledby="workspace-shell-title">
+          <div class="workspace-page-heading">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-line"></span> ACTIVE SPACE <span class="eyebrow-separator">/</span> <span id="workspace-context-label">VIDEO PROJECT</span></div>
+              <h1 id="workspace-shell-title">Workspace shell</h1>
+              <p class="page-subtitle">A focused place to work inside an execution cell, inspect what the agent proposes, and branch without confusing a cell with a VM.</p>
+            </div>
+            <div class="heading-actions">
+              <button class="button button--secondary" type="button" data-action="branch-workspace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3v7M5 10c0 2 1.5 3 3.5 3H11M5 6h4c1.5 0 2-.8 2-2V3"/><circle cx="5" cy="2.5" r="1.5"/><circle cx="12" cy="2.5" r="1.5"/><circle cx="12" cy="13.5" r="1.5"/></svg>Branch workspace</button>
+              <button class="button button--primary" type="button" data-open-dialog="workspace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>New workspace</button>
+            </div>
+          </div>
+
+          <div class="workspace-goalbar">
+            <div class="brain-pool-summary"><span class="brain-orbit" aria-hidden="true">✳</span><div><strong>Cortex pool <span class="demo-micro-pill">MOCK</span></strong><small>Executor · Critic · Scribe</small></div></div>
+            <div class="goal-summary"><span class="goal-label" id="workspace-task-label">ACTIVE GOAL · TASK 08</span><strong id="workspace-goal-title">Assemble a 60-second launch cut from local clips</strong><small>Input scope: <code id="workspace-scope-path">/workspace/media</code> · no host directory is mounted</small></div>
+            <div class="heartbeat-summary"><span class="heartbeat-pulse"></span><div><strong>HEARTBEAT <span id="heartbeat-number">#12</span></strong><small id="heartbeat-status">Paused at review gate · simulated</small></div></div>
+          </div>
+
+          <div class="workspace-shell-grid">
+            <aside class="panel workspace-tree-panel" aria-label="Workspace tree">
+              <div class="tree-panel-heading"><div><div class="panel-kicker">SPACES · BRANCHES</div><h2>Workspace tree</h2></div><button class="icon-button icon-button--outline" type="button" aria-label="Create workspace" data-open-dialog="workspace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg></button></div>
+              <div id="workspace-tree-content" class="workspace-tree-content"></div>
+              <div class="wavefunction-card"><div class="wavefunction-top"><span class="wavefunction-icon">◈</span><span class="wavefunction-label">WAVEFUNCTION CAS</span><span class="cas-lock" aria-label="Read only">⌑</span></div><strong>42 verified layers</strong><p>Signed or reproducibly built · read-only in this demo</p><button type="button" class="quiet-button" data-view="operators">View provenance <span>→</span></button></div>
+            </aside>
+
+            <div class="workspace-center" role="region" aria-label="Active workspace">
+              <section class="app-window" aria-label="Application surface">
+                <header class="app-window-bar">
+                  <div class="active-app-ident"><span class="app-glyph" id="app-glyph">OC</span><span class="active-app-copy"><strong id="active-surface-name">OpenCut · Launch trailer</strong><small id="active-surface-subtitle">Application surface · local mock</small></span></div>
+                  <div class="active-app-meta"><span class="execution-chip" id="active-execution-chip">ARK CELL</span><span id="active-domain-label">Ark-Work · Cell 04</span><span class="surface-network" id="active-network-label"><i></i> Network none</span><button class="tiny-icon-button" type="button" aria-label="Inspect execution boundary" data-action="inspect-boundary"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.7"/><path d="M8 7v3.5M8 4.8v.1"/></svg></button></div>
+                </header>
+                <div class="app-surface" id="app-surface"></div>
+                <div class="app-window-footer"><span><span class="surface-green-dot"></span><span id="surface-state-label">Local workspace · mock app surface</span></span><span id="surface-memory-label">Demo memory 410 MB</span><span>Host bridge <strong>not connected</strong></span></div>
+              </section>
+
+              <section class="panel checkpoint-panel" aria-labelledby="checkpoint-title">
+                <div class="panel-heading checkpoint-heading"><div><div class="panel-kicker">FILESYSTEM + EVENT HISTORY</div><h2 id="checkpoint-title">Workspace checkpoints</h2></div><span class="checkpoint-kind">No RAM snapshot configured</span></div>
+                <div class="checkpoint-current"><strong id="checkpoint-name">Current working tree</strong><span id="checkpoint-time">09:42 · just now</span><span class="checkpoint-evidence" id="checkpoint-evidence">Overlay + ledger</span></div>
+                <div class="checkpoint-slider-wrap"><span class="checkpoint-edge">BASELINE</span><input id="checkpoint-range" type="range" min="0" max="3" value="3" aria-label="Select a workspace checkpoint"><span class="checkpoint-edge">NOW</span></div>
+                <div class="checkpoint-markers" id="checkpoint-markers"></div>
+                <div class="checkpoint-footnote"><span class="note-mark">i</span>Scrubbing selects a recorded workspace point in this prototype; it does not restore guest RAM or execute a rollback.</div>
+              </section>
+            </div>
+
+            <aside class="workspace-inspector" aria-label="Agent and evidence inspector">
+              <section class="panel cortex-panel">
+                <div class="inspector-heading"><div><div class="panel-kicker">BRAIN POOL · SIMULATED</div><h2>Agent run</h2></div><span class="status-pill status-pill--warn">Not connected</span></div>
+                <div class="agent-roles"><span>Executor</span><span>Critic</span><span>Scribe</span></div>
+                <div class="agent-task-label">CURRENT TASK</div><p class="agent-task" id="agent-task-copy">Build the first cut, then verify its duration and clip order.</p>
+                <div class="agent-progress-row"><span>Task progress</span><strong id="agent-progress-label">3 <i>/ 5 steps</i></strong></div>
+                <div class="agent-progress"><span style="width:60%"></span></div>
+                <div class="agent-claim"><span class="claim-icon">↳</span><span><strong>Last claim</strong><small id="agent-last-claim">Two clips imported; timeline still needs an independent duration check.</small></span></div>
+              </section>
+
+              <section class="panel proposal-panel">
+                <div class="proposal-heading"><span class="proposal-marker">✳</span><div><div class="panel-kicker">PROPOSED ACTION</div><h2>Review before apply</h2></div><span class="proposal-step">#18</span></div>
+                <p id="proposal-copy">Split <strong>Clip_02.mp4</strong> at <code>00:08</code> to keep the launch beat under the target duration.</p>
+                <div class="proposal-meta"><span>Target <strong id="proposal-target">OpenCut · timeline</strong></span><span>Effect <strong id="proposal-effect">workspace-local</strong></span></div>
+                <div class="proposal-actions"><button class="button button--secondary button--small" type="button" data-action="inspect-proposal">Inspect</button><button class="button button--primary button--small" id="proposal-preview-button" type="button" data-action="preview-proposal" aria-pressed="false">Preview in demo</button></div>
+                <div class="proposal-note"><span class="status-dot status-dot--amber"></span>No live agent action is being sent.</div>
+              </section>
+
+              <section class="panel inspector-events-panel">
+                <div class="inspector-tabs" role="tablist" aria-label="Workspace details">
+                  <button class="inspector-tab is-selected" type="button" role="tab" aria-selected="true" data-inspector-tab="activity">Activity</button>
+                  <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="evidence">Evidence</button>
+                  <button class="inspector-tab" type="button" role="tab" aria-selected="false" data-inspector-tab="egress">Egress</button>
+                </div>
+                <div class="inspector-content" id="workspace-inspector-content"></div>
+              </section>
+
+              <section class="panel director-panel">
+                <div class="director-heading"><span class="director-icon">↳</span><div><div class="panel-kicker">DIRECTOR INPUT</div><strong>Steer the next cycle</strong></div></div>
+                <form class="director-form" id="workspace-steering-form"><label class="sr-only" for="workspace-steering-input">Steering instruction for the next cycle</label><input id="workspace-steering-input" maxlength="160" placeholder="Add a short instruction…" autocomplete="off"><button type="submit" aria-label="Queue steering note"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m3 8.5 12-5-4.5 12-2.1-5zM8.4 10.5 15 3.5"/></svg></button></form>
+                <p>Local demo note · queued at a turn boundary in the intended design</p>
+              </section>
+            </aside>
+          </div>
+
+          <div class="workspace-statusline"><span><span class="status-dot status-dot--mint"></span><strong id="workspace-status-heartbeat">Heartbeat #12</strong> · <span id="workspace-status-heartbeat-state">simulated / paused at review</span></span><span><strong>Trust zone:</strong> <span id="workspace-trust-zone">Ark-Work shared guest kernel</span></span><button type="button" data-view="ledger">Open audit ledger <span>→</span></button></div>
+        </section>
+
         <!-- OVERVIEW -->
-        <section class="view is-visible" id="view-overview" data-view-panel="overview" aria-labelledby="overview-title">
+        <section class="view" id="view-overview" data-view-panel="overview" aria-labelledby="overview-title" hidden>
           <div class="page-heading">
             <div>
               <div class="eyebrow"><span class="eyebrow-line"></span> SYSTEM SNAPSHOT <span class="eyebrow-separator">/</span> DEMO FIXTURE</div>
@@ -350,6 +438,17 @@
       <label class="field-label" for="run-verifier">Verifier</label><select class="text-input" id="run-verifier" name="verifier"><option>Differential equality</option><option>Build + test suite</option><option>Protocol trace replay</option><option>Manual review only</option></select>
       <div class="modal-warning"><span class="warning-icon">!</span><span>Queued runs are simulated. An agent will not execute this experiment.</span></div>
       <div class="modal-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancel</button><button class="button button--primary" type="submit">Add to demo queue <span>→</span></button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal" id="branch-dialog" aria-labelledby="branch-dialog-title">
+    <form id="branch-form" class="modal-form">
+      <div class="modal-heading"><div><div class="panel-kicker" id="branch-dialog-kicker">WORKSPACE COW · TRUST DOMAIN</div><h2 id="branch-dialog-title">Branch workspace</h2></div><button class="icon-button modal-close" type="button" aria-label="Close dialog" data-action="close-dialog"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="m4 4 10 10M14 4 4 14"/></svg></button></div>
+      <label class="field-label" for="branch-name">Branch name</label><input class="text-input" id="branch-name" name="name" type="text" value="Launch cut · branch A" maxlength="72" required>
+      <label class="field-label" for="branch-mode">Branch boundary</label><select class="text-input" id="branch-mode" name="mode"><option value="cow">Workspace CoW branch · same Ark kernel</option><option value="quarantine">Fresh quarantine VM · separate guest kernel</option></select>
+      <div class="tier-explainer tier-explainer--mint" id="branch-explainer"><span class="info-strip-icon">i</span><p>A copy-on-write workspace branch keeps the same Ark and guest kernel. Filesystem branching does not provide kernel-level isolation.</p></div>
+      <div class="modal-warning"><span class="warning-icon">!</span><span id="branch-warning-copy">Demo only. A copy-on-write workspace-state branch is added to the tree; no VM snapshot or rollback is performed.</span></div>
+      <div class="modal-actions"><button class="button button--secondary" type="button" data-action="close-dialog">Cancel</button><button class="button button--primary" type="submit">Create demo branch <span>→</span></button></div>
     </form>
   </dialog>
 

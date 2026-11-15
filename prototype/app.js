@@ -27,11 +27,32 @@ const tierInfo = {
 
 const state = {
   workspaceFilter: "all",
+  selectedWorkspaceId: "ws-013",
+  selectedBranchId: null,
+  checkpointIndex: 3,
+  inspectorTab: "activity",
+  proposalPreviewed: false,
   workspaces: [
     { id: "ws-014", name: "Parser port · candidate set", description: "Differential checks against a pinned reference implementation.", tier: "wasi", status: "Running", network: "None", memory: "214 MB", updated: "2 min ago", verifier: "Differential equality", evidence: "12,480 / 12,480 inputs" },
-    { id: "ws-013", name: "Benchmark harness · local", description: "Runs a bounded test suite against local fixtures.", tier: "ark", status: "Running", network: "None", memory: "386 MB", updated: "6 min ago", verifier: "Test suite", evidence: "26 / 26 checks" },
-    { id: "ws-012", name: "Operator health sweep", description: "Checks a public registry endpoint through a cell-scoped egress broker.", tier: "ark", status: "Running", network: "Brokered", memory: "342 MB", updated: "11 min ago", verifier: "Trace replay", evidence: "18 / 19 checks" },
+    { id: "ws-013", name: "OpenCut editor · launch trailer", description: "Local editor workspace with imported clips; no host directory is mounted.", tier: "ark", status: "Running", network: "None", memory: "410 MB", updated: "Just now", verifier: "Timeline target", evidence: "2 clips staged · duration check pending" },
+    { id: "ws-012", name: "ffmpeg render · target cut", description: "Bounded render job in the same Work trust domain; awaiting a verified edit.", tier: "ark", status: "Queued", network: "None", memory: "Not allocated", updated: "Queued", verifier: "Output specification", evidence: "Pending" },
     { id: "ws-011", name: "repo-218 · build audit", description: "Unreviewed build scripts are held in a disposable quarantine context.", tier: "quarantine", status: "Needs review", network: "None", memory: "562 MB", updated: "14 min ago", verifier: "Build + test", evidence: "184 / 188 checks" }
+  ],
+  branches: [
+    { id: "br-013-a", parentId: "ws-013", name: "Rough cut A", mode: "cow", summary: "CoW overlay · 2 edits", updated: "2 min ago" },
+    { id: "br-013-b", parentId: "ws-013", name: "Color grade B", mode: "cow", summary: "CoW overlay · 1 edit", updated: "8 min ago" }
+  ],
+  checkpoints: [
+    { name: "Clips imported", time: "09:08", evidence: "Base overlay", kind: "Initial state" },
+    { name: "First timeline pass", time: "09:16", evidence: "Workspace diff", kind: "Filesystem" },
+    { name: "Duration target checked", time: "09:31", evidence: "Verifier event", kind: "Evidence" },
+    { name: "Current working tree", time: "09:42", evidence: "Overlay + ledger", kind: "Current" }
+  ],
+  workspaceActivity: [
+    { time: "09:42", title: "Proposed split held for review", detail: "No application action was executed.", kind: "amber", workspaceId: "ws-013" },
+    { time: "09:39", title: "Two clips staged in workspace", detail: "Import is confined to the workspace overlay.", kind: "mint", workspaceId: "ws-013" },
+    { time: "09:31", title: "Duration check completed", detail: "58.2 seconds · target 60 seconds maximum.", kind: "blue", workspaceId: "ws-013" },
+    { time: "09:16", title: "CoW branch created", detail: "Rough cut A · same Ark-Work kernel domain.", kind: "mint", workspaceId: "ws-013" }
   ],
   runs: [
     { id: "run-104", title: "CSV parser · differential suite", detail: "Reference implementation compared with candidate outputs.", tier: "wasi", candidates: "8 candidates", verifier: "Differential equality", evidence: "12,480 / 12,480 inputs", status: "Verified", updated: "2 min ago", memory: "88 MB" },
@@ -78,6 +99,7 @@ const state = {
 };
 
 const viewNames = {
+  workspace: "WORKSPACE SHELL",
   overview: "OVERVIEW",
   workspaces: "WORKSPACES",
   runs: "RUNS & EXPERIMENTS",
@@ -358,6 +380,354 @@ function renderBlockers() {
   document.getElementById("blocker-open-count").textContent = String(open.length);
 }
 
+function getSelectedWorkspaceContext() {
+  const workspace = state.workspaces.find((item) => item.id === state.selectedWorkspaceId) || state.workspaces[0];
+  const branch = state.branches.find((item) => item.id === state.selectedBranchId) || null;
+  const tier = branch?.executionTier || (branch?.mode === "quarantine" ? "quarantine" : workspace.tier);
+  return {
+    workspace,
+    branch,
+    tier,
+    network: branch?.network || (tier === "quarantine" ? "None" : workspace.network),
+    status: branch?.status || (branch?.mode === "quarantine" ? "Queued" : workspace.status),
+    memory: branch?.memory || (tier === "quarantine" ? "Not allocated" : workspace.memory),
+    verifier: branch?.verifier || workspace.verifier || "Not assigned",
+    evidence: branch?.evidence || workspace.evidence || "No evidence yet",
+    domain: branch?.domain || (tier === "quarantine" ? "Ark-Quarantine" : tierInfo[tier].domain)
+  };
+}
+
+function treeWorkspaceButton(id, nested = false) {
+  const workspace = state.workspaces.find((item) => item.id === id);
+  if (!workspace) return "";
+  const info = tierInfo[workspace.tier];
+  const selected = state.selectedWorkspaceId === id && !state.selectedBranchId;
+  const symbol = workspace.tier === "wasi" ? "λ" : (workspace.tier === "quarantine" ? "◇" : "▣");
+  const status = workspace.status === "Running" ? "ACTIVE" : workspace.status === "Needs review" ? "REVIEW" : workspace.status.toUpperCase();
+  return `<button type="button" class="tree-node ${nested ? "tree-node--nested" : ""} ${selected ? "is-selected" : ""}" data-action="select-workspace" data-id="${escapeHtml(id)}" aria-current="${selected ? "page" : "false"}">
+    <span class="tree-node-symbol tree-node-symbol--${info.className}">${symbol}</span>
+    <span class="tree-node-copy"><strong>${escapeHtml(workspace.name.split(" · ")[0])}</strong><small>${escapeHtml(info.short)} <i>·</i> ${escapeHtml(status)}</small></span>
+    <span class="tree-status-dot ${workspace.status === "Running" ? "is-running" : workspace.status === "Needs review" ? "is-review" : ""}"></span>
+  </button>`;
+}
+
+function treeBranchButton(branch) {
+  const selected = state.selectedBranchId === branch.id;
+  const isQuarantine = branch.mode === "quarantine";
+  const parent = state.workspaces.find((workspace) => workspace.id === branch.parentId);
+  const sourceBranch = state.branches.find((item) => item.id === branch.sourceBranchId);
+  const summary = isQuarantine
+    ? `Fresh VM · from ${sourceBranch ? sourceBranch.name : parent ? parent.name.split(" · ")[0] : "workspace"}`
+    : branch.summary;
+  return `<button type="button" class="tree-node tree-node--branch ${isQuarantine ? "tree-node--quarantine" : ""} ${selected ? "is-selected" : ""}" data-action="select-branch" data-id="${escapeHtml(branch.id)}" aria-current="${selected ? "page" : "false"}">
+    <span class="tree-branch-elbow" aria-hidden="true">↳</span><span class="tree-node-symbol ${isQuarantine ? "tree-node-symbol--quarantine" : "tree-node-symbol--branch"}">${isQuarantine ? "◇" : "⑂"}</span>
+    <span class="tree-node-copy"><strong>${escapeHtml(branch.name)}</strong><small>${escapeHtml(summary || "CoW overlay · same execution domain")}</small></span>
+  </button>`;
+}
+
+function treeBranchNode(branch) {
+  const children = state.branches.filter((item) => item.sourceBranchId === branch.id && item.mode === "cow");
+  return `${treeBranchButton(branch)}${children.length ? `<div class="tree-branch-list tree-branch-list--nested">${children.map(treeBranchNode).join("")}</div>` : ""}`;
+}
+
+function renderWorkspaceTree() {
+  const videoIds = new Set(["ws-013", "ws-012"]);
+  const videoWorkspaces = state.workspaces.filter((workspace) => videoIds.has(workspace.id));
+  const toolsWorkspaces = state.workspaces.filter((workspace) => workspace.id === "ws-014" || (!videoIds.has(workspace.id) && workspace.tier !== "quarantine"));
+  const quarantineWorkspaces = state.workspaces.filter((workspace) => workspace.tier === "quarantine");
+  const workspaceNodes = (workspaces) => workspaces.map((workspace) => {
+    const cowBranches = state.branches.filter((branch) => branch.parentId === workspace.id && branch.mode === "cow" && !branch.sourceBranchId);
+    return `${treeWorkspaceButton(workspace.id)}${cowBranches.length ? `<div class="tree-branch-list">${cowBranches.map(treeBranchNode).join("")}</div>` : ""}`;
+  }).join("");
+  const freshBranches = state.branches.filter((branch) => branch.mode === "quarantine");
+  document.getElementById("workspace-tree-content").innerHTML = `
+    ${videoWorkspaces.length ? `<div class="tree-group"><div class="tree-group-title"><span class="tree-chevron">⌄</span><span class="tree-folder-icon">▰</span>Video project</div><div class="tree-children">${workspaceNodes(videoWorkspaces)}</div></div>` : ""}
+    ${toolsWorkspaces.length ? `<div class="tree-group"><div class="tree-group-title"><span class="tree-chevron">⌄</span><span class="tree-folder-icon tree-folder-icon--blue">▰</span>Bench &amp; tools</div><div class="tree-children">${workspaceNodes(toolsWorkspaces)}</div></div>` : ""}
+    ${quarantineWorkspaces.length || freshBranches.length ? `<div class="tree-group"><div class="tree-group-title"><span class="tree-chevron">⌄</span><span class="tree-folder-icon tree-folder-icon--amber">▰</span>Quarantine</div><div class="tree-children">${workspaceNodes(quarantineWorkspaces)}${freshBranches.length ? `<div class="tree-branch-list">${freshBranches.map(treeBranchNode).join("")}</div>` : ""}</div></div>` : ""}
+  `;
+}
+
+function renderOpenCutSurface() {
+  return `<div class="studio-app">
+    <div class="studio-toolbar"><div class="studio-product"><span class="studio-product-mark">O</span><strong>OpenCut</strong><span class="studio-divider">/</span><span>Launch trailer</span><span class="save-indicator"><i></i> Local draft</span></div><div class="studio-tools"><button type="button" data-action="editor-tool" data-tool="Select" aria-label="Select tool">↖</button><button type="button" data-action="editor-tool" data-tool="Split" aria-label="Split tool">⌁</button><button type="button" data-action="editor-tool" data-tool="Trim" aria-label="Trim tool">◫</button><button type="button" data-action="editor-tool" data-tool="Undo" aria-label="Undo">↶</button></div></div>
+    <div class="studio-upper">
+      <aside class="media-bin"><div class="surface-section-title"><span>MEDIA BIN</span><span>02</span></div>
+        <div class="media-item"><span class="media-thumb media-thumb--one"><i></i></span><span><strong>Clip_01.mp4</strong><small>00:23 · 1080p</small></span><span class="media-more">···</span></div>
+        <div class="media-item"><span class="media-thumb media-thumb--two"><i></i></span><span><strong>Clip_02.mp4</strong><small>00:37 · 1080p</small></span><span class="media-more">···</span></div>
+        <div class="media-bin-footer"><span>Workspace-local files</span><button type="button" data-action="editor-tool" data-tool="Import">＋</button></div>
+      </aside>
+      <section class="preview-column"><div class="preview-toolbar"><span>PREVIEW</span><span class="preview-resolution">FIT · 1080p</span></div>
+        <div class="preview-frame ${state.proposalPreviewed ? "preview-frame--review" : ""}"><div class="preview-stars"></div><div class="preview-orb"></div><div class="preview-horizon"></div><div class="preview-caption"><small>THE NEXT CHAPTER</small><strong>BEYOND<br>THE EDGE</strong><span>LAUNCH FILM · 2026</span></div><div class="preview-fixture-tag">LOCAL FIXTURE · MOCK FRAME</div>${state.proposalPreviewed ? `<div class="preview-review-overlay"><span>PREVIEW ONLY</span><strong>Split marker · 00:08</strong></div>` : ""}</div>
+        <div class="preview-controls"><button type="button" data-action="editor-tool" data-tool="Previous frame">|◀</button><button type="button" class="preview-play" data-action="editor-tool" data-tool="Play preview">▶</button><button type="button" data-action="editor-tool" data-tool="Next frame">▶|</button><span class="preview-time">00:08 <i>/</i> 00:58</span><span class="preview-zoom">− &nbsp; 100% &nbsp; +</span></div>
+      </section>
+    </div>
+    <section class="timeline-mock"><div class="timeline-heading"><div><span class="surface-section-title">TIMELINE</span><span class="timeline-duration">00:58.2</span></div><div class="timeline-head-actions"><span class="timeline-track-count">2 tracks</span><button type="button" data-action="editor-tool" data-tool="Add track">＋ Track</button></div></div>
+      <div class="timeline-ruler"><span>00:00</span><span>00:08</span><span>00:16</span><span>00:24</span><span>00:32</span><span>00:40</span><span>00:48</span><span>00:56</span></div>
+      <div class="timeline-row"><span class="track-label">V1</span><div class="track-lane"><div class="clip-block clip-block--teal" style="left:0;width:39%"><strong>Clip_01.mp4</strong><small>00:00 — 00:23</small><span class="clip-wave"></span></div><div class="clip-block clip-block--violet" style="left:41%;width:55%"><strong>Clip_02.mp4</strong><small>00:23 — 00:58</small><span class="clip-wave"></span><i class="playhead-handle"></i></div><span class="timeline-playhead" style="left:48%"></span></div></div>
+      <div class="timeline-row timeline-row--audio"><span class="track-label">A1</span><div class="track-lane"><div class="audio-block"><span class="audio-wave"></span></div></div></div>
+    </section>
+  </div>`;
+}
+
+function renderTerminalSurface(workspace) {
+  const isQueued = workspace.status === "Queued";
+  const isRenderJob = workspace.id === "ws-012";
+  const command = isQueued
+    ? isRenderJob ? "waiting for verifier: timeline-duration" : "no process started · awaiting task definition"
+    : isRenderJob ? "ffmpeg -i /workspace/media/launch-cut.mp4 -f null -" : "spacetime inspect /workspace";
+  const output = isQueued
+    ? isRenderJob ? "Ready when the timeline is independently verified." : "No process started; execution is only a mock state."
+    : isRenderJob ? "Output length: 00:58.2 · exit status: awaiting verifier" : "Workspace state shown for illustration · no command executed";
+  const description = isRenderJob ? "Input: workspace-local snapshot · network: none" : "Shell is a local mock surface · host bridge: disconnected";
+  return `<div class="terminal-surface"><div class="terminal-top"><span class="terminal-dots"><i></i><i></i><i></i></span><strong>${escapeHtml(workspace.name.split(" · ")[0])}</strong><span class="terminal-tier">${isQueued ? "QUEUED" : "ARK-WORK · CELL"}</span></div>
+    <div class="terminal-body"><div class="terminal-line"><span class="terminal-prompt">$</span><span>${escapeHtml(command)}</span></div>
+      <div class="terminal-line terminal-line--muted"><span class="terminal-prompt">›</span><span>${escapeHtml(description)}</span></div>
+      <div class="terminal-progress"><span style="width:${isQueued ? "0%" : isRenderJob ? "72%" : "0%"}"></span></div>
+      <div class="terminal-line terminal-line--success"><span class="terminal-prompt">✓</span><span>${escapeHtml(output)}</span></div>
+      <div class="terminal-caret"><span>spacetime-cell</span><i></i></div>
+    </div><div class="terminal-foot"><span>OverlayFS · ephemeral workspace</span><span>stdout is demo text</span></div></div>`;
+}
+
+function renderWasiSurface(workspace) {
+  const isParserFixture = workspace.id === "ws-014";
+  const statusClass = workspace.status === "Needs review" ? "warn" : workspace.status === "Queued" ? "warn" : "good";
+  const result = isParserFixture ? workspace.evidence : workspace.status === "Queued" ? "No verifier result" : workspace.evidence;
+  const verifier = workspace.verifier || "No verifier assigned";
+  const description = isParserFixture ? "Candidate outputs compared with a pinned reference." : "Capability-limited worker surface · no execution was started by this UI.";
+  const inputLabel = isParserFixture ? "PINNED REFERENCE FIXTURE" : "DEMO INPUT";
+  return `<div class="operator-surface"><div class="operator-surface-head"><div><span class="panel-kicker">WASI OPERATOR · DEMO</span><h3>${escapeHtml(workspace.name.split(" · ")[0])}</h3><p>${escapeHtml(description)}</p></div><span class="status-pill status-pill--${statusClass}">${escapeHtml(workspace.status)}</span></div>
+    <div class="operator-code-grid"><div class="code-panel"><div class="code-panel-title"><span>${inputLabel}</span><span>READ ONLY</span></div><pre><span class="code-muted">{</span>
+  <span class="code-key">"tokens"</span>: [<span class="code-string">"parse"</span>, <span class="code-string">"verify"</span>],
+  <span class="code-key">"mode"</span>: <span class="code-string">"strict"</span>,
+  <span class="code-key">"seed"</span>: <span class="code-number">18427</span>
+<span class="code-muted">}</span></pre></div><div class="code-panel code-panel--result"><div class="code-panel-title"><span>VERIFIER RESULT</span><span>${isParserFixture ? "FIXTURE SET" : "DEMO STATE"}</span></div><div class="operator-result"><span class="result-check">${isParserFixture ? "✓" : "·"}</span><strong>${escapeHtml(result)}</strong><small>${escapeHtml(verifier)}</small></div><div class="operator-capability">No ambient filesystem or network handles in this mock.</div></div></div>
+    <div class="operator-surface-foot"><span>Runtime <strong>Wasmtime · constrained worker</strong></span><span>Resource caps <strong>memory + fuel</strong></span></div></div>`;
+}
+
+function renderQuarantineSurface(context) {
+  const { workspace, branch, status, evidence } = context;
+  const hasReviewEvidence = workspace.id === "ws-011" && String(evidence).includes("184 / 188");
+  const title = branch ? branch.name : workspace.name.split(" · ")[0];
+  const description = branch?.mode === "quarantine"
+    ? "Fresh quarantine VM; only explicitly assigned inputs are available and no workspace files are shared implicitly."
+    : branch?.mode === "cow"
+      ? "Copy-on-write state branch inside this existing quarantine guest-kernel domain."
+      : workspace.id === "ws-011"
+        ? "Unreviewed build scripts are held outside Ark-Work for inspection."
+        : workspace.description;
+  const reportLabel = hasReviewEvidence ? "Review report" : "Boundary status";
+  const checks = hasReviewEvidence ? "184 / 188" : "Not run";
+  const policy = hasReviewEvidence ? "1 request held" : "No events recorded";
+  const promotion = hasReviewEvidence ? "Blocked pending review" : "Not eligible · no evidence";
+  return `<div class="quarantine-surface"><div class="quarantine-state"><span class="quarantine-shield">◇</span><div><span class="panel-kicker">SEPARATE GUEST-KERNEL DOMAIN · DEMO</span><h3>${escapeHtml(title)}</h3><p>${escapeHtml(description)}</p></div><span class="status-pill status-pill--warn">${escapeHtml(status)}</span></div>
+    <div class="quarantine-metrics"><div><span>Network</span><strong>None</strong></div><div><span>Guest kernel</span><strong>Separate</strong></div><div><span>Secrets</span><strong>Not mounted</strong></div></div>
+    <div class="quarantine-report"><div class="report-title"><span class="status-dot status-dot--amber"></span>${reportLabel} <small>${hasReviewEvidence ? "DEMO FIXTURE" : "NO RUN"}</small></div><div class="report-row"><span>Build + test checks</span><strong>${checks}</strong></div><div class="report-row"><span>Policy events</span><strong>${policy}</strong></div><div class="report-row"><span>Promotion</span><strong>${promotion}</strong></div></div>
+    <div class="quarantine-footnote">A separate guest kernel raises isolation between trust domains. The VMM and host-side channels are still part of the security boundary.</div></div>`;
+}
+
+function renderWorkspaceSurface(context) {
+  const { workspace, branch, tier } = context;
+  if (tier === "quarantine") return renderQuarantineSurface(context);
+  if (workspace.id === "ws-013") return renderOpenCutSurface();
+  if (tier === "wasi") return renderWasiSurface(workspace);
+  return renderTerminalSurface(workspace);
+}
+
+function getWorkspaceCheckpoints(context = getSelectedWorkspaceContext()) {
+  if (context.workspace.id === "ws-013" && context.tier === "ark") return state.checkpoints;
+  if (context.tier === "quarantine") {
+    const hasEvidence = !["No run yet", "Pending", "No evidence yet"].includes(context.evidence);
+    const sourceAssigned = context.workspace.id === "ws-011" && context.branch?.mode !== "quarantine";
+    const currentLabel = context.status === "Needs review" ? "Review gate pending" : context.status === "Queued" ? "No execution started" : "Current quarantine state";
+    return [
+      { name: context.branch?.mode === "quarantine" ? "Fresh guest kernel created" : "Quarantine context opened", time: "09:08", evidence: "Separate quarantine domain" },
+      { name: sourceAssigned ? "Source state assigned" : "Input assignment pending", time: "09:16", evidence: sourceAssigned ? "Explicit input bundle" : "No implicit file sharing" },
+      { name: hasEvidence ? "Build + test completed" : "No build run yet", time: "09:31", evidence: context.evidence },
+      { name: currentLabel, time: "09:42", evidence: context.status }
+    ];
+  }
+  if (context.workspace.id === "ws-014") {
+    return [
+      { name: "Workspace opened", time: "09:08", evidence: "Initial operator state" },
+      { name: "Reference corpus pinned", time: "09:16", evidence: "Read-only fixtures" },
+      { name: "Verifier attached", time: "09:31", evidence: context.verifier },
+      { name: "Current working tree", time: "09:42", evidence: context.evidence }
+    ];
+  }
+  if (context.workspace.id === "ws-012") {
+    return [
+      { name: "Render workspace queued", time: "09:08", evidence: "No execution started" },
+      { name: "Input edit selected", time: "09:16", evidence: "Workspace link" },
+      { name: "Duration verifier attached", time: "09:31", evidence: "Target ≤ 60 seconds" },
+      { name: "Awaiting verified edit", time: "09:42", evidence: "No render allocated" }
+    ];
+  }
+  return [
+    { name: "Workspace created", time: "09:08", evidence: "Initial state" },
+    { name: "Execution boundary selected", time: "09:16", evidence: tierInfo[context.tier].domain },
+    { name: "Verifier context attached", time: "09:31", evidence: context.verifier },
+    { name: "Current working tree", time: "09:42", evidence: context.evidence }
+  ];
+}
+
+function renderCheckpoint() {
+  const slider = document.getElementById("checkpoint-range");
+  const checkpoints = getWorkspaceCheckpoints();
+  const max = checkpoints.length - 1;
+  state.checkpointIndex = Math.max(0, Math.min(max, Number(state.checkpointIndex) || 0));
+  slider.max = String(max);
+  slider.value = String(state.checkpointIndex);
+  const checkpoint = checkpoints[state.checkpointIndex];
+  document.getElementById("checkpoint-name").textContent = checkpoint.name;
+  document.getElementById("checkpoint-time").textContent = checkpoint.time;
+  document.getElementById("checkpoint-evidence").textContent = checkpoint.evidence;
+  document.getElementById("checkpoint-markers").innerHTML = checkpoints.map((item, index) => `<button class="checkpoint-marker ${index === state.checkpointIndex ? "is-current" : ""}" type="button" data-action="select-checkpoint" data-index="${index}" aria-label="Select checkpoint ${escapeHtml(item.name)}"><span></span><small>${escapeHtml(item.time)}</small></button>`).join("");
+}
+
+function renderWorkspaceInspector(context) {
+  const { workspace, branch, tier, network, domain, verifier, evidence } = context;
+  document.querySelectorAll("[data-inspector-tab]").forEach((tab) => {
+    const selected = tab.dataset.inspectorTab === state.inspectorTab;
+    tab.classList.toggle("is-selected", selected);
+    tab.setAttribute("aria-selected", String(selected));
+  });
+  const content = document.getElementById("workspace-inspector-content");
+  if (state.inspectorTab === "evidence") {
+    content.innerHTML = `<div class="inspector-data-kicker">VERIFIER · DEMO RESULT</div><strong class="inspector-evidence-value">${escapeHtml(evidence)}</strong><p>${escapeHtml(verifier)} · current state: ${escapeHtml(context.status)}</p><div class="evidence-mini-row"><span>Independent re-check</span><strong>${workspace.id === "ws-014" && !branch ? "48 / 50 agree" : "Pending"}</strong></div><div class="inspector-caution">A demo result is not a real proof. A passing claim should be independently re-verified before promotion.</div>`;
+  } else if (state.inspectorTab === "egress") {
+    const hasEgress = network === "Brokered";
+    content.innerHTML = `<div class="egress-summary"><span class="egress-indicator ${hasEgress ? "is-brokered" : ""}"></span><div><strong>${hasEgress ? "Brokered egress" : "No network capability"}</strong><small>${hasEgress ? "Only supervisor-approved destinations" : "No interface or broker socket in this demo cell"}</small></div></div><div class="egress-event ${hasEgress ? "egress-event--allow" : "egress-event--blocked"}"><span>${hasEgress ? "ALLOW · MOCK" : "DENY · MOCK"}</span><strong>${hasEgress ? "registry endpoint via broker" : "host-local path blocked"}</strong><small>${hasEgress ? "Cell identity supplied by broker channel" : "No direct host or LAN route"}</small></div><div class="inspector-caution">Sample policy display only; there is no live router, IP address, or packet capture.</div>`;
+  } else {
+    const workspaceEvents = state.workspaceActivity.filter((item) => !item.workspaceId || item.workspaceId === workspace.id);
+    const rows = workspaceEvents.length ? workspaceEvents : [
+      { time: "09:42", title: `${context.status} · ${workspace.name.split(" · ")[0]}`, detail: workspace.description, kind: tier === "quarantine" ? "amber" : "mint" },
+      { time: "09:39", title: "Verifier context attached", detail: `${verifier} · ${evidence}`, kind: "blue" },
+      { time: "09:31", title: "Execution boundary selected", detail: `${tierInfo[tier].label} · ${domain}`, kind: tier === "quarantine" ? "amber" : "mint" }
+    ];
+    content.innerHTML = `<div class="mini-activity-list">${rows.slice(0, 3).map((item) => `<div class="mini-activity"><span class="mini-activity-dot mini-activity-dot--${escapeHtml(item.kind)}"></span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.time)} · ${escapeHtml(item.detail)}</small></div></div>`).join("")}</div>${branch ? `<div class="branch-context"><span>Selected branch</span><strong>${escapeHtml(branch.name)}</strong><small>${escapeHtml(branch.summary || "Fresh quarantine VM · pending")}</small></div>` : ""}`;
+  }
+}
+
+function renderWorkspaceShell() {
+  const context = getSelectedWorkspaceContext();
+  const { workspace, branch, tier, network, memory, domain, verifier, evidence, status } = context;
+  const tierLabels = { wasi: "WASI MODULE", ark: "ARK CELL", quarantine: "QUARANTINE VM" };
+  const cellLabels = {
+    wasi: "WASI pool · Module 01",
+    ark: branch ? "Ark-Work · same guest kernel" : "Ark-Work · Cell 04",
+    quarantine: branch?.mode === "quarantine" ? "Ark-Quarantine · fresh guest kernel" : branch ? "Ark-Quarantine · same guest kernel" : "Ark-Quarantine · Fresh VM"
+  };
+  const isVideoProject = workspace.id === "ws-013" || workspace.id === "ws-012";
+  const contextLabel = branch?.mode === "quarantine" || tier === "quarantine"
+    ? "QUARANTINE"
+    : isVideoProject
+      ? "VIDEO PROJECT"
+      : workspace.id === "ws-014"
+        ? "BENCH & TOOLS"
+        : tier === "ark" ? "ARK-WORK" : "WASI WORKER";
+  const taskLabel = workspace.id === "ws-013" ? "ACTIVE GOAL · TASK 08"
+    : workspace.id === "ws-014" ? "ACTIVE GOAL · TASK 14"
+      : workspace.id === "ws-012" ? "ACTIVE GOAL · TASK 12"
+        : workspace.id === "ws-011" ? "ACTIVE GOAL · TASK 11" : "ACTIVE GOAL · UNASSIGNED";
+  const displayName = branch ? `${workspace.name.split(" · ")[0]} / ${branch.name}` : workspace.name;
+  const heartbeatStatus = status === "Running" ? "Working · simulated"
+    : status === "Needs review" ? "Paused at review gate · simulated"
+      : status === "Queued" ? "No execution started · simulated" : `${status} · simulated`;
+  const trustZone = tier === "quarantine" ? "Ark-Quarantine separate guest kernel"
+    : tier === "ark" ? "Ark-Work shared guest kernel" : "WASI capability-limited worker";
+  const scopePath = branch?.mode === "quarantine" ? "/quarantine/input (explicit only)"
+    : tier === "quarantine" ? "/workspace/source (quarantine)"
+      : workspace.id === "ws-013" || workspace.id === "ws-012" ? "/workspace/media"
+        : workspace.id === "ws-014" ? "/fixtures/reference" : "/workspace";
+
+  document.getElementById("workspace-context-label").textContent = contextLabel;
+  document.getElementById("workspace-task-label").textContent = taskLabel;
+  document.getElementById("active-surface-name").textContent = displayName;
+  document.getElementById("active-surface-subtitle").textContent = `${tierInfo[tier].label} · ${workspace.id} · ${status}`;
+  document.getElementById("app-glyph").textContent = tier === "quarantine" ? "◇" : workspace.id === "ws-013" ? "OC" : tier === "wasi" ? "λ" : "A";
+  const executionChip = document.getElementById("active-execution-chip");
+  executionChip.className = `execution-chip execution-chip--${tier}`;
+  executionChip.textContent = tierLabels[tier];
+  document.getElementById("active-domain-label").textContent = cellLabels[tier];
+  const networkLabel = document.getElementById("active-network-label");
+  networkLabel.innerHTML = `<i class="${network === "Brokered" ? "is-brokered" : ""}"></i> ${network === "Brokered" ? "Brokered egress" : "Network none"}`;
+  document.getElementById("surface-state-label").textContent = tier === "quarantine" ? "Disposable trust domain · demo only" : "Workspace-local surface · demo only";
+  document.getElementById("surface-memory-label").textContent = `Demo memory ${memory}`;
+  document.getElementById("app-surface").innerHTML = renderWorkspaceSurface(context);
+  document.getElementById("heartbeat-number").textContent = "#12";
+  document.getElementById("heartbeat-status").textContent = heartbeatStatus;
+  document.getElementById("workspace-status-heartbeat").textContent = "Heartbeat #12";
+  document.getElementById("workspace-status-heartbeat-state").textContent = heartbeatStatus;
+  document.getElementById("workspace-trust-zone").textContent = trustZone;
+  document.getElementById("workspace-scope-path").textContent = scopePath;
+
+  const goal = branch?.mode === "quarantine" ? "Review explicitly assigned inputs in a fresh quarantine VM"
+    : workspace.id === "ws-013" ? "Assemble a 60-second launch cut from local clips"
+      : workspace.id === "ws-014" ? "Port the parser and verify output equivalence"
+        : workspace.id === "ws-012" ? "Render only after the edit passes its duration check"
+          : workspace.id === "ws-011" ? "Inspect unreviewed source inside quarantine"
+            : tier === "quarantine" ? "Inspect source and evidence inside the quarantine domain"
+              : `Define a bounded goal for ${workspace.name.split(" · ")[0]}`;
+  document.getElementById("workspace-goal-title").textContent = goal;
+
+  const task = branch?.mode === "quarantine" ? "Review the explicitly assigned input bundle; no workspace files are shared implicitly."
+    : workspace.id === "ws-013" ? "Build the first cut, then verify its duration and clip order."
+      : workspace.id === "ws-014" ? "Compare candidate outputs with the pinned reference corpus."
+        : workspace.id === "ws-012" ? "Wait for a verified timeline before starting the render."
+          : workspace.id === "ws-011" ? "Review build failures and policy events; do not promote yet."
+            : tier === "quarantine" ? "No task is running. Inspect inputs and assign a verifier before execution."
+              : "No task is running. Define a bounded instruction and verifier before execution.";
+  document.getElementById("agent-task-copy").textContent = task;
+
+  const lastClaim = branch?.mode === "quarantine" ? "Fresh guest-kernel context; no workspace files were shared implicitly."
+    : branch?.mode === "cow" ? `CoW state branch; execution remains in the ${domain} trust domain.`
+      : workspace.id === "ws-013" ? "Two clips imported; timeline still needs an independent duration check."
+        : `${verifier}: ${evidence}.`;
+  document.getElementById("agent-last-claim").textContent = lastClaim;
+  const progress = branch?.mode === "quarantine" ? { label: "0", total: "1", width: "0%" }
+    : workspace.id === "ws-013" ? { label: "3", total: "5", width: "60%" }
+      : workspace.id === "ws-014" ? { label: "4", total: "6", width: "66%" }
+        : workspace.id === "ws-011" ? { label: "1", total: "4", width: "25%" }
+          : workspace.id === "ws-012" ? { label: "2", total: "5", width: "40%" }
+            : { label: "0", total: "1", width: "0%" };
+  document.getElementById("agent-progress-label").innerHTML = `${progress.label} <i>/ ${progress.total} steps</i>`;
+  document.querySelector(".agent-progress > span").style.width = progress.width;
+
+  const proposalCopy = document.getElementById("proposal-copy");
+  const proposalTarget = document.getElementById("proposal-target");
+  const proposalEffect = document.getElementById("proposal-effect");
+  if (branch?.mode === "quarantine") {
+    proposalCopy.innerHTML = "Review the <strong>explicit input bundle</strong> in the fresh quarantine domain before considering any next step.";
+    proposalTarget.textContent = "Quarantine VM · input review";
+  } else if (tier === "quarantine" && workspace.id === "ws-011") {
+    proposalCopy.innerHTML = "Inspect the <strong>four failing checks</strong> and keep this workspace quarantined until the evidence is reviewed.";
+    proposalTarget.textContent = "Quarantine review · build report";
+  } else if (tier === "quarantine") {
+    proposalCopy.innerHTML = "Inspect the assigned source and verifier state; do not promote this quarantine workspace without human review.";
+    proposalTarget.textContent = "Quarantine workspace · review";
+  } else if (workspace.id === "ws-014") {
+    proposalCopy.innerHTML = "Compare candidate output at <code>case 8,431</code> before promoting the parser operator.";
+    proposalTarget.textContent = "CSV parser · candidate output";
+  } else if (workspace.id === "ws-012") {
+    proposalCopy.innerHTML = "Wait for the <strong>timeline verifier</strong> before allocating render memory.";
+    proposalTarget.textContent = "ffmpeg render · output artifact";
+  } else if (workspace.id === "ws-013") {
+    proposalCopy.innerHTML = "Split <strong>Clip_02.mp4</strong> at <code>00:08</code> to keep the launch beat under the target duration.";
+    proposalTarget.textContent = "OpenCut · timeline";
+  } else {
+    proposalCopy.textContent = "No proposed action is queued. Define a bounded task and verifier before execution.";
+    proposalTarget.textContent = displayName;
+  }
+  proposalEffect.textContent = tier === "quarantine" ? "inspection only · no egress" : tier === "wasi" ? "operator-local" : "workspace-local";
+  const previewButton = document.getElementById("proposal-preview-button");
+  const previewVisible = state.proposalPreviewed && workspace.id === "ws-013" && tier === "ark";
+  previewButton.textContent = previewVisible ? "Preview shown" : "Preview in demo";
+  previewButton.setAttribute("aria-pressed", String(previewVisible));
+  renderWorkspaceTree();
+  renderWorkspaceInspector(context);
+  renderCheckpoint();
+}
+
 function renderAll() {
   renderOverview();
   renderWorkspaces();
@@ -365,6 +735,7 @@ function renderAll() {
   renderVerifiers();
   renderLedger();
   renderBlockers();
+  renderWorkspaceShell();
 }
 
 function navigate(view) {
@@ -382,7 +753,8 @@ function navigate(view) {
   });
   document.getElementById("breadcrumb-current").textContent = viewNames[view];
   document.getElementById("sidebar").classList.remove("is-open");
-  window.location.hash = view === "overview" ? "overview" : view;
+  document.querySelector(".app-shell").classList.toggle("is-workspace-mode", view === "workspace");
+  window.location.hash = view === "workspace" ? "workspace" : view;
 }
 
 function showToast(message) {
@@ -400,6 +772,7 @@ function openDialog(id) {
   else dialog.setAttribute("open", "");
   if (id === "workspace-dialog") window.setTimeout(() => document.getElementById("workspace-name").focus(), 30);
   if (id === "run-dialog") window.setTimeout(() => document.getElementById("run-name").focus(), 30);
+  if (id === "branch-dialog") window.setTimeout(() => document.getElementById("branch-name").focus(), 30);
 }
 
 function closeDialog(dialog) {
@@ -486,6 +859,157 @@ function openOperator(id) {
   `);
 }
 
+function selectWorkspace(id) {
+  if (!state.workspaces.some((workspace) => workspace.id === id)) return;
+  state.selectedWorkspaceId = id;
+  state.selectedBranchId = null;
+  state.checkpointIndex = 3;
+  state.proposalPreviewed = false;
+  renderWorkspaceShell();
+  navigate("workspace");
+}
+
+function selectBranch(id) {
+  const branch = state.branches.find((item) => item.id === id);
+  if (!branch) return;
+  state.selectedWorkspaceId = branch.parentId;
+  state.selectedBranchId = branch.id;
+  state.checkpointIndex = 3;
+  state.proposalPreviewed = false;
+  renderWorkspaceShell();
+  navigate("workspace");
+}
+
+function updateBranchExplainer() {
+  const mode = document.getElementById("branch-mode").value;
+  const context = getSelectedWorkspaceContext();
+  const explainer = document.getElementById("branch-explainer");
+  const isQuarantine = mode === "quarantine";
+  const cowOption = document.querySelector('#branch-mode option[value="cow"]');
+  cowOption.textContent = context.tier === "ark"
+    ? "Workspace CoW branch · same Ark kernel"
+    : context.tier === "quarantine"
+      ? "Workspace CoW branch · same quarantine kernel"
+      : "Workspace data CoW branch · WASI worker tier";
+  explainer.classList.toggle("tier-explainer--amber", isQuarantine || context.tier !== "wasi");
+  explainer.classList.toggle("tier-explainer--mint", !isQuarantine && context.tier === "wasi");
+  explainer.querySelector(".info-strip-icon").textContent = isQuarantine || context.tier !== "wasi" ? "!" : "i";
+  const copy = isQuarantine
+    ? "Start a fresh quarantine VM with a separate guest kernel. Higher memory cost; workspace files are not implicitly shared and network stays off by default."
+    : context.tier === "ark"
+      ? "Create a copy-on-write workspace branch inside the current Ark. It shares the Ark guest kernel; this is a filesystem/state branch, not a new kernel boundary."
+      : context.tier === "quarantine"
+        ? "Create a copy-on-write state branch inside the current quarantine VM. It keeps the existing guest kernel and does not create a new isolation boundary."
+        : "Create a copy-on-write workspace data branch. Execution remains in the WASI worker tier; this does not create a VM or guest-kernel boundary.";
+  explainer.querySelector("p").textContent = copy;
+  const kicker = document.getElementById("branch-dialog-kicker");
+  const warning = document.getElementById("branch-warning-copy");
+  kicker.textContent = isQuarantine
+    ? "FRESH QUARANTINE VM · SEPARATE GUEST KERNEL"
+    : context.tier === "ark" ? "COPY-ON-WRITE · SAME ARK KERNEL"
+      : context.tier === "quarantine" ? "COPY-ON-WRITE · SAME QUARANTINE KERNEL"
+        : "COPY-ON-WRITE · WASI EXECUTION";
+  warning.textContent = isQuarantine
+    ? "Demo only. This records a fresh quarantine-VM boundary; no VM is launched and no workspace files are shared implicitly."
+    : context.tier === "ark" ? "Demo only. The CoW state branch stays in the same Ark guest-kernel domain; no guest-RAM snapshot or rollback is performed."
+      : context.tier === "quarantine" ? "Demo only. This CoW branch stays in the same quarantine guest-kernel domain; no VM snapshot or rollback is performed."
+        : "Demo only. This CoW data branch stays in the WASI worker tier; it does not create a VM or guest-kernel boundary.";
+}
+
+function createBranch(formData) {
+  const source = getSelectedWorkspaceContext();
+  const parent = source.workspace;
+  const name = String(formData.get("name") || "").trim();
+  const mode = formData.get("mode") === "quarantine" ? "quarantine" : "cow";
+  if (!parent || !name) return;
+  let sequence = state.branches.filter((branch) => branch.parentId === parent.id).length + 1;
+  let id = `br-${parent.id.slice(3)}-${String(sequence).padStart(2, "0")}`;
+  while (state.branches.some((branch) => branch.id === id)) {
+    sequence += 1;
+    id = `br-${parent.id.slice(3)}-${String(sequence).padStart(2, "0")}`;
+  }
+  const executionTier = mode === "quarantine" ? "quarantine" : source.tier;
+  const domain = mode === "quarantine" ? "Ark-Quarantine" : source.domain;
+  const sameDomainLabel = executionTier === "ark" ? "same Ark kernel" : executionTier === "quarantine" ? "same quarantine guest kernel" : "WASI worker tier";
+  const branch = {
+    id,
+    parentId: parent.id,
+    sourceBranchId: source.branch?.id || null,
+    name,
+    mode,
+    executionTier,
+    domain,
+    network: mode === "quarantine" ? "None" : source.network,
+    status: mode === "quarantine" ? "Queued" : source.status,
+    memory: mode === "quarantine" ? "Not allocated" : source.memory,
+    verifier: mode === "quarantine" ? "Not assigned" : source.verifier,
+    evidence: mode === "quarantine" ? "No run yet" : source.evidence,
+    summary: mode === "cow" ? `CoW overlay · ${sameDomainLabel}` : "Fresh VM · separate guest kernel",
+    updated: "Just now"
+  };
+  state.branches.unshift(branch);
+  state.selectedBranchId = id;
+  state.checkpointIndex = 3;
+  state.proposalPreviewed = false;
+  state.workspaceActivity.unshift({
+    time: "Just now",
+    title: `${mode === "cow" ? "CoW branch" : "Quarantine branch"} created`,
+    detail: mode === "cow" ? `${name} · filesystem state only; ${sameDomainLabel}.` : `${name} · fresh guest kernel; workspace files are not implicitly shared.`,
+    kind: mode === "cow" ? "mint" : "amber",
+    workspaceId: parent.id
+  });
+  state.workspaceActivity = state.workspaceActivity.slice(0, 8);
+  appendLedger("Workspace branch added in demo", `${name} · ${mode === "cow" ? `CoW / ${sameDomainLabel}` : "fresh quarantine VM / separate guest kernel"}`, "Session");
+  renderAll();
+  closeDialog(document.getElementById("branch-dialog"));
+  document.getElementById("branch-form").reset();
+  updateBranchExplainer();
+  navigate("workspace");
+  const message = mode === "quarantine"
+    ? "Fresh quarantine branch added; no VM was actually created."
+    : executionTier === "ark"
+      ? "CoW branch added; it remains in the same Ark guest-kernel domain."
+      : executionTier === "quarantine"
+        ? "CoW branch added inside the same quarantine guest-kernel domain."
+        : "CoW data branch added; no VM or guest-kernel boundary was created.";
+  showToast(message);
+}
+
+function inspectSelectedBoundary() {
+  const context = getSelectedWorkspaceContext();
+  const tier = tierInfo[context.tier];
+  const description = context.branch?.mode === "quarantine"
+    ? "A fresh quarantine VM with a separate guest kernel. Only explicitly assigned inputs are available; no workspace files are shared implicitly."
+    : context.branch?.mode === "cow"
+      ? `A copy-on-write state branch. Execution remains in the ${context.domain} trust domain.`
+      : context.workspace.description;
+  showDetail("EXECUTION BOUNDARY · DEMO", tier.label, `
+    <p>${escapeHtml(description)}</p>
+    <div class="detail-list">
+      <div class="detail-row"><span>Trust domain</span><strong>${escapeHtml(context.domain)}</strong></div>
+      <div class="detail-row"><span>Network</span><strong>${escapeHtml(context.network)}</strong></div>
+      <div class="detail-row"><span>Memory</span><strong>${escapeHtml(context.memory)}</strong></div>
+      <div class="detail-row"><span>Branch</span><strong>${escapeHtml(context.branch ? context.branch.name : "Base workspace")}</strong></div>
+    </div>
+    <div class="detail-caution">${escapeHtml(tier.caution)} This is a UI illustration; no runtime policy is enforced here.</div>
+  `);
+}
+
+function inspectProposal() {
+  const context = getSelectedWorkspaceContext();
+  const proposal = document.getElementById("proposal-copy").textContent;
+  const target = context.branch ? `${context.workspace.name.split(" · ")[0]} / ${context.branch.name}` : context.workspace.name;
+  showDetail("PROPOSED ACTION · INSPECTION", "Review before apply", `
+    <p>${escapeHtml(proposal)}</p>
+    <div class="detail-list">
+      <div class="detail-row"><span>Target</span><strong>${escapeHtml(target)}</strong></div>
+      <div class="detail-row"><span>Execution tier</span><strong>${escapeHtml(tierInfo[context.tier].label)}</strong></div>
+      <div class="detail-row"><span>Current status</span><strong>Awaiting human review</strong></div>
+    </div>
+    <div class="detail-caution">Inspecting is safe; this prototype never sends clicks or commands to the mock application. Real external or destructive effects should be bounded by policy and verified.</div>
+  `);
+}
+
 function updateTierExplainer() {
   const tier = document.getElementById("workspace-tier").value;
   const network = document.getElementById("workspace-network").value;
@@ -522,13 +1046,19 @@ function addWorkspace(formData) {
     verifier: "Not assigned",
     evidence: "No run yet"
   });
+  state.selectedWorkspaceId = id;
+  state.selectedBranchId = null;
+  state.checkpointIndex = 3;
+  state.proposalPreviewed = false;
+  state.workspaceActivity.unshift({ time: "Just now", title: "Workspace added to demo state", detail: `${name} · ${tierInfo[tier].label} · no execution started.`, kind: "blue", workspaceId: id });
+  state.workspaceActivity = state.workspaceActivity.slice(0, 8);
   addActivity(`<strong>${escapeHtml(name)}</strong> added to the demo workspace list (${escapeHtml(tierInfo[tier].short)}).`, "blue");
   appendLedger("Workspace added to demo state", `${name} · ${tierInfo[tier].label}`, "Session");
   renderAll();
   closeDialog(document.getElementById("workspace-dialog"));
   document.getElementById("workspace-form").reset();
   updateTierExplainer();
-  navigate("workspaces");
+  navigate("workspace");
   showToast("Workspace added to this prototype session. No process was launched.");
 }
 
@@ -564,6 +1094,8 @@ function submitSteering(text) {
   const note = String(text || "").trim();
   if (!note) return false;
   addActivity(`<strong>Steering note queued:</strong> ${escapeHtml(note)}`, "blue");
+  state.workspaceActivity.unshift({ time: "Just now", title: "Steering note queued", detail: note, kind: "blue", workspaceId: state.selectedWorkspaceId });
+  state.workspaceActivity = state.workspaceActivity.slice(0, 8);
   appendLedger("Steering note added", note, "Human input");
   renderAll();
   showToast("Steering note recorded in demo state only.");
@@ -634,6 +1166,13 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const inspectorTab = event.target.closest("[data-inspector-tab]");
+  if (inspectorTab) {
+    state.inspectorTab = inspectorTab.dataset.inspectorTab;
+    renderWorkspaceInspector(getSelectedWorkspaceContext());
+    return;
+  }
+
   const actionButton = event.target.closest("[data-action]");
   if (!actionButton) return;
   const action = actionButton.dataset.action;
@@ -647,6 +1186,33 @@ document.addEventListener("click", (event) => {
   if (action === "open-run") openRun(id);
   if (action === "open-blocker") openBlocker(id);
   if (action === "open-operator") openOperator(id);
+  if (action === "select-workspace") selectWorkspace(id);
+  if (action === "select-branch") selectBranch(id);
+  if (action === "inspect-boundary") inspectSelectedBoundary();
+  if (action === "inspect-proposal") inspectProposal();
+  if (action === "preview-proposal") {
+    const context = getSelectedWorkspaceContext();
+    state.proposalPreviewed = context.workspace.id === "ws-013" && context.tier === "ark";
+    state.workspaceActivity.unshift({ time: "Just now", title: "Proposal previewed in UI", detail: "No app action or command was sent.", kind: "blue", workspaceId: context.workspace.id });
+    state.workspaceActivity = state.workspaceActivity.slice(0, 8);
+    renderWorkspaceShell();
+    showToast("Visual preview only. No application action was executed.");
+  }
+  if (action === "editor-tool") showToast(`${actionButton.dataset.tool || "Tool"} selected in the mock editor; no files changed.`);
+  if (action === "branch-workspace") {
+    const context = getSelectedWorkspaceContext();
+    const branchCount = state.branches.filter((branch) => branch.parentId === context.workspace.id).length;
+    const branchLetter = String.fromCharCode(65 + (branchCount % 26));
+    const sourceName = context.branch ? context.branch.name : context.workspace.name.split(" · ")[0];
+    document.getElementById("branch-name").value = `${sourceName} · branch ${branchLetter}`;
+    document.getElementById("branch-mode").value = "cow";
+    updateBranchExplainer();
+    openDialog("branch-dialog");
+  }
+  if (action === "select-checkpoint") {
+    state.checkpointIndex = Number(actionButton.dataset.index);
+    renderCheckpoint();
+  }
   if (action === "resolve-blocker") resolveBlocker(id);
   if (action === "export-ledger") exportLedger();
   if (action === "refresh-runs") showToast("Demo queue refreshed. No runtime is connected.");
@@ -672,11 +1238,28 @@ document.getElementById("run-form").addEventListener("submit", (event) => {
   addRun(new FormData(event.currentTarget));
 });
 
+document.getElementById("branch-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  createBranch(new FormData(event.currentTarget));
+});
+
+document.getElementById("branch-mode").addEventListener("change", updateBranchExplainer);
+document.getElementById("checkpoint-range").addEventListener("input", (event) => {
+  state.checkpointIndex = Number(event.target.value);
+  renderCheckpoint();
+});
+
 document.getElementById("workspace-tier").addEventListener("change", updateTierExplainer);
 document.getElementById("workspace-network").addEventListener("change", updateTierExplainer);
 document.getElementById("workspace-search").addEventListener("input", renderWorkspaces);
 document.getElementById("operator-search").addEventListener("input", renderOperators);
 document.getElementById("ledger-search").addEventListener("input", renderLedger);
+
+document.getElementById("workspace-steering-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const input = document.getElementById("workspace-steering-input");
+  if (submitSteering(input.value)) input.value = "";
+});
 
 document.getElementById("steering-form").addEventListener("submit", (event) => {
   event.preventDefault();
@@ -708,4 +1291,4 @@ document.querySelectorAll("dialog").forEach((dialog) => {
 const initialView = window.location.hash.replace(/^#/, "");
 renderAll();
 if (viewNames[initialView]) navigate(initialView);
-else navigate("overview");
+else navigate("workspace");
