@@ -13,6 +13,8 @@ use spacetime_verifier::{
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod verify;
+
 const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
 
 Commands:
@@ -23,6 +25,7 @@ Commands:
   crucible false-pass --task <file> --runs <n>
   crucible differential --limit <n>
   crucible sources
+  verify --out <file>
   machine
   digest <text>
   help
@@ -62,6 +65,7 @@ pub fn run(args: &[String]) -> Result<()> {
             cmd_replay(path)
         }
         "crucible" => cmd_crucible(&args[1..]),
+        "verify" => verify::cmd_verify_all(&args[1..]),
         "machine" => cmd_machine(),
         "digest" => {
             let text = args

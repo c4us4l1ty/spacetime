@@ -45,7 +45,13 @@ family, a false-PASS flip metric, and differential/mutation metrology.
 cargo run -p spacetime-ctl -- crucible verify --task bench/tasks/block1_hello.task
 cargo run -p spacetime-ctl -- crucible false-pass --task bench/tasks/block1_hello.task --runs 50
 cargo run -p spacetime-ctl -- crucible differential --limit 1000000
+cargo run -p spacetime-ctl -- crucible sources
+cargo run -p spacetime-ctl -- verify --out target/verify.toml
 ```
+
+`verify --out` runs the offline Block 1 and Block 2 gates end to end and writes a TOML-style report.
+It explicitly reports `resource_gate = "unmeasured_target_4gb"`: CI host facts are not the recorded
+4 GB potato machine, so no performance or resource-budget claim is made.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
 `docs/ADR-0002-block2.md` for the Block 2 boundary.

@@ -1,8 +1,8 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 merged to `main`, Block 2 in progress in the Rust workspace.
-**Date:** 2026-11-15  
-**Branch:** `arena/6100a825-spacetime` (plan merged to `main` via PR #6)
+**Status:** active roadmap; Block 1 merged to `main`, Block 2 functional verification in progress; 4 GB resource gate unmeasured.
+**Date:** 2026-11-15
+**Branch:** `arena/d7d47fd2-spacetime` (Block 1 merged to `main` via PR #7)
 
 **Confirmed product decisions (user, 2026-11-15):**
 

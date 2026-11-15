@@ -66,7 +66,22 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- crucible differential --limit 1000000 > target/crucible-differential.txt
           grep -q 'differential_matches=1000000' target/crucible-differential.txt
           grep -q 'mutation_score_bps=10000' target/crucible-differential.txt
-          ! cargo run --release --locked -p spacetime-ctl -- crucible verify --task bench/tasks/block2_flaky.task
+          cargo run --release --locked -p spacetime-ctl -- crucible sources > target/crucible-sources.txt
+          grep -q 'priority=1 source=FixtureSuite' target/crucible-sources.txt
+          grep -q 'priority=5 source=Mutation' target/crucible-sources.txt
+          for task in bench/tasks/block2_flaky*.task; do
+            ! cargo run --release --locked -p spacetime-ctl -- crucible verify --task "$task"
+          done
+
+      - name: End-to-end verification
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml > target/verify.stdout
+          cat target/verify.toml
+          grep -q '^status = "pass"$' target/verify.toml
+          grep -q '^failed = 0$' target/verify.toml
+          grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify.toml
+          grep -q 'name = "block1_happy"' target/verify.toml
+          grep -q 'name = "crucible_flaky_family"' target/verify.toml
 
       - name: Machine baseline
         run: cargo run --release --locked -p spacetime-ctl -- machine
