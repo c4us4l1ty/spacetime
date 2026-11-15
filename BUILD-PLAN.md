@@ -1,8 +1,8 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** proposed plan, updated with confirmed product decisions. No implementation code has been written as part of this document.  
+**Status:** active roadmap; Block 1 is implemented and CI-green in the Rust workspace.
 **Date:** 2026-11-15  
-**Branch:** `arena/dfd8689d-spacetime`
+**Branch:** `arena/6100a825-spacetime` (plan merged to `main` via PR #6)
 
 **Confirmed product decisions (user, 2026-11-15):**
 

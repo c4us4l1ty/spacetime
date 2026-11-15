@@ -1,0 +1,28 @@
+[package]
+name = "spacetime-ctl"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+spacetime-types.workspace = true
+spacetime-ledger.workspace = true
+spacetime-cortex.workspace = true
+spacetime-exec.workspace = true
+spacetime-verifier.workspace = true
+spacetime-bench.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lib]
+name = "spacetime_ctl"
+path = "src/lib.rs"
+
+[[bin]]
+name = "spacetime-ctl"
+path = "src/main.rs"
+
+[lints]
+workspace = true

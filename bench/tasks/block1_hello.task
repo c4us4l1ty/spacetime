@@ -1,0 +1,11 @@
+# Block 1 happy path: produce evidence, then prove the claim.
+schema_version=1
+space_id=space-block1
+workspace_id=ws-block1
+surface_id=surface-block1
+goal_id=goal-block1
+preview_mode=snapshot_on_action
+liveness=running
+surface_kind=framebuffer
+action produce_evidence evidence=block1-evidence
+action claim_done expected_digest=sha256:block1-evidence

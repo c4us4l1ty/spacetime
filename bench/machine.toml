@@ -1,0 +1,16 @@
+schema_version = 1
+measurement_status = "unmeasured"
+target_profile = "4gb_potato"
+resource_law = "holy_grail"
+notes = "Replace with output of spacetime-ctl machine on the exact target laptop. Boolean host facts below are placeholders; no RAM, CPU, boot, or latency claims are valid until measured there."
+
+[host]
+os = "unmeasured"
+kernel = "unmeasured"
+arch = "unmeasured"
+cpu_model = "unmeasured"
+memory_total_kb = "unmeasured"
+kvm_available = false
+swap_present = false
+zram_detected = false
+cow_filesystems = "unmeasured"

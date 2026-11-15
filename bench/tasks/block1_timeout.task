@@ -1,0 +1,10 @@
+# Block 1 negative path: a timed-out child must become ERROR/FAIL, never PASS.
+schema_version=1
+space_id=space-block1-timeout
+workspace_id=ws-block1-timeout
+surface_id=surface-block1-timeout
+goal_id=goal-block1-timeout
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+action sleep ms=2000 budget_ms=50
