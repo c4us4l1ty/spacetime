@@ -57,5 +57,16 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/timeout.jsonl
           grep -q '"goal_status":"failed"' target/timeout.jsonl.state
 
+      - name: Crucible smoke - determinism and metrology
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- crucible verify --task bench/tasks/block1_hello.task > target/crucible-verify.txt
+          grep -q 'verdict=pass' target/crucible-verify.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible false-pass --task bench/tasks/block1_hello.task --runs 50 > target/crucible-false-pass.txt
+          grep -q 'false_pass_rate=0.0000' target/crucible-false-pass.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible differential --limit 1000000 > target/crucible-differential.txt
+          grep -q 'differential_matches=1000000' target/crucible-differential.txt
+          grep -q 'mutation_score_bps=10000' target/crucible-differential.txt
+          ! cargo run --release --locked -p spacetime-ctl -- crucible verify --task bench/tasks/block2_flaky.task
+
       - name: Machine baseline
         run: cargo run --release --locked -p spacetime-ctl -- machine

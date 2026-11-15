@@ -36,4 +36,16 @@ cargo run -p spacetime-ctl -- machine
 
 The false-claim and timeout fixtures intentionally exit non-zero after writing their state; the happy path exits zero.
 
-See `BUILD-PLAN.md` for the blocked roadmap and `docs/ADR-0001-block1.md` for Block 1 decisions.
+## Development — Block 2 (in progress)
+
+The Crucible adds a second-run determinism check, independent verifier provenance, a flaky-fixture
+family, a false-PASS flip metric, and differential/mutation metrology.
+
+```sh
+cargo run -p spacetime-ctl -- crucible verify --task bench/tasks/block1_hello.task
+cargo run -p spacetime-ctl -- crucible false-pass --task bench/tasks/block1_hello.task --runs 50
+cargo run -p spacetime-ctl -- crucible differential --limit 1000000
+```
+
+See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
+`docs/ADR-0002-block2.md` for the Block 2 boundary.

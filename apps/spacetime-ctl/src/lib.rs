@@ -1,4 +1,4 @@
-//! CLI supervisor for Spacetime Block 1.
+//! CLI supervisor for Spacetime Blocks 1-2.
 
 use spacetime_cortex::{Cortex, ScriptedCortex};
 use spacetime_exec::{Runner, ScriptedRunner};
@@ -6,16 +6,22 @@ use spacetime_ledger::{Ledger, LedgerState};
 use spacetime_types::{
     sha256_hex, DecisionKind, Event, GoalStatus, PolicyDecision, Result, SpacetimeError,
 };
-use spacetime_verifier::{FixtureVerifier, Verifier};
+use spacetime_verifier::{
+    differential_score, false_pass_rate, mutation_score_bps, Candidate, CrucibleVerifier, Fixture,
+    FixtureVerifier, Verifier,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const USAGE: &str = r#"spacetime-ctl — Block 1 CLI
+const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
 
 Commands:
   run --task <file> --cortex scripted --ledger <file>
   ledger verify <file>
   replay <file>
+  crucible verify --task <file>
+  crucible false-pass --task <file> --runs <n>
+  crucible differential --limit <n>
   machine
   digest <text>
   help
@@ -54,6 +60,7 @@ pub fn run(args: &[String]) -> Result<()> {
                 .ok_or_else(|| SpacetimeError::new("missing ledger path"))?;
             cmd_replay(path)
         }
+        "crucible" => cmd_crucible(&args[1..]),
         "machine" => cmd_machine(),
         "digest" => {
             let text = args
@@ -70,6 +77,88 @@ pub fn run(args: &[String]) -> Result<()> {
             "unknown command: {command}\n{USAGE}"
         ))),
     }
+}
+
+fn cmd_crucible(args: &[String]) -> Result<()> {
+    let subcommand = args
+        .first()
+        .map(String::as_str)
+        .ok_or_else(|| SpacetimeError::new("missing crucible subcommand"))?;
+    match subcommand {
+        "verify" => cmd_crucible_verify(&args[1..]),
+        "false-pass" => cmd_crucible_false_pass(&args[1..]),
+        "differential" => cmd_crucible_differential(&args[1..]),
+        _ => Err(SpacetimeError::new(format!(
+            "unknown crucible subcommand: {subcommand}"
+        ))),
+    }
+}
+
+fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> {
+    let cortex = ScriptedCortex::from_file(task_path)?;
+    let action = cortex.first_action()?;
+    let expected_digest = cortex
+        .expected_digest()
+        .ok_or_else(|| SpacetimeError::new("task has no expected_digest"))?;
+    let source = cortex.verifier_source()?;
+    let candidate = Candidate::new("scripted-candidate", action);
+    let fixture = Fixture {
+        id: "scripted-fixture".to_string(),
+        source,
+        expected_digest,
+        determinism_runs: 2,
+        mutation_threshold_bps: 8_000,
+    };
+    Ok((candidate, fixture))
+}
+
+fn cmd_crucible_verify(args: &[String]) -> Result<()> {
+    let task = flag(args, "--task")?;
+    let (candidate, fixture) = crucible_inputs(Path::new(task.as_str()))?;
+    let runner = ScriptedRunner::new()?;
+    let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+    println!(
+        "verdict={} verifier_id={} source={:?} determinism_runs={} mutation_score_bps={} evidence_digest={}",
+        proof.verdict.as_str(),
+        proof.verifier_id,
+        proof.source,
+        proof.determinism_runs,
+        proof.mutation_score_bps,
+        proof.evidence_digest,
+    );
+    if proof.verdict != spacetime_types::Verdict::Pass {
+        return Err(SpacetimeError::new(format!(
+            "crucible did not pass: {:?}",
+            proof.verdict
+        )));
+    }
+    Ok(())
+}
+
+fn cmd_crucible_false_pass(args: &[String]) -> Result<()> {
+    let task = flag(args, "--task")?;
+    let runs = flag(args, "--runs")?.parse::<u32>()?;
+    let (candidate, fixture) = crucible_inputs(Path::new(task.as_str()))?;
+    let runner = ScriptedRunner::new()?;
+    let rate = false_pass_rate(&candidate, &fixture, &runner, runs);
+    println!("false_pass_rate={rate:.4} runs={runs}");
+    if rate > 0.01 {
+        return Err(SpacetimeError::new(format!(
+            "false-PASS rate {rate:.4} exceeds the 1% kill gate"
+        )));
+    }
+    Ok(())
+}
+
+fn cmd_crucible_differential(args: &[String]) -> Result<()> {
+    let limit = flag(args, "--limit")?.parse::<u64>()?;
+    let (matched, inputs) = differential_score(limit);
+    let score = mutation_score_bps(limit);
+    println!("differential_matches={matched} inputs={inputs} mutation_score_bps={score}");
+    if matched != inputs || score < 8_000 {
+        return Err(SpacetimeError::new("differential or mutation gate failed"));
+    }
+    Ok(())
 }
 
 fn cmd_run(args: &[String]) -> Result<()> {
@@ -299,5 +388,23 @@ mod tests {
         let mut expected = path.into_os_string();
         expected.push(".state");
         assert_eq!(state.as_os_str(), expected.as_os_str());
+    }
+
+    #[test]
+    fn crucible_verify_passes_on_deterministic_fixture() -> Result<()> {
+        let (candidate, fixture) = crucible_inputs(&fixture("block1_hello.task"))?;
+        let runner = ScriptedRunner::new()?;
+        let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+        assert_eq!(proof.verdict, spacetime_types::Verdict::Pass);
+        Ok(())
+    }
+
+    #[test]
+    fn crucible_verify_rejects_flaky_fixture() -> Result<()> {
+        let (candidate, fixture) = crucible_inputs(&fixture("block2_flaky.task"))?;
+        let runner = ScriptedRunner::new()?;
+        let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+        assert_eq!(proof.verdict, spacetime_types::Verdict::Error);
+        Ok(())
     }
 }
