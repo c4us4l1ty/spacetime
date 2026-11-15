@@ -3,16 +3,18 @@
 //! This command never claims a measured resource gate. It proves the offline functional
 //! pipeline and labels the 4 GB potato-machine resource budget as unmeasured.
 
-use crate::{crucible_inputs, run_task, state_path};
-use spacetime_bench::baseline_toml;
+use crate::{adversarial_report, crucible_inputs, panel_resolution_for_task, run_task, state_path};
+use spacetime_bench::{baseline_toml, resource_gate, ResourceGateStatus};
 use spacetime_exec::{ScriptedRunner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::Ledger;
 use spacetime_types::{
-    ActionOp, Event, GoalStatus, Result, SpacetimeError, Verdict, VERIFIER_SOURCE_PRIORITY,
+    ActionOp, Event, GoalStatus, Result, SpacetimeError, Verdict, VerifierSource,
+    VERIFIER_SOURCE_PRIORITY,
 };
 use spacetime_verifier::{
     differential_score, false_pass_leak_rate, false_pass_report, mutation_score_bps,
-    verdict_flip_rate, verifier_source_priority, Candidate, CrucibleVerifier, UnstableVerifier,
+    population_report, verdict_flip_rate, verifier_source_priority, Candidate, CrucibleVerifier,
+    UnstableVerifier,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -108,6 +110,13 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
         check_determinism_profile(&root)
     }));
     gates.push(capture("machine_baseline", check_machine_baseline));
+    gates.push(capture("determinism_controls", check_determinism_controls));
+    gates.push(capture("verifier_panel", check_verifier_panel));
+    gates.push(capture("adversarial_corpus", check_adversarial_corpus));
+    gates.push(capture("operator_population", check_operator_population));
+    gates.push(capture("resource_gate_unmeasured", || {
+        check_resource_gate(&root)
+    }));
 
     let report = render_report(&gates);
     let out_path = Path::new(out.as_str());
@@ -142,6 +151,10 @@ fn fixture(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../bench/tasks")
         .join(name)
+}
+
+fn adversarial_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial")
 }
 
 fn ensure(condition: bool, message: impl Into<String>) -> Result<()> {
@@ -543,6 +556,158 @@ fn check_machine_baseline() -> Result<String> {
     Ok("resource_gate=unmeasured_target_4gb host_facts_only".to_string())
 }
 
+fn check_determinism_controls() -> Result<String> {
+    let runner = ScriptedRunner::new()?;
+    let probe = runner.probe_controls()?;
+    let checks = [
+        probe.clock_fixed,
+        probe.rng_seed_fixed,
+        probe.locale_c,
+        probe.temp_root_runner_owned,
+        probe.environment_cleared,
+        probe.network_none_by_construction,
+        probe.stdin_null,
+    ];
+    ensure(
+        !checks.contains(&false),
+        "a deterministic control probe flag was false",
+    )?;
+    let expected = FIXED_DETERMINISM_PROFILE.digest();
+    ensure(
+        probe.profile_digest.as_str() == expected.as_str(),
+        "control probe recorded the wrong profile digest",
+    )?;
+    Ok("clock=fixed rng_seed=fixed locale=C env=cleared stdin=null network=none_by_construction".to_string())
+}
+
+fn check_verifier_panel() -> Result<String> {
+    let path = fixture("block1_hello.task");
+    let resolution = panel_resolution_for_task(&path)?;
+    ensure(
+        resolution.verdict == Verdict::Pass,
+        "verifier panel did not reach PASS",
+    )?;
+    ensure(
+        resolution.sources.len() == VERIFIER_SOURCE_PRIORITY.len(),
+        "verifier panel is missing sources",
+    )?;
+    for (index, source) in resolution.sources.iter().enumerate() {
+        ensure(
+            *source == VERIFIER_SOURCE_PRIORITY[index],
+            "verifier panel sources are not priority ordered",
+        )?;
+    }
+    ensure(
+        resolution.selected_source == Some(VerifierSource::FixtureSuite),
+        "verifier panel did not select the highest-priority source",
+    )?;
+    ensure(
+        resolution.selected_priority == 1 && resolution.conflicts == 0,
+        "verifier panel recorded a conflict or wrong priority",
+    )?;
+    ensure(
+        !resolution.evidence_digest.is_empty(),
+        "verifier panel PASS has no evidence digest",
+    )?;
+    Ok(format!(
+        "sources={} verdict=pass conflicts={} selected_priority={}",
+        resolution.sources.len(),
+        resolution.conflicts,
+        resolution.selected_priority
+    ))
+}
+
+fn check_adversarial_corpus() -> Result<String> {
+    let report = adversarial_report(&adversarial_dir())?;
+    ensure(report.fixtures >= 20, "adversarial corpus is too small")?;
+    ensure(
+        report.mismatches == 0,
+        "an adversarial fixture had an unexpected verdict",
+    )?;
+    ensure(
+        report.expected_pass > 0 && report.expected_fail > 0 && report.expected_error > 0,
+        "adversarial corpus lacks PASS, FAIL, and ERROR coverage",
+    )?;
+    ensure(
+        report.expected_unverified == 0,
+        "adversarial corpus has an UNVERIFIED expectation",
+    )?;
+    Ok(format!(
+        "fixtures={} mismatches={} pass={} fail={} error={}",
+        report.fixtures,
+        report.mismatches,
+        report.expected_pass,
+        report.expected_fail,
+        report.expected_error
+    ))
+}
+
+fn check_operator_population() -> Result<String> {
+    let report = population_report(10, 50);
+    ensure(
+        report.operators == 10 && report.runs_per_operator == 50,
+        "operator population dimensions changed",
+    )?;
+    ensure(
+        report.total_runs == 500,
+        "operator population did not run 500 verdicts",
+    )?;
+    ensure(
+        report.unstable > 0 && report.accepted > 0,
+        "population did not exercise stable and unstable operators",
+    )?;
+    ensure(
+        report.promoted_false_pass_leaks == 0,
+        "a promoted synthetic operator had a false-PASS leak",
+    )?;
+    ensure(
+        report.synthetic && !report.real_operator_study,
+        "population study was mislabeled as a real operator study",
+    )?;
+    Ok(format!(
+        "operators={} runs={} unstable={} promoted_false_pass_leaks=0 real_operator_study=false",
+        report.operators, report.runs_per_operator, report.unstable
+    ))
+}
+
+fn check_resource_gate(root: &TempRoot) -> Result<String> {
+    let unmeasured = resource_gate(None)?;
+    ensure(
+        unmeasured.status == ResourceGateStatus::Unmeasured,
+        "default resource gate is not unmeasured",
+    )?;
+    ensure(
+        unmeasured
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("no measurement")),
+        "default resource gate lost its unmeasured reason",
+    )?;
+
+    let over = root.join("over-budget.measurement");
+    fs::write(
+        &over,
+        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-over-budget\npeak_rss_kb=99999999\nboot_ms=900\ntab_switch_ms=900\n",
+    )?;
+    let over_gate = resource_gate(Some(over.as_path()))?;
+    ensure(
+        over_gate.status == ResourceGateStatus::Fail,
+        "over-budget synthetic measurement did not fail the gate",
+    )?;
+
+    let within = root.join("within-budget.measurement");
+    fs::write(
+        &within,
+        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-within-budget\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+    )?;
+    let within_gate = resource_gate(Some(within.as_path()))?;
+    ensure(
+        within_gate.status == ResourceGateStatus::Pass,
+        "within-budget synthetic measurement did not pass the evaluator self-test",
+    )?;
+    Ok("evaluator=unmeasured/fail/pass real_target_4gb=unmeasured".to_string())
+}
+
 fn render_report(gates: &[Gate]) -> String {
     let failed = gates.iter().filter(|gate| !gate.ok).count();
     let status = if failed == 0 { "pass" } else { "fail" };
@@ -557,6 +722,14 @@ fn render_report(gates: &[Gate]) -> String {
     out.push_str("target_profile = \"4gb_potato\"\n");
     out.push_str("resource_law = \"holy_grail\"\n");
     out.push_str("ci_host = \"github_actions_not_target\"\n");
+    out.push_str(&format!(
+        "panel_sources = {}\n",
+        VERIFIER_SOURCE_PRIORITY.len()
+    ));
+    out.push_str("adversarial_fixtures = 20\n");
+    out.push_str("synthetic_operator_population = true\n");
+    out.push_str("real_operator_study = \"unmeasured\"\n");
+    out.push_str("resource_gate_evaluator = \"unmeasured_fail_pass_self_test\"\n");
     for gate in gates {
         let gate_status = if gate.ok { "pass" } else { "fail" };
         out.push_str("[[gate]]\n");

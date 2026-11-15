@@ -82,6 +82,17 @@ jobs:
           for task in bench/tasks/block2_flaky*.task; do
             ! cargo run --release --locked -p spacetime-ctl -- crucible verify --task "$task"
           done
+          cargo run --release --locked -p spacetime-ctl -- crucible panel --task bench/tasks/block1_hello.task > target/crucible-panel.txt
+          grep -q 'panel_verdict=pass' target/crucible-panel.txt
+          grep -q 'sources=5' target/crucible-panel.txt
+          grep -q 'conflicts=0' target/crucible-panel.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible adversarial --dir bench/adversarial > target/crucible-adversarial.txt
+          grep -q 'adversarial_fixtures=20' target/crucible-adversarial.txt
+          grep -q 'mismatches=0' target/crucible-adversarial.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible population --operators 10 --runs 50 > target/crucible-population.txt
+          grep -q 'runs_per_operator=50' target/crucible-population.txt
+          grep -q 'promoted_false_pass_leaks=0' target/crucible-population.txt
+          grep -q 'real_operator_study=false' target/crucible-population.txt
 
       - name: End-to-end verification
         continue-on-error: true
@@ -93,7 +104,22 @@ jobs:
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify.toml
           grep -q 'name = "block1_happy"' target/verify.toml
           grep -q 'name = "crucible_flaky_family"' target/verify.toml
+          grep -q '^gates = 21$' target/verify.toml
+          grep -q 'name = "determinism_controls"' target/verify.toml
+          grep -q 'name = "verifier_panel"' target/verify.toml
+          grep -q 'name = "adversarial_corpus"' target/verify.toml
+          grep -q 'name = "operator_population"' target/verify.toml
+          grep -q 'name = "resource_gate_unmeasured"' target/verify.toml
+          grep -q '^panel_sources = 5$' target/verify.toml
+          grep -q '^adversarial_fixtures = 20$' target/verify.toml
+          grep -q '^synthetic_operator_population = true$' target/verify.toml
+          grep -q '^real_operator_study = "unmeasured"$' target/verify.toml
+          grep -q '^resource_gate_evaluator = "unmeasured_fail_pass_self_test"$' target/verify.toml
 
       - name: Machine baseline
         continue-on-error: true
-        run: cargo run --release --locked -p spacetime-ctl -- machine
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- machine
+          cargo run --release --locked -p spacetime-ctl -- machine gate > target/machine-gate.txt
+          grep -q 'resource_gate=unmeasured' target/machine-gate.txt
+          cat target/machine-gate.txt

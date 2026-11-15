@@ -34,6 +34,26 @@ pub const FIXED_DETERMINISM_PROFILE: DeterminismProfile = DeterminismProfile {
     network: "none_by_construction",
 };
 
+pub const FIXED_CLOCK_EPOCH_MILLIS: u64 = 0;
+const LCG_MULTIPLIER: u64 = 6_364_136_223_846_793_005;
+const LCG_INCREMENT: u64 = 1_442_695_040_888_963_407;
+
+pub fn fixed_clock_millis() -> u64 {
+    FIXED_CLOCK_EPOCH_MILLIS
+}
+
+pub fn fixed_rng_sequence(seed: u64, count: usize) -> Vec<u64> {
+    let mut state = seed;
+    (0..count)
+        .map(|_| {
+            state = state
+                .wrapping_mul(LCG_MULTIPLIER)
+                .wrapping_add(LCG_INCREMENT);
+            state
+        })
+        .collect()
+}
+
 impl DeterminismProfile {
     pub fn digest(&self) -> String {
         let mut material = String::new();
@@ -57,6 +77,18 @@ pub enum RunStatus {
 pub struct RunResult {
     pub observation: Observation,
     pub status: RunStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ControlProbe {
+    pub clock_fixed: bool,
+    pub rng_seed_fixed: bool,
+    pub locale_c: bool,
+    pub temp_root_runner_owned: bool,
+    pub environment_cleared: bool,
+    pub network_none_by_construction: bool,
+    pub stdin_null: bool,
+    pub profile_digest: String,
 }
 
 pub trait Runner {
@@ -161,6 +193,63 @@ impl ScriptedRunner {
                 }
             }
         }
+    }
+}
+
+impl ScriptedRunner {
+    pub fn probe_controls(&self) -> spacetime_types::Result<ControlProbe> {
+        let script = concat!(
+            "probe_line=\n",
+            "if IFS= read -r probe_line; then :; fi\n",
+            "printf 'env=<%s|%s|%s> cwd=<%s> stdin=<%s> locale=<%s>' ",
+            "\"$PATH\" \"$HOME\" \"$CARGO_TERM_COLOR\" \"$(pwd)\" \"$probe_line\" \"$LC_ALL\""
+        );
+        let expected = format!(
+            "env=<||> cwd=<{}> stdin=<> locale=<C>",
+            self.work_dir.path().display()
+        );
+        let output = Command::new("/bin/sh")
+            .arg("-c")
+            .arg(script)
+            .current_dir(self.work_dir.path())
+            .env_clear()
+            .env("LC_ALL", "C")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .output()?;
+        let actual = String::from_utf8_lossy(&output.stdout).into_owned();
+        let probe_matches = output.status.success() && actual == expected;
+        let work_dir = self.work_dir.path().display().to_string();
+        let seed = FIXED_DETERMINISM_PROFILE.rng_seed;
+        let first_rng = fixed_rng_sequence(seed, 8);
+        let second_rng = fixed_rng_sequence(seed, 8);
+        let probe = ControlProbe {
+            clock_fixed: fixed_clock_millis() == FIXED_CLOCK_EPOCH_MILLIS,
+            rng_seed_fixed: first_rng == second_rng && first_rng[0] != seed,
+            locale_c: probe_matches && FIXED_DETERMINISM_PROFILE.locale == "C",
+            temp_root_runner_owned: probe_matches && work_dir.contains("spacetime-block1"),
+            environment_cleared: probe_matches,
+            network_none_by_construction: FIXED_DETERMINISM_PROFILE.network
+                == "none_by_construction",
+            stdin_null: probe_matches,
+            profile_digest: self.profile_digest.clone(),
+        };
+        let checks = [
+            probe.clock_fixed,
+            probe.rng_seed_fixed,
+            probe.locale_c,
+            probe.temp_root_runner_owned,
+            probe.environment_cleared,
+            probe.network_none_by_construction,
+            probe.stdin_null,
+        ];
+        if checks.contains(&false) {
+            return Err(SpacetimeError::new(format!(
+                "deterministic control probe failed: expected {expected:?}, got {actual:?}"
+            )));
+        }
+        Ok(probe)
     }
 }
 
@@ -303,5 +392,25 @@ mod tests {
         );
         let expected = FIXED_DETERMINISM_PROFILE.digest();
         assert_eq!(runner.determinism_profile_digest(), expected.as_str());
+    }
+
+    #[test]
+    fn control_probe_validates_cheap_controls() -> spacetime_types::Result<()> {
+        let runner = ScriptedRunner::new()?;
+        let probe = runner.probe_controls()?;
+        assert!(probe.clock_fixed);
+        assert!(probe.rng_seed_fixed);
+        assert!(probe.locale_c);
+        assert!(probe.temp_root_runner_owned);
+        assert!(probe.environment_cleared);
+        assert!(probe.network_none_by_construction);
+        assert!(probe.stdin_null);
+        let expected = FIXED_DETERMINISM_PROFILE.digest();
+        assert_eq!(probe.profile_digest.as_str(), expected.as_str());
+        let first = fixed_rng_sequence(FIXED_DETERMINISM_PROFILE.rng_seed, 8);
+        let second = fixed_rng_sequence(FIXED_DETERMINISM_PROFILE.rng_seed, 8);
+        assert_eq!(first, second);
+        assert_ne!(first[0], FIXED_DETERMINISM_PROFILE.rng_seed);
+        Ok(())
     }
 }

@@ -1,0 +1,16 @@
+# Offline model-authored adversarial fixture 04.
+schema_version=1
+verifier_source=adversarial_model
+expected_verdict=pass
+expected_digest=sha256:adversarial-pass-04
+determinism_runs=2
+mutation_threshold_bps=10000
+candidate_mutation_score_bps=10000
+space_id=space-adversarial-04
+workspace_id=ws-adversarial-04
+surface_id=surface-adversarial-04
+goal_id=goal-adversarial-04
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+action echo text=adversarial-pass-04

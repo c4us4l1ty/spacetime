@@ -1,6 +1,6 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 merged to `main`, Block 2 functional verification in progress; 4 GB resource gate unmeasured.
+**Status:** active roadmap; Block 1 merged to `main`, Block 2 functional verification expanded; 4 GB resource gate unmeasured.
 **Date:** 2026-11-15
 **Branch:** `arena/d7d47fd2-spacetime` (Block 1 merged to `main` via PR #7)
 

@@ -112,6 +112,18 @@ impl ScriptedCortex {
             None => Ok(spacetime_types::Verdict::Pass),
         }
     }
+
+    pub fn determinism_runs(&self) -> Result<u32> {
+        metadata_number(&self.metadata, "determinism_runs", 2)
+    }
+
+    pub fn mutation_threshold_bps(&self) -> Result<u16> {
+        metadata_number(&self.metadata, "mutation_threshold_bps", 8_000)
+    }
+
+    pub fn candidate_mutation_score_bps(&self) -> Result<u16> {
+        metadata_number(&self.metadata, "candidate_mutation_score_bps", 10_000)
+    }
 }
 
 impl Cortex for ScriptedCortex {
@@ -133,6 +145,21 @@ fn value_or(metadata: &BTreeMap<String, String>, key: &str, default: &str) -> St
         .get(key)
         .cloned()
         .unwrap_or_else(|| default.to_string())
+}
+
+fn metadata_number<T>(
+    metadata: &BTreeMap<String, String>,
+    key: &str,
+    default: T,
+) -> Result<T>
+where
+    T: FromStr,
+    SpacetimeError: From<T::Err>,
+{
+    match metadata.get(key) {
+        Some(raw) => Ok(raw.parse::<T>()?),
+        None => Ok(default),
+    }
 }
 
 fn binding_from_metadata(metadata: &BTreeMap<String, String>) -> Result<WorkspaceBinding> {
@@ -276,6 +303,34 @@ mod tests {
         assert_eq!(
             cortex.verifier_source()?,
             spacetime_types::VerifierSource::FixtureSuite
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parses_block2_metadata_controls() -> Result<()> {
+        let pid = std::process::id();
+        let path = std::env::temp_dir().join(format!("spacetime-cortex-metadata-{pid}"));
+        fs::write(
+            &path,
+            "schema_version=1\ndeterminism_runs=3\nmutation_threshold_bps=9000\ncandidate_mutation_score_bps=7500\nexpected_verdict=fail\nverifier_source=adversarial_model\naction echo text=x\n",
+        )?;
+        let cortex = ScriptedCortex::from_file(&path)?;
+        let result = (
+            cortex.determinism_runs()?,
+            cortex.mutation_threshold_bps()?,
+            cortex.candidate_mutation_score_bps()?,
+            cortex.expected_verdict()?,
+            cortex.verifier_source()?,
+        );
+        let _ = fs::remove_file(&path);
+        assert_eq!(result.0, 3);
+        assert_eq!(result.1, 9_000);
+        assert_eq!(result.2, 7_500);
+        assert_eq!(result.3, spacetime_types::Verdict::Fail);
+        assert_eq!(
+            result.4,
+            spacetime_types::VerifierSource::AdversarialModel
         );
         Ok(())
     }

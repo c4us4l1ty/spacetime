@@ -1,14 +1,17 @@
 //! CLI supervisor for Spacetime Blocks 1-2.
 
+use spacetime_bench::{baseline_toml, resource_gate, ResourceGateStatus};
 use spacetime_cortex::{Cortex, ScriptedCortex};
 use spacetime_exec::{Runner, ScriptedRunner};
 use spacetime_ledger::{Ledger, LedgerState};
 use spacetime_types::{
-    sha256_hex, DecisionKind, Event, GoalStatus, PolicyDecision, Result, SpacetimeError,
+    sha256_hex, DecisionKind, Event, GoalStatus, PolicyDecision, Result, SpacetimeError, Verdict,
+    VerifierSource,
 };
 use spacetime_verifier::{
-    differential_score, false_pass_report, mutation_score_bps, verifier_source_priority, Candidate,
-    CrucibleVerifier, Fixture, FixtureVerifier, Verifier,
+    differential_score, false_pass_report, mutation_score_bps, population_report,
+    verifier_source_priority, Candidate, CrucibleVerifier, Fixture, FixtureVerifier,
+    PanelResolution, Verifier, VerifierPanel,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -25,8 +28,12 @@ Commands:
   crucible false-pass --task <file> --runs <n>
   crucible differential --limit <n>
   crucible sources
+  crucible panel --task <file>
+  crucible adversarial --dir <dir>
+  crucible population --operators <n> --runs <n>
   verify --out <file>
   machine
+  machine gate [--measurement <file>]
   digest <text>
   help
 "#;
@@ -66,7 +73,7 @@ pub fn run(args: &[String]) -> Result<()> {
         }
         "crucible" => cmd_crucible(&args[1..]),
         "verify" => verify::cmd_verify_all(&args[1..]),
-        "machine" => cmd_machine(),
+        "machine" => cmd_machine(&args[1..]),
         "digest" => {
             let text = args
                 .get(1)
@@ -94,6 +101,9 @@ fn cmd_crucible(args: &[String]) -> Result<()> {
         "false-pass" => cmd_crucible_false_pass(&args[1..]),
         "differential" => cmd_crucible_differential(&args[1..]),
         "sources" => cmd_crucible_sources(),
+        "panel" => cmd_crucible_panel(&args[1..]),
+        "adversarial" => cmd_crucible_adversarial(&args[1..]),
+        "population" => cmd_crucible_population(&args[1..]),
         _ => Err(SpacetimeError::new(format!(
             "unknown crucible subcommand: {subcommand}"
         ))),
@@ -108,16 +118,268 @@ pub(crate) fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> 
         .ok_or_else(|| SpacetimeError::new("task has no expected_digest"))?;
     let source = cortex.verifier_source()?;
     let expected_verdict = cortex.expected_verdict()?;
-    let candidate = Candidate::new("scripted-candidate", action);
+    let determinism_runs = cortex.determinism_runs()?;
+    let mutation_threshold_bps = cortex.mutation_threshold_bps()?;
+    let candidate_mutation_score_bps = cortex.candidate_mutation_score_bps()?;
+    let candidate = Candidate::with_mutation_score(
+        "scripted-candidate",
+        action,
+        candidate_mutation_score_bps,
+    );
     let fixture = Fixture {
         id: "scripted-fixture".to_string(),
         source,
         expected_digest,
         expected_verdict,
-        determinism_runs: 2,
-        mutation_threshold_bps: 8_000,
+        determinism_runs,
+        mutation_threshold_bps,
     };
     Ok((candidate, fixture))
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct AdversarialReport {
+    pub fixtures: usize,
+    pub mismatches: usize,
+    pub expected_pass: usize,
+    pub expected_fail: usize,
+    pub expected_error: usize,
+    pub expected_unverified: usize,
+}
+
+pub(crate) fn adversarial_report(dir: &Path) -> Result<AdversarialReport> {
+    let mut paths = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|ext| ext.to_str()) == Some("task") {
+            paths.push(path);
+        }
+    }
+    paths.sort();
+    if paths.len() < 20 {
+        return Err(SpacetimeError::new(format!(
+            "adversarial corpus has {} fixtures; expected at least 20",
+            paths.len()
+        )));
+    }
+    let mut report = AdversarialReport {
+        fixtures: paths.len(),
+        ..Default::default()
+    };
+    for path in &paths {
+        let (candidate, fixture) = crucible_inputs(path)?;
+        if fixture.source != VerifierSource::AdversarialModel {
+            return Err(SpacetimeError::new(format!(
+                "{} is not adversarial_model",
+                path.display()
+            )));
+        }
+        let runner = ScriptedRunner::new()?;
+        let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+        if proof.source != VerifierSource::AdversarialModel
+            || proof.source_priority != fixture.source.priority()
+        {
+            return Err(SpacetimeError::new(format!(
+                "{} lost adversarial verifier provenance",
+                path.display()
+            )));
+        }
+        if proof.determinism_runs < 2 {
+            return Err(SpacetimeError::new(format!(
+                "{} did not run determinism twice",
+                path.display()
+            )));
+        }
+        if proof.verdict == Verdict::Pass && proof.evidence_digest.is_empty() {
+            return Err(SpacetimeError::new(format!(
+                "{} has a PASS without evidence",
+                path.display()
+            )));
+        }
+        if proof.verdict != fixture.expected_verdict {
+            report.mismatches += 1;
+        }
+        match fixture.expected_verdict {
+            Verdict::Pass => report.expected_pass += 1,
+            Verdict::Fail => report.expected_fail += 1,
+            Verdict::Error => report.expected_error += 1,
+            Verdict::Unverified => report.expected_unverified += 1,
+        }
+    }
+    Ok(report)
+}
+
+pub(crate) fn panel_resolution_for_task(task_path: &Path) -> Result<PanelResolution> {
+    let (candidate, fixture) = crucible_inputs(task_path)?;
+    let runner = ScriptedRunner::new()?;
+    let mut panel = VerifierPanel::new();
+
+    let mut suite_fixture = fixture.clone();
+    suite_fixture.source = VerifierSource::FixtureSuite;
+    let suite_proof = CrucibleVerifier.verify_candidate(&candidate, &suite_fixture, &runner);
+    panel = panel.push(
+        VerifierSource::FixtureSuite,
+        suite_proof.verdict,
+        suite_proof.evidence_digest.clone(),
+        suite_proof.mutation_score_bps,
+    );
+
+    let observed = runner.run(&candidate.action);
+    let spec_verdict = if observed.observation.digest.as_str() == fixture.expected_digest.as_str() {
+        Verdict::Pass
+    } else {
+        Verdict::Fail
+    };
+    panel = panel.push(
+        VerifierSource::SpecOracle,
+        spec_verdict,
+        observed.observation.digest.clone(),
+        candidate.mutation_score_bps,
+    );
+
+    let (matched, inputs) = differential_score(1_000_000);
+    let score = mutation_score_bps(1_000_000);
+    let differential_verdict = if matched == inputs && score >= fixture.mutation_threshold_bps {
+        Verdict::Pass
+    } else {
+        Verdict::Fail
+    };
+    panel = panel.push(
+        VerifierSource::DifferentialReference,
+        differential_verdict,
+        format!("{matched}/{inputs}"),
+        score,
+    );
+
+    let trivial = Candidate::with_mutation_score(
+        "adversarial-trivial-candidate",
+        candidate.action.clone(),
+        0,
+    );
+    let mut adversarial_fixture = fixture.clone();
+    adversarial_fixture.source = VerifierSource::AdversarialModel;
+    adversarial_fixture.expected_verdict = Verdict::Fail;
+    let adversarial_proof =
+        CrucibleVerifier.verify_candidate(&trivial, &adversarial_fixture, &runner);
+    let adversarial_strength = if adversarial_proof.verdict == Verdict::Fail {
+        10_000
+    } else {
+        0
+    };
+    let model_verdict = if adversarial_strength == 10_000 {
+        Verdict::Pass
+    } else {
+        Verdict::Fail
+    };
+    panel = panel.push(
+        VerifierSource::AdversarialModel,
+        model_verdict,
+        adversarial_proof.evidence_digest.clone(),
+        adversarial_strength,
+    );
+
+    let mutation_verdict = if candidate.mutation_score_bps >= fixture.mutation_threshold_bps {
+        Verdict::Pass
+    } else {
+        Verdict::Fail
+    };
+    panel = panel.push(
+        VerifierSource::Mutation,
+        mutation_verdict,
+        candidate.artifact_digest.clone(),
+        candidate.mutation_score_bps,
+    );
+
+    Ok(panel.resolve())
+}
+
+fn cmd_crucible_panel(args: &[String]) -> Result<()> {
+    let task = flag(args, "--task")?;
+    let resolution = panel_resolution_for_task(Path::new(task.as_str()))?;
+    println!(
+        "panel_verdict={} selected_source={:?} selected_priority={} sources={} conflicts={}",
+        resolution.verdict.as_str(),
+        resolution.selected_source,
+        resolution.selected_priority,
+        resolution.sources.len(),
+        resolution.conflicts,
+    );
+    println!(
+        "panel_evidence_digest={} panel_mutation_score_bps={}",
+        resolution.evidence_digest, resolution.mutation_score_bps
+    );
+    println!("panel_reason={}", resolution.reason);
+    if resolution.verdict != Verdict::Pass {
+        return Err(SpacetimeError::new(format!(
+            "verifier panel did not pass: {:?}",
+            resolution.verdict
+        )));
+    }
+    Ok(())
+}
+
+fn cmd_crucible_adversarial(args: &[String]) -> Result<()> {
+    let dir = optional_flag(args, "--dir")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| {
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial")
+        });
+    let report = adversarial_report(&dir)?;
+    println!(
+        "adversarial_fixtures={} mismatches={} expected_pass={} expected_fail={} expected_error={} expected_unverified={}",
+        report.fixtures,
+        report.mismatches,
+        report.expected_pass,
+        report.expected_fail,
+        report.expected_error,
+        report.expected_unverified,
+    );
+    if report.mismatches > 0 {
+        return Err(SpacetimeError::new(format!(
+            "{} adversarial fixtures disagreed with their expected verdict",
+            report.mismatches
+        )));
+    }
+    Ok(())
+}
+
+fn cmd_crucible_population(args: &[String]) -> Result<()> {
+    let operators = flag(args, "--operators")?.parse::<usize>()?;
+    let runs = flag(args, "--runs")?.parse::<u32>()?;
+    let report = population_report(operators, runs);
+    println!(
+        "operators={} runs_per_operator={} total_runs={} accepted={} unstable={} max_flip_rate={:.4} promoted_false_pass_leaks={} synthetic={} real_operator_study={}",
+        report.operators,
+        report.runs_per_operator,
+        report.total_runs,
+        report.accepted,
+        report.unstable,
+        report.max_flip_rate,
+        report.promoted_false_pass_leaks,
+        report.synthetic,
+        report.real_operator_study,
+    );
+    if runs < 50 {
+        return Err(SpacetimeError::new(
+            "population study requires at least 50 reruns",
+        ));
+    }
+    if operators < 5 {
+        return Err(SpacetimeError::new(
+            "population study requires at least five operators",
+        ));
+    }
+    if report.unstable == 0 || report.accepted == 0 {
+        return Err(SpacetimeError::new(
+            "population study did not exercise stable and unstable operators",
+        ));
+    }
+    if report.promoted_false_pass_leaks > 0 {
+        return Err(SpacetimeError::new(
+            "promoted synthetic operator had a false-PASS leak",
+        ));
+    }
+    Ok(())
 }
 
 fn cmd_crucible_verify(args: &[String]) -> Result<()> {
@@ -212,9 +474,32 @@ fn cmd_replay(path: &str) -> Result<()> {
     Ok(())
 }
 
-fn cmd_machine() -> Result<()> {
-    let baseline = spacetime_bench::baseline_toml()?;
+fn cmd_machine(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("gate") {
+        return cmd_machine_gate(&args[1..]);
+    }
+    let baseline = baseline_toml()?;
     print!("{baseline}");
+    Ok(())
+}
+
+fn cmd_machine_gate(args: &[String]) -> Result<()> {
+    let measurement = optional_flag(args, "--measurement");
+    let path = measurement.as_deref().map(Path::new);
+    let gate = resource_gate(path)?;
+    println!(
+        "resource_gate={} target_profile={} memory_budget_kb={} measurement_count={}",
+        gate.status.as_str(),
+        gate.target_profile,
+        gate.memory_budget_kb,
+        gate.measurements.len(),
+    );
+    for reason in &gate.reasons {
+        println!("reason={reason}");
+    }
+    if gate.status == ResourceGateStatus::Fail {
+        return Err(SpacetimeError::new("resource budget gate failed"));
+    }
     Ok(())
 }
 
@@ -222,6 +507,11 @@ fn cmd_digest(text: &str) -> Result<()> {
     let digest = sha256_hex(text.as_bytes());
     println!("{digest}");
     Ok(())
+}
+
+fn optional_flag(args: &[String], name: &str) -> Option<String> {
+    let index = args.iter().position(|arg| arg.as_str() == name)?;
+    args.get(index + 1).cloned()
 }
 
 fn flag(args: &[String], name: &str) -> Result<String> {
@@ -430,6 +720,32 @@ mod tests {
         let runner = ScriptedRunner::new()?;
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
         assert_eq!(proof.verdict, spacetime_types::Verdict::Error);
+        Ok(())
+    }
+
+    fn adversarial_dir() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial")
+    }
+
+    #[test]
+    fn adversarial_corpus_has_twenty_spec_only_fixtures() -> Result<()> {
+        let report = adversarial_report(&adversarial_dir())?;
+        assert_eq!(report.fixtures, 20);
+        assert_eq!(report.mismatches, 0);
+        assert!(report.expected_pass > 0);
+        assert!(report.expected_fail > 0);
+        assert!(report.expected_error > 0);
+        assert_eq!(report.expected_unverified, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn verifier_panel_resolves_five_sources() -> Result<()> {
+        let resolution = panel_resolution_for_task(&fixture("block1_hello.task"))?;
+        assert_eq!(resolution.verdict, Verdict::Pass);
+        assert_eq!(resolution.sources.len(), 5);
+        assert_eq!(resolution.conflicts, 0);
+        assert_eq!(resolution.selected_source, Some(VerifierSource::FixtureSuite));
         Ok(())
     }
 }

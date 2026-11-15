@@ -315,6 +315,242 @@ pub fn verifier_source_priority() -> &'static [VerifierSource] {
     &VERIFIER_SOURCE_PRIORITY
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PanelVerdict {
+    pub source: VerifierSource,
+    pub verdict: Verdict,
+    pub evidence_digest: String,
+    pub mutation_score_bps: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PanelResolution {
+    pub verdict: Verdict,
+    pub selected_source: Option<VerifierSource>,
+    pub selected_priority: u8,
+    pub evidence_digest: String,
+    pub mutation_score_bps: u16,
+    pub sources: Vec<VerifierSource>,
+    pub conflicts: usize,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct VerifierPanel {
+    entries: Vec<PanelVerdict>,
+}
+
+impl VerifierPanel {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn push(
+        mut self,
+        source: VerifierSource,
+        verdict: Verdict,
+        evidence_digest: String,
+        mutation_score_bps: u16,
+    ) -> Self {
+        self.entries.push(PanelVerdict {
+            source,
+            verdict,
+            evidence_digest,
+            mutation_score_bps,
+        });
+        self
+    }
+
+    pub fn entries(&self) -> &[PanelVerdict] {
+        &self.entries
+    }
+
+    pub fn resolve(&self) -> PanelResolution {
+        resolve_panel(&self.entries)
+    }
+}
+
+pub fn resolve_panel(entries: &[PanelVerdict]) -> PanelResolution {
+    if entries.is_empty() {
+        return PanelResolution {
+            verdict: Verdict::Unverified,
+            selected_source: None,
+            selected_priority: 0,
+            evidence_digest: "unavailable".to_string(),
+            mutation_score_bps: 0,
+            sources: Vec::new(),
+            conflicts: 0,
+            reason: "no independent verifier sources".to_string(),
+        };
+    }
+    let mut sorted = entries.to_vec();
+    sorted.sort_by_key(|entry| entry.source.priority());
+    let selected = &sorted[0];
+    let conflicts = sorted
+        .iter()
+        .filter(|entry| entry.verdict != selected.verdict)
+        .count();
+    let verdict = if sorted
+        .iter()
+        .any(|entry| entry.verdict == Verdict::Error)
+    {
+        Verdict::Error
+    } else if sorted
+        .iter()
+        .any(|entry| entry.verdict == Verdict::Unverified)
+    {
+        Verdict::Unverified
+    } else if sorted.iter().any(|entry| entry.verdict == Verdict::Fail) {
+        Verdict::Fail
+    } else if conflicts > 0 {
+        Verdict::Error
+    } else {
+        Verdict::Pass
+    };
+    let summary = sorted
+        .iter()
+        .map(|entry| format!("{:?}={}", entry.source, entry.verdict.as_str()))
+        .collect::<Vec<_>>()
+        .join(",");
+    let reason = match verdict {
+        Verdict::Pass => "all independent sources agreed on PASS".to_string(),
+        Verdict::Error if conflicts > 0 => {
+            format!("independent verifier conflict: {summary}")
+        }
+        _ => format!("conservative resolution: {summary}"),
+    };
+    PanelResolution {
+        verdict,
+        selected_source: Some(selected.source),
+        selected_priority: selected.source.priority(),
+        evidence_digest: selected.evidence_digest.clone(),
+        mutation_score_bps: selected.mutation_score_bps,
+        sources: sorted.iter().map(|entry| entry.source).collect(),
+        conflicts,
+        reason,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum OperatorKind {
+    StablePass,
+    StableFail,
+    Flipping,
+    OccasionalError,
+    DriftAfterHalf,
+}
+
+impl OperatorKind {
+    pub fn verdict(&self, run: u32, runs: u32) -> Verdict {
+        match self {
+            OperatorKind::StablePass => Verdict::Pass,
+            OperatorKind::StableFail => Verdict::Fail,
+            OperatorKind::Flipping => {
+                if run % 2 == 0 {
+                    Verdict::Pass
+                } else {
+                    Verdict::Fail
+                }
+            }
+            OperatorKind::OccasionalError => {
+                if run % 7 == 0 {
+                    Verdict::Error
+                } else {
+                    Verdict::Pass
+                }
+            }
+            OperatorKind::DriftAfterHalf => {
+                if run < runs / 2 {
+                    Verdict::Pass
+                } else {
+                    Verdict::Fail
+                }
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyntheticOperator {
+    pub id: String,
+    pub kind: OperatorKind,
+}
+
+impl SyntheticOperator {
+    pub fn new(id: impl Into<String>, kind: OperatorKind) -> Self {
+        Self {
+            id: id.into(),
+            kind,
+        }
+    }
+
+    pub fn verdicts(&self, runs: u32) -> Vec<Verdict> {
+        (0..runs).map(|run| self.kind.verdict(run, runs)).collect()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PopulationReport {
+    pub operators: usize,
+    pub runs_per_operator: u32,
+    pub total_runs: u64,
+    pub accepted: usize,
+    pub unstable: usize,
+    pub max_flip_rate: f64,
+    pub promoted_false_pass_leaks: usize,
+    pub synthetic: bool,
+    pub real_operator_study: bool,
+}
+
+fn operator_kind(index: usize) -> OperatorKind {
+    match index % 5 {
+        0 => OperatorKind::StablePass,
+        1 => OperatorKind::StableFail,
+        2 => OperatorKind::Flipping,
+        3 => OperatorKind::OccasionalError,
+        _ => OperatorKind::DriftAfterHalf,
+    }
+}
+
+pub fn population_report(operator_count: usize, runs: u32) -> PopulationReport {
+    let mut accepted = 0;
+    let mut unstable = 0;
+    let mut max_flip_rate = 0.0;
+    let mut promoted_false_pass_leaks = 0;
+    for index in 0..operator_count {
+        let operator = SyntheticOperator::new(
+            format!("synthetic-operator-{index:02}"),
+            operator_kind(index),
+        );
+        let verdicts = operator.verdicts(runs);
+        let flip_rate = verdict_flip_rate(&verdicts);
+        if flip_rate > max_flip_rate {
+            max_flip_rate = flip_rate;
+        }
+        if flip_rate > 0.0 {
+            unstable += 1;
+        }
+        if verdicts.iter().all(|verdict| *verdict == Verdict::Pass) {
+            accepted += 1;
+            if flip_rate > 0.01 {
+                promoted_false_pass_leaks += 1;
+            }
+        }
+    }
+    let total_runs = (operator_count as u64).saturating_mul(u64::from(runs));
+    PopulationReport {
+        operators: operator_count,
+        runs_per_operator: runs,
+        total_runs,
+        accepted,
+        unstable,
+        max_flip_rate,
+        promoted_false_pass_leaks,
+        synthetic: true,
+        real_operator_study: false,
+    }
+}
+
 fn reference_transform(input: u64) -> u64 {
     input.wrapping_mul(3).wrapping_add(7)
 }
@@ -524,5 +760,80 @@ mod tests {
         let (matched, inputs) = differential_score(limit);
         assert_eq!(matched, inputs);
         assert!(mutation_score_bps(limit) >= 8_000);
+    }
+
+    #[test]
+    fn panel_pass_requires_all_sources() {
+        let panel = VerifierPanel::new()
+            .push(VerifierSource::FixtureSuite, Verdict::Pass, "a".into(), 10_000)
+            .push(VerifierSource::SpecOracle, Verdict::Pass, "b".into(), 10_000)
+            .push(
+                VerifierSource::DifferentialReference,
+                Verdict::Pass,
+                "c".into(),
+                10_000,
+            )
+            .push(
+                VerifierSource::AdversarialModel,
+                Verdict::Pass,
+                "d".into(),
+                10_000,
+            )
+            .push(VerifierSource::Mutation, Verdict::Pass, "e".into(), 10_000);
+        let resolution = panel.resolve();
+        assert_eq!(resolution.verdict, Verdict::Pass);
+        assert_eq!(resolution.selected_source, Some(VerifierSource::FixtureSuite));
+        assert_eq!(resolution.selected_priority, 1);
+        assert_eq!(resolution.sources, VERIFIER_SOURCE_PRIORITY.to_vec());
+        assert_eq!(resolution.conflicts, 0);
+    }
+
+    #[test]
+    fn panel_conflict_is_not_promoted() {
+        let panel = VerifierPanel::new()
+            .push(VerifierSource::FixtureSuite, Verdict::Pass, "a".into(), 10_000)
+            .push(VerifierSource::SpecOracle, Verdict::Fail, "b".into(), 10_000);
+        let resolution = panel.resolve();
+        assert_ne!(resolution.verdict, Verdict::Pass);
+        assert!(resolution.conflicts > 0);
+        assert_eq!(resolution.selected_source, Some(VerifierSource::FixtureSuite));
+    }
+
+    #[test]
+    fn empty_panel_is_unverified() {
+        let resolution = VerifierPanel::new().resolve();
+        assert_eq!(resolution.verdict, Verdict::Unverified);
+        assert_eq!(resolution.selected_source, None);
+        assert!(resolution.sources.is_empty());
+    }
+
+    #[test]
+    fn unverified_source_blocks_promotion() {
+        let panel = VerifierPanel::new()
+            .push(VerifierSource::FixtureSuite, Verdict::Pass, "a".into(), 10_000)
+            .push(
+                VerifierSource::SpecOracle,
+                Verdict::Unverified,
+                "b".into(),
+                10_000,
+            );
+        let resolution = panel.resolve();
+        assert_eq!(resolution.verdict, Verdict::Unverified);
+    }
+
+    #[test]
+    fn population_report_is_deterministic_and_detects_unstable_operators() {
+        let first = population_report(10, 50);
+        let second = population_report(10, 50);
+        assert_eq!(first, second);
+        assert_eq!(first.operators, 10);
+        assert_eq!(first.runs_per_operator, 50);
+        assert_eq!(first.total_runs, 500);
+        assert!(first.accepted > 0);
+        assert!(first.unstable > 0);
+        assert!(first.max_flip_rate > 0.01);
+        assert_eq!(first.promoted_false_pass_leaks, 0);
+        assert!(first.synthetic);
+        assert!(!first.real_operator_study);
     }
 }
