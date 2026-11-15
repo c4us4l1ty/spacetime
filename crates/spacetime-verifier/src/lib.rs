@@ -2,8 +2,9 @@
 //!
 //! Block 1's `FixtureVerifier` keeps the ledger honest about claims. Block 2's
 //! `CrucibleVerifier` adds configurable determinism runs, independent provenance, a declarative
-//! execution profile, mutation gating, and differential metrology. Real clock/RNG/socket shims
-//! and live model-written adversarial tests remain later work.
+//! execution profile, mutation gating, differential metrology, conservative panel resolution, and
+//! population metrology. The LD_PRELOAD shim is a narrow local probe, not a complete boundary;
+//! live model-written adversarial tests and real operator-population studies remain later work.
 
 use spacetime_exec::{RunStatus, Runner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::LedgerState;
@@ -639,7 +640,7 @@ mod tests {
             },
             op,
             1_000,
-            None,
+            Some("fixture-verifier-v1".to_string()),
         )
         .expect("test action")
     }

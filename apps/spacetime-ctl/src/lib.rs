@@ -31,6 +31,7 @@ Commands:
   crucible panel --task <file>
   crucible adversarial --dir <dir>
   crucible population --operators <n> --runs <n>
+  crucible fixture-population --runs <n>
   verify --out <file>
   machine
   machine gate [--measurement <file>]
@@ -104,10 +105,19 @@ fn cmd_crucible(args: &[String]) -> Result<()> {
         "panel" => cmd_crucible_panel(&args[1..]),
         "adversarial" => cmd_crucible_adversarial(&args[1..]),
         "population" => cmd_crucible_population(&args[1..]),
+        "fixture-population" => cmd_crucible_fixture_population(&args[1..]),
         _ => Err(SpacetimeError::new(format!(
             "unknown crucible subcommand: {subcommand}"
         ))),
     }
+}
+
+fn tasks_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/tasks")
+}
+
+fn adversarial_dir() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial")
 }
 
 pub(crate) fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> {
@@ -132,6 +142,78 @@ pub(crate) fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> 
         mutation_threshold_bps,
     };
     Ok((candidate, fixture))
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub(crate) struct FixturePopulationReport {
+    pub fixtures: usize,
+    pub skipped_without_oracle: usize,
+    pub runs_per_fixture: u32,
+    pub verifier_runs: u64,
+    pub planned_runner_executions: u64,
+    pub mismatches: usize,
+    pub stable: usize,
+    pub unstable: usize,
+    pub max_flip_rate: f64,
+    pub max_leak_rate: f64,
+    pub real_fixture_population: bool,
+    pub real_operator_study: bool,
+}
+
+pub(crate) fn fixture_population_report(runs: u32) -> Result<FixturePopulationReport> {
+    if runs < 50 {
+        return Err(SpacetimeError::new(
+            "fixture population study requires at least 50 reruns",
+        ));
+    }
+    let mut paths = Vec::new();
+    for dir in [tasks_dir(), adversarial_dir()] {
+        for entry in fs::read_dir(dir)? {
+            let path = entry?.path();
+            if path.extension().and_then(|ext| ext.to_str()) == Some("task") {
+                paths.push(path);
+            }
+        }
+    }
+    paths.sort();
+    let mut report = FixturePopulationReport {
+        runs_per_fixture: runs,
+        real_fixture_population: true,
+        real_operator_study: false,
+        ..Default::default()
+    };
+    for path in paths {
+        let cortex = ScriptedCortex::from_file(&path)?;
+        if cortex.expected_digest().is_none() {
+            report.skipped_without_oracle += 1;
+            continue;
+        }
+        let (candidate, fixture) = crucible_inputs(&path)?;
+        let runner = ScriptedRunner::new()?;
+        let (flip_rate, leak_rate) = false_pass_report(&candidate, &fixture, &runner, runs);
+        let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
+        report.fixtures += 1;
+        report.verifier_runs += u64::from(runs);
+        if candidate.mutation_score_bps >= fixture.mutation_threshold_bps {
+            report.planned_runner_executions +=
+                u64::from(runs) * u64::from(fixture.determinism_runs);
+        }
+        if flip_rate > report.max_flip_rate {
+            report.max_flip_rate = flip_rate;
+        }
+        if leak_rate > report.max_leak_rate {
+            report.max_leak_rate = leak_rate;
+        }
+        if flip_rate > 0.0 || leak_rate > 0.0 {
+            report.unstable += 1;
+        } else {
+            report.stable += 1;
+        }
+        if proof.verdict != fixture.expected_verdict {
+            report.mismatches += 1;
+        }
+    }
+    Ok(report)
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -318,7 +400,7 @@ fn cmd_crucible_panel(args: &[String]) -> Result<()> {
 fn cmd_crucible_adversarial(args: &[String]) -> Result<()> {
     let dir = optional_flag(args, "--dir")
         .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial"));
+        .unwrap_or_else(adversarial_dir);
     let report = adversarial_report(&dir)?;
     println!(
         "adversarial_fixtures={} mismatches={} expected_pass={} expected_fail={} expected_error={} expected_unverified={}",
@@ -372,6 +454,43 @@ fn cmd_crucible_population(args: &[String]) -> Result<()> {
     if report.promoted_false_pass_leaks > 0 {
         return Err(SpacetimeError::new(
             "promoted synthetic operator had a false-PASS leak",
+        ));
+    }
+    Ok(())
+}
+
+fn cmd_crucible_fixture_population(args: &[String]) -> Result<()> {
+    let runs = flag(args, "--runs")?.parse::<u32>()?;
+    let report = fixture_population_report(runs)?;
+    println!(
+        "fixtures={} skipped_without_oracle={} runs_per_fixture={} verifier_runs={} planned_runner_executions={} stable={} unstable={} max_flip_rate={:.4} max_leak_rate={:.4} mismatches={} real_fixture_population={} real_operator_study={}",
+        report.fixtures,
+        report.skipped_without_oracle,
+        report.runs_per_fixture,
+        report.verifier_runs,
+        report.planned_runner_executions,
+        report.stable,
+        report.unstable,
+        report.max_flip_rate,
+        report.max_leak_rate,
+        report.mismatches,
+        report.real_fixture_population,
+        report.real_operator_study,
+    );
+    if report.fixtures < 20 {
+        return Err(SpacetimeError::new(
+            "fixture population is smaller than the 20-task minimum",
+        ));
+    }
+    if report.mismatches > 0 {
+        return Err(SpacetimeError::new(format!(
+            "{} fixture population verdicts disagreed with their oracle",
+            report.mismatches
+        )));
+    }
+    if report.max_flip_rate > 0.01 || report.max_leak_rate > 0.01 {
+        return Err(SpacetimeError::new(
+            "fixture population exceeded the 1% false-PASS kill gate",
         ));
     }
     Ok(())
@@ -718,10 +837,6 @@ mod tests {
         Ok(())
     }
 
-    fn adversarial_dir() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/adversarial")
-    }
-
     #[test]
     fn adversarial_corpus_has_twenty_spec_only_fixtures() -> Result<()> {
         let report = adversarial_report(&adversarial_dir())?;
@@ -731,6 +846,24 @@ mod tests {
         assert!(report.expected_fail > 0);
         assert!(report.expected_error > 0);
         assert_eq!(report.expected_unverified, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn fixture_population_covers_real_fixtures() -> Result<()> {
+        let report = fixture_population_report(50)?;
+        assert_eq!(report.fixtures, 26);
+        assert_eq!(report.skipped_without_oracle, 2);
+        assert_eq!(report.runs_per_fixture, 50);
+        assert_eq!(report.verifier_runs, 1_300);
+        assert!(report.planned_runner_executions > 0);
+        assert_eq!(report.mismatches, 0);
+        assert_eq!(report.stable, 26);
+        assert_eq!(report.unstable, 0);
+        assert!(report.max_flip_rate <= 0.01);
+        assert!(report.max_leak_rate <= 0.01);
+        assert!(report.real_fixture_population);
+        assert!(!report.real_operator_study);
         Ok(())
     }
 

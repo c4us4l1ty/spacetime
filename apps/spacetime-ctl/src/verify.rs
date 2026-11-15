@@ -3,13 +3,16 @@
 //! This command never claims a measured resource gate. It proves the offline functional
 //! pipeline and labels the 4 GB potato-machine resource budget as unmeasured.
 
-use crate::{adversarial_report, crucible_inputs, panel_resolution_for_task, run_task, state_path};
+use crate::{
+    adversarial_report, crucible_inputs, fixture_population_report, panel_resolution_for_task,
+    run_task, state_path,
+};
 use spacetime_bench::{baseline_toml, resource_gate, ResourceGateStatus};
-use spacetime_exec::{ScriptedRunner, FIXED_DETERMINISM_PROFILE};
+use spacetime_exec::{RunStatus, Runner, ScriptedRunner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::Ledger;
 use spacetime_types::{
-    ActionOp, Event, GoalStatus, Result, SpacetimeError, Verdict, VerifierSource,
-    VERIFIER_SOURCE_PRIORITY,
+    ActionOp, CapabilityScope, Event, GoalStatus, Result, SpacetimeError, Taint, Verdict,
+    VerifierSource, SCHEMA_VERSION, VERIFIER_SOURCE_PRIORITY,
 };
 use spacetime_verifier::{
     differential_score, false_pass_leak_rate, false_pass_report, mutation_score_bps,
@@ -111,9 +114,11 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     }));
     gates.push(capture("machine_baseline", check_machine_baseline));
     gates.push(capture("determinism_controls", check_determinism_controls));
+    gates.push(capture("capability_enforcement", check_capability_enforcement));
     gates.push(capture("verifier_panel", check_verifier_panel));
     gates.push(capture("adversarial_corpus", check_adversarial_corpus));
     gates.push(capture("operator_population", check_operator_population));
+    gates.push(capture("fixture_population", check_fixture_population));
     gates.push(capture("resource_gate_unmeasured", || {
         check_resource_gate(&root)
     }));
@@ -508,8 +513,8 @@ fn check_verifier_source_priority() -> Result<String> {
 fn check_determinism_profile(_root: &TempRoot) -> Result<String> {
     let profile = FIXED_DETERMINISM_PROFILE;
     ensure(
-        profile.clock == "fixed_scripted_clock",
-        "determinism profile clock is not fixed",
+        profile.clock == "fixed_clock_gettime_shim",
+        "determinism profile clock is not shim-fixed",
     )?;
     ensure(
         profile.rng_seed == 0,
@@ -521,8 +526,16 @@ fn check_determinism_profile(_root: &TempRoot) -> Result<String> {
         "determinism profile environment is not cleared",
     )?;
     ensure(
-        profile.network == "none_by_construction",
+        profile.network == "ld_preload_socket_denied",
         "determinism profile network mode changed",
+    )?;
+    ensure(
+        profile.shim == "ld_preload_not_complete_boundary",
+        "determinism profile overstates the LD_PRELOAD shim",
+    )?;
+    ensure(
+        profile.capability == "local_fixture_allow_list",
+        "determinism profile capability mode changed",
     )?;
     let path = fixture("block1_hello.task");
     let (candidate, _) = crucible_inputs(&path)?;
@@ -534,7 +547,7 @@ fn check_determinism_profile(_root: &TempRoot) -> Result<String> {
         "observation did not record the fixed determinism profile",
     )?;
     Ok(format!(
-        "profile_digest={} network=none_by_construction",
+        "profile_digest={} network=ld_preload_socket_denied shim=not_complete_boundary",
         expected
     ))
 }
@@ -567,6 +580,11 @@ fn check_determinism_controls() -> Result<String> {
         probe.environment_cleared,
         probe.network_none_by_construction,
         probe.stdin_null,
+        probe.shim_clock_fixed,
+        probe.shim_rng_fixed,
+        probe.shim_socket_denied,
+        probe.shim_connect_denied,
+        probe.shim_locale_c,
     ];
     ensure(
         !checks.contains(&false),
@@ -578,9 +596,94 @@ fn check_determinism_controls() -> Result<String> {
         "control probe recorded the wrong profile digest",
     )?;
     Ok(
-        "clock=fixed rng_seed=fixed locale=C env=cleared stdin=null network=none_by_construction"
+        "clock=fixed rng=fixed locale=C env=cleared stdin=null shim=clock/rng/socket/connect network=ld_preload_denied"
             .to_string(),
     )
+}
+
+fn check_capability_enforcement() -> Result<String> {
+    let path = fixture("block1_hello.task");
+    let (candidate, _) = crucible_inputs(&path)?;
+    let runner = ScriptedRunner::new()?;
+    let valid = runner.run(&candidate.action);
+    ensure(
+        valid.status == RunStatus::Completed,
+        "valid local fixture action was denied",
+    )?;
+
+    let mut no_scope = candidate.action.clone();
+    no_scope.capability.scope = CapabilityScope::None;
+    let mut no_budget = candidate.action.clone();
+    no_budget.capability.limit_millis = 0;
+    let mut over_budget = candidate.action.clone();
+    over_budget.capability.limit_millis = candidate.action.budget_millis + 1;
+    let mut bad_digest = candidate.action.clone();
+    bad_digest.args_digest = "tampered".to_string();
+    let mut untrusted = candidate.action.clone();
+    untrusted.taint = Taint::UntrustedWeb;
+    let mut no_verifier = candidate.action.clone();
+    no_verifier.expected_verifier = None;
+    let mut bad_schema = candidate.action.clone();
+    bad_schema.schema_version = SCHEMA_VERSION + 1;
+
+    let cases: Vec<(&'static str, spacetime_types::Action)> = vec![
+        ("none_scope", no_scope),
+        ("no_budget", no_budget),
+        ("over_budget", over_budget),
+        ("bad_args_digest", bad_digest),
+        ("untrusted_taint", untrusted),
+        ("no_verifier", no_verifier),
+        ("bad_schema", bad_schema),
+    ];
+    for (label, action) in cases {
+        let result = runner.run(&action);
+        match result.status {
+            RunStatus::Error(reason) => ensure(
+                reason.contains("capability denied"),
+                format!("{label} returned an unrelated error"),
+            )?,
+            RunStatus::Completed => {
+                return Err(SpacetimeError::new(format!("{label} was executed")));
+            }
+        }
+    }
+    Ok(format!("denied_cases={} valid_action=completed", 7))
+}
+
+fn check_fixture_population() -> Result<String> {
+    let report = fixture_population_report(50)?;
+    ensure(
+        report.fixtures >= 20,
+        "fixture population is smaller than the 20-task minimum",
+    )?;
+    ensure(
+        report.skipped_without_oracle == 2,
+        "unexpected number of fixtures without a declared oracle",
+    )?;
+    ensure(
+        report.runs_per_fixture == 50 && report.verifier_runs == 1_300,
+        "fixture population rerun dimensions changed",
+    )?;
+    ensure(
+        report.planned_runner_executions > 0,
+        "fixture population planned no runner executions",
+    )?;
+    ensure(
+        report.mismatches == 0,
+        "fixture population disagreed with its declared oracle",
+    )?;
+    ensure(
+        report.max_flip_rate <= 0.01 && report.max_leak_rate <= 0.01,
+        "fixture population exceeded the 1% false-PASS kill gate",
+    )?;
+    ensure(
+        report.real_fixture_population && !report.real_operator_study,
+        "fixture population was mislabeled as a real operator study",
+    )?;
+    Ok(format!(
+        "fixtures={} verifier_runs={} max_flip_rate={:.4} max_leak_rate={:.4} real_operator_study=false",
+        report.fixtures, report.verifier_runs, report.max_flip_rate, report.max_leak_rate
+    ))
 }
 
 fn check_verifier_panel() -> Result<String> {
@@ -730,6 +833,11 @@ fn render_report(gates: &[Gate]) -> String {
         VERIFIER_SOURCE_PRIORITY.len()
     ));
     out.push_str("adversarial_fixtures = 20\n");
+    out.push_str("determinism_shim = \"ld_preload_not_complete_boundary\"\n");
+    out.push_str("capability_allow_list = \"local_fixture_only\"\n");
+    out.push_str("fixture_population_fixtures = 26\n");
+    out.push_str("fixture_population_runs = 50\n");
+    out.push_str("fixture_population_verifier_runs = 1300\n");
     out.push_str("synthetic_operator_population = true\n");
     out.push_str("real_operator_study = \"unmeasured\"\n");
     out.push_str("resource_gate_evaluator = \"unmeasured_fail_pass_self_test\"\n");

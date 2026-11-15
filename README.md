@@ -49,16 +49,20 @@ cargo run -p spacetime-ctl -- crucible sources
 cargo run -p spacetime-ctl -- crucible panel --task bench/tasks/block1_hello.task
 cargo run -p spacetime-ctl -- crucible adversarial --dir bench/adversarial
 cargo run -p spacetime-ctl -- crucible population --operators 10 --runs 50
+cargo run -p spacetime-ctl -- crucible fixture-population --runs 50
 cargo run -p spacetime-ctl -- machine gate
 cargo run -p spacetime-ctl -- verify --out target/verify.toml
 ```
 
-`verify --out` runs 21 offline Block 1 and Block 2 gates end to end and writes a TOML-style report.
+`verify --out` runs 23 offline Block 1 and Block 2 gates end to end and writes a TOML-style report.
 `crucible panel` resolves five independent verifier sources conservatively; `crucible adversarial`
-runs twenty offline model-authored fixtures; `crucible population` uses synthetic operators over
-50 reruns and explicitly reports `real_operator_study=false`. `machine gate` stays unmeasured until
-a real 4 GB machine measurement file is supplied. CI host facts are not the recorded 4 GB potato
-machine, so no performance or resource-budget claim is made.
+runs twenty offline model-authored fixtures; `crucible population` uses synthetic operators, and
+`crucible fixture-population` reruns 26 real declared-oracle fixtures 50 times each. Both population
+commands explicitly report `real_operator_study=false`. A narrow `LD_PRELOAD` shim fixes
+`clock_gettime`/`getrandom` and denies sockets for local probes, while an action allow-list enforces
+capability fields; the shim is **not** a kernel sandbox or complete boundary. `machine gate` stays
+unmeasured until a real 4 GB machine measurement file is supplied. CI host facts are not the
+recorded 4 GB potato machine, so no performance or resource-budget claim is made.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
 `docs/ADR-0002-block2.md` for the Block 2 boundary.
