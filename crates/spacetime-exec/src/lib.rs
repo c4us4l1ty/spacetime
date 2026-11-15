@@ -93,10 +93,7 @@ impl ScriptedRunner {
                     if started.elapsed() >= timeout {
                         let _ = child.kill();
                         let _ = child.wait();
-                        return error_result(
-                            action,
-                            format!("timeout after {budget_millis}ms"),
-                        );
+                        return error_result(action, format!("timeout after {budget_millis}ms"));
                     }
                     thread::sleep(Duration::from_millis(5));
                 }
