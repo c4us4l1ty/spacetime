@@ -4,7 +4,7 @@
 
 use spacetime_ledger::LedgerState;
 use spacetime_types::{
-    Action, ActionId, ActionOp, EventSeq, GoalId, GoalStatus, LivenessState, PreviewMode, Result,
+    Action, ActionOp, EventSeq, GoalId, GoalStatus, LivenessState, PreviewMode, Result,
     SpaceId, SpacetimeError, SurfaceId, SurfaceKind, WorkspaceBinding, WorkspaceId, SCHEMA_VERSION,
 };
 use std::collections::BTreeMap;
@@ -208,7 +208,7 @@ mod tests {
         let state = LedgerState::new();
         let first = cortex.next_action(&state)?.expect("first action");
         assert!(matches!(&first.op, ActionOp::ProduceEvidence { .. }));
-        assert_eq!(first.id, ActionId::new("action-000000"));
+        assert_eq!(first.id, spacetime_types::ActionId::new("action-000000"));
         Ok(())
     }
 }

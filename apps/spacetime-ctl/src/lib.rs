@@ -79,7 +79,7 @@ fn cmd_run(args: &[String]) -> Result<()> {
     if cortex != "scripted" {
         return Err(SpacetimeError::new(format!("unsupported cortex: {cortex}")));
     }
-    run_task(Path::new(&task), Path::new(&ledger))?;
+    run_task(Path::new(task.as_str()), Path::new(ledger.as_str()))?;
     println!("ok");
     Ok(())
 }
@@ -111,7 +111,7 @@ fn cmd_digest(text: &str) -> Result<()> {
 }
 
 fn flag(args: &[String], name: &str) -> Result<String> {
-    let Some(index) = args.iter().position(|arg| arg == name) else {
+    let Some(index) = args.iter().position(|arg| arg.as_str() == name) else {
         return Err(SpacetimeError::new(format!("missing flag {name}")));
     };
     args.get(index + 1)
