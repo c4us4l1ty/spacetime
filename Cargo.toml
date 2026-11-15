@@ -1,0 +1,42 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/spacetime-types",
+  "crates/spacetime-ledger",
+  "crates/spacetime-cortex",
+  "crates/spacetime-exec",
+  "crates/spacetime-verifier",
+  "crates/spacetime-bench",
+  "apps/spacetime-ctl",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+publish = false
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+spacetime-types = { path = "crates/spacetime-types" }
+spacetime-ledger = { path = "crates/spacetime-ledger" }
+spacetime-cortex = { path = "crates/spacetime-cortex" }
+spacetime-exec = { path = "crates/spacetime-exec" }
+spacetime-verifier = { path = "crates/spacetime-verifier" }
+spacetime-bench = { path = "crates/spacetime-bench" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

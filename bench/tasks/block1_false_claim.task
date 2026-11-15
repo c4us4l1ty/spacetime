@@ -1,0 +1,10 @@
+# Block 1 negative path: claim_done without matching verified evidence.
+schema_version=1
+space_id=space-block1-false
+workspace_id=ws-block1-false
+surface_id=surface-block1-false
+goal_id=goal-block1-false
+preview_mode=snapshot_on_action
+liveness=running
+surface_kind=framebuffer
+action claim_done expected_digest=none
