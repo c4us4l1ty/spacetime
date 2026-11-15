@@ -3,11 +3,12 @@
 ## Authoritative result
 
 - Active branch: `arena/d7d47fd2-spacetime`
-- Validated head: `5ac8dad974cf3c69fa2b7a34f568a5e9f9c6b4f0`
-- Strict GitHub Actions run: `43742966152`
-- Job: `132899948467` — `Compile and verify Blocks 1-2`
-- Result: all 12 job steps succeeded, including Format, `clippy -D warnings`, Tests, Release build,
-  CLI smokes, Crucible smoke, **End-to-end verification**, and Machine baseline.
+- Validated code head: `5ac8dad974cf3c69fa2b7a34f568a5e9f9c6b4f0`
+- Final branch head: `cee78c3b1d9cd5500585349ca700026e98c2f249` (documentation-only)
+- Strict GitHub Actions run for code: `43742966152`, job `132899948467`
+- Strict GitHub Actions run for final head: `43743191655`, job `132900646024`
+- Result: all 12 job steps succeeded in both runs, including Format, `clippy -D warnings`, Tests,
+  Release build, CLI smokes, Crucible smoke, **End-to-end verification**, and Machine baseline.
 - Local Rust toolchain: unavailable; GitHub Actions was the compiler and verifier.
 - Temporary diagnostic workflow `66594f0` used `continue-on-error` only to collect all
   rustfmt/Clippy findings at once. Strict CI was restored in `5ac8dad`.
