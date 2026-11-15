@@ -4,8 +4,8 @@
 
 use spacetime_ledger::LedgerState;
 use spacetime_types::{
-    Action, ActionOp, EventSeq, GoalId, GoalStatus, LivenessState, PreviewMode, Result,
-    SpaceId, SpacetimeError, SurfaceId, SurfaceKind, WorkspaceBinding, WorkspaceId, SCHEMA_VERSION,
+    Action, ActionOp, EventSeq, GoalId, GoalStatus, LivenessState, PreviewMode, Result, SpaceId,
+    SpacetimeError, SurfaceId, SurfaceKind, WorkspaceBinding, WorkspaceId, SCHEMA_VERSION,
 };
 use std::collections::BTreeMap;
 use std::fs;
