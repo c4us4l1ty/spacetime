@@ -354,3 +354,16 @@ jobs:
           export SPACETIME_GUEST_KERNEL="$kernel"
           export SPACETIME_GUEST_INITRAMFS="$PWD/target/guest.cpio"
           timeout 120 cargo test --locked -p spacetime-ctl sandboxed_guest_boots_without_network -- --ignored --nocapture
+      - name: Check KVM launch when the runner exposes KVM
+        run: |
+          set -o pipefail
+          if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+            kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*' -type f | sort -V | tail -1)
+            test -n "$kernel"
+            { sleep 25; printf 'app\nexit\n'; } |
+              timeout 90 target/release/spacetime-ctl space run --experimental --kernel "$kernel" --busybox /bin/busybox --app target/guest-app > target/kvm-boot.log 2>&1
+            cat target/kvm-boot.log
+            tr -d '\r' < target/kvm-boot.log | grep -x 'SPACETIME_APP_OK'
+          else
+            echo 'KVM unavailable to CI user; hardware launch not tested.'
+          fi
