@@ -5,6 +5,7 @@
 
 use crate::{crucible_inputs, ensure_flag_value};
 use serde_json::{json, Value};
+use spacetime_bench::econbench::verify_task_case;
 use spacetime_bench::{baseline_profile, target_profiles};
 use spacetime_cortex::{Cortex, ScriptedCortex};
 use spacetime_exec::{Runner, ScriptedRunner};
@@ -186,6 +187,25 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
             metadata_value(&source_text, "category").unwrap_or_else(|| "unknown".to_string());
         let verifier_source = metadata_value(&source_text, "verifier_source")
             .unwrap_or_else(|| "fixture_suite".to_string());
+        let domain_case = metadata_value(&source_text, "case_id").ok_or_else(|| {
+            SpacetimeError::new(format!("fixture {} is missing case_id", path.display()))
+        })?;
+        let domain_verification = verify_task_case(&domain_case)?;
+        let declared_source = match domain_verification.verifier_id {
+            "independent-differential-v1" => "differential_reference",
+            "mock-economy-invariant-v1" | "protocol-state-machine-v1" => "spec_oracle",
+            _ => {
+                return Err(SpacetimeError::new(format!(
+                    "unregistered domain verifier for case {domain_case}"
+                )))
+            }
+        };
+        if verifier_source != declared_source {
+            return Err(SpacetimeError::new(format!(
+                "fixture {} declares verifier_source={verifier_source}, but case {domain_case} requires {declared_source}",
+                path.display()
+            )));
+        }
         let (candidate, fixture) = crucible_inputs(path)?;
         let runner = ScriptedRunner::new()?;
         let (flip_rate, leak_rate) =
@@ -211,6 +231,10 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
             "id": id,
             "category": category,
             "verifier_source": verifier_source,
+            "domain_case": domain_case,
+            "domain_verifier": domain_verification.verifier_id,
+            "domain_checks": domain_verification.checks,
+            "domain_evidence_digest": domain_verification.evidence_digest,
             "expected_verdict": fixture.expected_verdict.as_str(),
             "status": proof.verdict.as_str(),
             "evidence_digest": fixture.expected_digest,
@@ -354,6 +378,25 @@ mod tests {
         assert_eq!(value["completed"].as_u64(), Some(20));
         assert_eq!(value["claims_surviving_reverification"].as_u64(), Some(20));
         assert_eq!(value["false_pass_rate"].as_f64(), Some(0.0));
+        let tasks = value["tasks"].as_array().expect("task report array");
+        assert_eq!(tasks.len(), 20);
+        assert!(tasks.iter().all(|task| {
+            task["domain_case"].as_str().is_some()
+                && task["domain_verifier"].as_str().is_some()
+                && task["domain_checks"].as_u64().unwrap_or(0) > 0
+                && task["domain_evidence_digest"]
+                    .as_str()
+                    .is_some_and(|digest| digest.len() == 64)
+        }));
+        let domain_cases: BTreeSet<_> = tasks
+            .iter()
+            .filter_map(|task| task["domain_case"].as_str())
+            .collect();
+        assert_eq!(
+            domain_cases.len(),
+            20,
+            "domain cases must not be duplicated"
+        );
         assert_eq!(value["network"].as_str(), Some("none"));
         assert_eq!(value["arm_efficacy_claim"].as_bool(), Some(false));
         assert_eq!(

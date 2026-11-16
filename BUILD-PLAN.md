@@ -392,13 +392,15 @@ If false-PASS exceeds 1%, **stop feature work and fix determinism first**. All l
 
 **Why now:** Build the measuring stick before the product. The console comes before the Rust UI because the organism needs situational awareness, not a window manager — but it also previews the confirmed mixed-tab requirement with snapshot tiles.
 
-**Current implementation status (merged via PR #10):** an offline prototype exists in
-`bench/econbench/`, `bench/economy/`, `apps/spacetime-console/`, and the `bench`/`console` CLI
-commands. It uses 20 scripted fixtures, a verified hash-chained ledger, a static HTML review
-artifact, and two new end-to-end gates. This is not Block 3 `DONE`: the real
-planted-invariant/transmutation/protocol-distillation code, full independent verifiers, measured
-4 GB baseline resource gate, and accepted out-of-band provenance remain outstanding. The HTML
-artifact is not the product UI or a web application.
+**Current implementation status:** an offline prototype exists in `bench/econbench/`,
+`bench/economy/`, `apps/spacetime-console/`, and the `bench`/`console` CLI commands. It uses 20
+scripted fixtures, a verified hash-chained ledger, a static HTML review artifact, and end-to-end
+gates. The EconBench runner now also has deterministic domain-case verifiers for wallet invariants,
+independent integer transformations, and local protocol-state traces, recorded per fixture in its
+machine-readable report. This improves the verifier layer but does not turn the existing scripted
+actions into the full local task pack specified below. Block 3 is not `DONE`: seeded code-repair
+tasks with candidate workspaces, measured 4 GB workload/resource gate, and accepted out-of-band
+provenance remain outstanding. The HTML artifact is not the product UI or a web application.
 
 ### Build
 
@@ -899,7 +901,7 @@ No number from `BRAINSTORM.md` or the LLM replies becomes a README claim until i
 8. **When may real money/accounts be introduced?** Default: not before Block 13 and explicit sign-off.
 9. **Should hidden AI tabs keep rendering?** Default: **no**. The AI stays `RUNNING`; only the active tab is `RENDERING`. Switching back produces a fresh snapshot. If true background pixel streaming is required, it becomes a measured RAM/CPU decision.
 
-The next roadmap gate remains the measured 4 GB baseline; it is not safe to advance to Block 4 or mark Block 3 `DONE` without it. PR #10 merged the offline Block 3 prototype at `33149fe9ecac077bd1d37468c96197fefe94bca2`; PR #11 merged the exploratory profiler and target-intake preparation at `a6a722efb1068ef04861035c0e89657c49e37f41`. The user reported a candidate target as a 2017-era dual-core Celeron machine with 4 GB RAM running Lubuntu, but the make/model, exact CPU SKU, OS/kernel release, storage, and physical provenance are not yet recorded; no measurement file or filled provenance record is present. See `docs/TARGET-MEASUREMENT-READINESS.md`. The coding sandbox and GitHub CI are not substitutes for the target machine, and no profile may be inferred from detected RAM. The profiler covers three existing headless CLI workloads only; it cannot measure the native workspace, cold startup, tab switching, snapshots, or accepted physical provenance. The current branch makes the differential smoke comparison structurally independent and adds a process-local atomic/idempotent fake-credit wallet, but it does not yet provide the real Block 3 task pack. Full local tasks, a native mixed-workspace workload, and a reviewed provenance-consuming gate are still needed before target measurements can establish the release gate. Until then, `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`, and `block3_done = false` remain. The thin mixed-workspace slice in Block 5 is still the earliest product-level proof of the confirmed requirement; the static HTML console remains a review artifact, not a web application.
+The next roadmap gate remains the measured 4 GB baseline; it is not safe to advance to Block 4 or mark Block 3 `DONE` without it. PR #10 merged the offline Block 3 prototype at `33149fe9ecac077bd1d37468c96197fefe94bca2`; PR #11 merged the exploratory profiler and target-intake preparation at `a6a722efb1068ef04861035c0e89657c49e37f41`. The user reported a candidate target as a 2017-era dual-core Celeron machine with 4 GB RAM running Lubuntu, but the make/model, exact CPU SKU, OS/kernel release, storage, and physical provenance are not yet recorded; no measurement file or filled provenance record is present. See `docs/TARGET-MEASUREMENT-READINESS.md`. The coding sandbox and GitHub CI are not substitutes for the target machine, and no profile may be inferred from detected RAM. The profiler covers three existing headless CLI workloads only; it cannot measure the native workspace, cold startup, tab switching, snapshots, or accepted physical provenance. The current branch makes the differential smoke comparison structurally independent, adds a process-local atomic/idempotent fake-credit wallet, and wires 20 domain-case verifiers into the offline EconBench report. It still does not provide seeded candidate workspaces and the full real Block 3 task pack. A native mixed-workspace workload and a reviewed provenance-consuming gate are also still needed before target measurements can establish the release gate. Until then, `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`, and `block3_done = false` remain. The thin mixed-workspace slice in Block 5 is still the earliest product-level proof of the confirmed requirement; the static HTML console remains a review artifact, not a web application.
 
 
 ---

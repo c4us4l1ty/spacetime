@@ -16,6 +16,7 @@ liveness=running
 surface_kind=terminal
 category=planted_invariant
 oracle=declared_before_agent
+case_id=wallet_overdraft
 network=none
 action produce_evidence evidence=econbench-planted_invariant-01-proof
 action claim_done expected_digest=sha256:econbench-planted_invariant-01-proof

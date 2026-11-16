@@ -5,6 +5,7 @@
 //! baseline gate. Host facts and measurement-file shapes are unmeasured; physical provenance is
 //! out of band. No RAM, CPU, boot-time, or latency claim is made.
 
+pub mod econbench;
 pub mod economy;
 
 use spacetime_types::{sha256_hex, Result, SpacetimeError};
