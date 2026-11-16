@@ -2,4 +2,8 @@
 *.jsonl
 *.jsonl.head
 *.jsonl.state
+!bench/econbench/sample-ledger.jsonl
+!bench/econbench/sample-ledger.jsonl.head
+!bench/economy/mock_wallet.jsonl
+!bench/economy/mock_wallet.jsonl.head
 *.tmp

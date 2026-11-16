@@ -171,6 +171,14 @@ jobs:
           grep -q '^measurement_digest = "none"$' target/verify.toml
           grep -q 'no measurement file supplied' target/verify.toml
 
+      - name: Diagnostic verification report capture
+        continue-on-error: true
+        run: |
+          echo "=== verify stdout ==="
+          cat target/verify.stdout || true
+          echo "=== verify report ==="
+          cat target/verify.toml || true
+
       - name: Measurement intake smoke
         continue-on-error: true
         run: |
