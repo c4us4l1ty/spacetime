@@ -37,7 +37,11 @@ fn parse_args(args: &[String]) -> Result<BootArgs> {
                     return Err(SpacetimeError::new(format!("duplicate {arg}")));
                 }
             }
-            _ => return Err(SpacetimeError::new(format!("unexpected argument: {arg}\n{USAGE}"))),
+            _ => {
+                return Err(SpacetimeError::new(format!(
+                    "unexpected argument: {arg}\n{USAGE}"
+                )))
+            }
         }
     }
     if !experimental {
@@ -56,7 +60,9 @@ fn regular_file(path: &Path, name: &str) -> Result<PathBuf> {
     let canonical = fs::canonicalize(path)
         .map_err(|error| SpacetimeError::new(format!("cannot open {name}: {error}")))?;
     if !fs::metadata(&canonical)?.is_file() {
-        return Err(SpacetimeError::new(format!("{name} must be a regular file")));
+        return Err(SpacetimeError::new(format!(
+            "{name} must be a regular file"
+        )));
     }
     Ok(canonical)
 }
@@ -99,6 +105,9 @@ fn qemu_command(kernel: &Path, initramfs: &Path) -> Command {
 }
 
 pub fn cmd_space(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("initramfs") {
+        return crate::initramfs::cmd_initramfs(&args[1..]);
+    }
     let parsed = parse_args(args)?;
     if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
         return Err(SpacetimeError::new(
@@ -139,15 +148,31 @@ mod tests {
         assert!(parse_args(&strings(&["boot", "--kernel", "k", "--initramfs", "i"])).is_err());
         assert!(parse_args(&strings(&["boot", "--experimental", "--kernel", "k"])).is_err());
         assert!(parse_args(&strings(&[
-            "boot", "--experimental", "--kernel", "k", "--kernel", "other", "--initramfs", "i"
+            "boot",
+            "--experimental",
+            "--kernel",
+            "k",
+            "--kernel",
+            "other",
+            "--initramfs",
+            "i"
         ]))
         .is_err());
         assert!(parse_args(&strings(&[
-            "boot", "--experimental", "--kernel", "--initramfs", "i"
+            "boot",
+            "--experimental",
+            "--kernel",
+            "--initramfs",
+            "i"
         ]))
         .is_err());
         let parsed = parse_args(&strings(&[
-            "boot", "--experimental", "--kernel", "k", "--initramfs", "i"
+            "boot",
+            "--experimental",
+            "--kernel",
+            "k",
+            "--initramfs",
+            "i",
         ]))
         .unwrap();
         assert_eq!(parsed.kernel, PathBuf::from("k"));
@@ -157,9 +182,14 @@ mod tests {
     #[test]
     fn qemu_configuration_is_offline_and_has_no_host_share() {
         let command = qemu_command(Path::new("kernel"), Path::new("initramfs"));
-        let args: Vec<_> = command.get_args().map(|arg| arg.to_string_lossy()).collect();
+        let args: Vec<_> = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy())
+            .collect();
         assert!(args.windows(2).any(|a| a == ["-nic", "none"]));
-        assert!(args.windows(2).any(|a| a == ["-machine", "microvm,accel=kvm"]));
+        assert!(args
+            .windows(2)
+            .any(|a| a == ["-machine", "microvm,accel=kvm"]));
         assert!(args.contains(&"-nodefaults".into()));
         assert!(args.contains(&"-sandbox".into()));
         for flag in ["-drive", "-blockdev", "-netdev", "-virtfs", "-fsdev"] {

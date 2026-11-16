@@ -22,6 +22,7 @@ use std::path::{Path, PathBuf};
 mod console;
 mod dashboard;
 mod econbench;
+mod initramfs;
 mod space;
 mod verify;
 
@@ -44,6 +45,7 @@ Commands:
   console --ledger <file> --out <file>
   dashboard [ledger-file]
   space boot --experimental --kernel <file> --initramfs <file>
+  space initramfs --busybox <static-binary> --out <new-file>
   machine
   machine profiles
   machine gate [--measurement <file>]

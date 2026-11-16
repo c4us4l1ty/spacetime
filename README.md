@@ -146,3 +146,23 @@ Exit or shut down from the guest to stop QEMU. There is no persistent guest disk
 terminal output and crash data can still leave host traces (for example in swap or logs). No
 performance, security, cleanup, or 4 GB compatibility claim has been verified. This spike is not
 the final VMM choice; isolation, resource limits, recovery and hostile-guest tests remain to be done.
+
+### Preparing a minimal guest shell
+
+As an alternative to finding a ready-made initramfs, Spacetime can create one locally from a
+**trusted, statically linked x86-64 BusyBox** binary. Obtain that binary through a source you trust;
+Spacetime does not download it or verify its origin. The BusyBox build needs the shell, mount and
+poweroff applets. This command creates a new file and will not overwrite an existing one:
+
+```sh
+cargo run --locked -p spacetime-ctl -- space initramfs \
+  --busybox /path/to/static-busybox --out guest-initramfs.cpio
+cargo run --locked -p spacetime-ctl -- space boot --experimental \
+  --kernel /path/to/linux-kernel --initramfs guest-initramfs.cpio
+```
+
+The Linux kernel must support initramfs, the x86 serial console, and the QEMU microvm machine;
+required drivers must be built into the kernel rather than supplied as modules. In the guest,
+`exit` asks BusyBox to power off. This is a minimal shell, not yet an app installer or desktop.
+These steps have not yet been boot-tested on a physical KVM machine; see the safety limitations
+above. The image contains the supplied executable, so use only software you trust.
