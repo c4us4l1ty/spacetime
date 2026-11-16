@@ -3,14 +3,14 @@
 //! This command never claims a measured resource gate. It proves the offline functional
 //! pipeline and labels the 4 GB potato-machine resource budget as unmeasured.
 
+use crate::console::{cmd_console, console_report, default_ledger_path};
+use crate::econbench::econbench_report;
 use crate::{
     adversarial_report, cmd_crucible_adversarial, cmd_crucible_differential,
     cmd_crucible_false_pass, cmd_crucible_fixture_population, cmd_crucible_population,
     cmd_crucible_verify, cmd_machine_gate, crucible_inputs, fixture_population_report,
     panel_resolution_for_task, run_task, state_path,
 };
-use crate::console::{cmd_console, console_report, default_ledger_path};
-use crate::econbench::econbench_report;
 use serde_json::Value;
 use spacetime_bench::{
     baseline_profile, baseline_toml, profile_by_id, resource_gate, resource_gate_intake,
@@ -1303,7 +1303,10 @@ fn check_static_console_report(root: &TempRoot) -> Result<String> {
         js.contains("fetch(\"./report.json\")"),
         "static console does not load its offline report",
     )?;
-    ensure(css.contains("snapshot-frame"), "static console lost snapshot styling")?;
+    ensure(
+        css.contains("snapshot-frame"),
+        "static console lost snapshot styling",
+    )?;
     let out = root.join("console-report.json");
     let out_str = out
         .to_str()

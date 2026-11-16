@@ -61,7 +61,9 @@ struct BenchArgs {
 
 fn parse_bench_run(args: &[String]) -> Result<BenchArgs> {
     if args.len() % 2 != 0 {
-        return Err(SpacetimeError::new("bench run flags must be name/value pairs"));
+        return Err(SpacetimeError::new(
+            "bench run flags must be name/value pairs",
+        ));
     }
     let mut seen = BTreeSet::new();
     let mut arm = None;
@@ -180,8 +182,8 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
 
     for (index, path) in paths.iter().enumerate() {
         let source_text = fs::read_to_string(path)?;
-        let category = metadata_value(&source_text, "category")
-            .unwrap_or_else(|| "unknown".to_string());
+        let category =
+            metadata_value(&source_text, "category").unwrap_or_else(|| "unknown".to_string());
         let verifier_source = metadata_value(&source_text, "verifier_source")
             .unwrap_or_else(|| "fixture_suite".to_string());
         let (candidate, fixture) = crucible_inputs(path)?;
@@ -195,7 +197,8 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
                 path.display()
             )));
         }
-        let ledger_path = root.join(format!("fixture-{index:02}.jsonl"));
+        let ledger_name = format!("fixture-{index:02}.jsonl");
+        let ledger_path = root.join(ledger_name.as_str());
         let ledger_events = run_offline_task(path, &ledger_path)?;
         claims += 1;
         max_flip_rate = max_flip_rate.max(flip_rate);
@@ -349,10 +352,7 @@ mod tests {
         let value = econbench_report("A", "scripted-fixture", 1000)?;
         assert_eq!(value["fixtures"].as_u64(), Some(20));
         assert_eq!(value["completed"].as_u64(), Some(20));
-        assert_eq!(
-            value["claims_surviving_reverification"].as_u64(),
-            Some(20)
-        );
+        assert_eq!(value["claims_surviving_reverification"].as_u64(), Some(20));
         assert_eq!(value["false_pass_rate"].as_f64(), Some(0.0));
         assert_eq!(value["network"].as_str(), Some("none"));
         assert_eq!(value["arm_efficacy_claim"].as_bool(), Some(false));

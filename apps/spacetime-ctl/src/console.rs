@@ -7,9 +7,7 @@ use crate::ensure_flag_value;
 use serde_json::{json, Value};
 use spacetime_bench::{baseline_profile, target_profiles};
 use spacetime_ledger::{Head, Ledger};
-use spacetime_types::{
-    ActionOp, DecisionKind, LivenessState, PreviewMode, Result, SpacetimeError,
-};
+use spacetime_types::{ActionOp, DecisionKind, LivenessState, PreviewMode, Result, SpacetimeError};
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -345,8 +343,6 @@ mod tests {
             "b".to_string(),
         ])
         .is_err());
-        assert!(
-            parse_console_args(&["--bogus".to_string(), "x".to_string()]).is_err()
-        );
+        assert!(parse_console_args(&["--bogus".to_string(), "x".to_string()]).is_err());
     }
 }
