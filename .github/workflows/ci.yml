@@ -381,6 +381,7 @@ jobs:
               timeout 90 target/release/spacetime-ctl space run --experimental --kernel "$kernel" --busybox /bin/busybox --app target/guest-app > target/kvm-boot.log 2>&1
             cat target/kvm-boot.log
             tr -d '\r' < target/kvm-boot.log | grep -x 'SPACETIME_APP_OK'
+            echo '::notice::Hardware KVM launch tested on the CI runner (not target performance evidence).'
           else
-            echo 'KVM unavailable to CI user; hardware launch not tested.'
+            echo '::notice::KVM unavailable to CI user; hardware launch not tested.'
           fi
