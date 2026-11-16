@@ -1,0 +1,238 @@
+{
+  "block3_done": false,
+  "blockers": [
+    {
+      "external_effect": false,
+      "kind": "queued_publish",
+      "reason": "capability token not satisfied; no external effect executed"
+    },
+    {
+      "external_effect": false,
+      "kind": "baseline_measurement",
+      "reason": "exact 4 GB machine and accepted out-of-band provenance missing"
+    }
+  ],
+  "cost_meters": {
+    "fake_credits": 25,
+    "real_cost": 0,
+    "real_money": false,
+    "tokens_configured": 0,
+    "tokens_consumed": 0
+  },
+  "demo": true,
+  "execution": {
+    "ark_shared_kernel_warning": "Ark cells share a guest kernel; a tab is a view, not a trust boundary.",
+    "egress_class": "none",
+    "execution_tier": "scripted_local_fixture",
+    "net": "none",
+    "public_internet": false,
+    "trust_domain": "single_host_process"
+  },
+  "generated_by": "checked-in offline fixture over bench/econbench/sample-ledger.jsonl",
+  "goal_tree": [
+    {
+      "id": "goal-block3-console",
+      "parent": "goal-block2",
+      "status": "prototype",
+      "verifier": "static_console_report"
+    },
+    {
+      "id": "goal-block3-upload",
+      "parent": "goal-block3-console",
+      "status": "verified_local_fixture",
+      "verifier": "fixture_suite"
+    },
+    {
+      "id": "goal-resource-baseline",
+      "parent": "goal-block2",
+      "status": "blocked_unmeasured",
+      "verifier": "out_of_band_provenance"
+    }
+  ],
+  "leak_surface": [
+    "core dumps",
+    "crash reporters",
+    "swap",
+    "clipboard history",
+    "DNS",
+    "recent-files lists",
+    "thumbnails",
+    "GPU shader caches",
+    "audio",
+    "router logs",
+    "timing side channels"
+  ],
+  "ledger": {
+    "event_count": 4,
+    "last_hash": "4a1b1b74a92152d5976adab3041304b6d86046dde5989b02c21ac9d30e0d2d18",
+    "source": "bench/econbench/sample-ledger.jsonl",
+    "tail": [
+      {
+        "action": "claim_done",
+        "decision": "allow",
+        "evidence_digest": "verified-local-fixture",
+        "hash": "4a1b1b74a92152d5976adab3041304b6d86046dde5989b02c21ac9d30e0d2d18",
+        "seq": 3,
+        "verdict": "pass"
+      },
+      {
+        "action": "produce_evidence",
+        "decision": "allow",
+        "evidence_digest": "verified-local-fixture",
+        "hash": "020459cbdde9634ff738dbfc9441a122ec642765848285ff35ef32a46d82668c",
+        "seq": 2,
+        "verdict": "pass"
+      },
+      {
+        "action": "produce_evidence",
+        "decision": "allow",
+        "evidence_digest": "verified-local-fixture",
+        "hash": "e6f8a623fb43dddfced17858429cfb8bb6f02502a7af94286691f157cff63f5c",
+        "seq": 1,
+        "verdict": "pass"
+      },
+      {
+        "action": "produce_evidence",
+        "decision": "allow",
+        "evidence_digest": "verified-local-fixture",
+        "hash": "5cc35768f92d4a4f52132e90b7f319c615eb08380e0885d843a6c72a946ff1cc",
+        "seq": 0,
+        "verdict": "pass"
+      }
+    ],
+    "verified": true
+  },
+  "mock_economy": {
+    "bounties": 20,
+    "fake_credits": 25,
+    "payments_confirmed": 1,
+    "public_internet": false,
+    "real_money": false,
+    "real_wallet": false,
+    "wallet_last_hash": "13acd59c9730d7b41229d4ea677ab72ddce7931e0af22d0623ef465f9a2db0d0",
+    "wallet_ledger": "bench/economy/mock_wallet.jsonl",
+    "wallet_ledger_verified": true
+  },
+  "operators": [
+    {
+      "health": "offline_only",
+      "id": "op-scripted-cortex",
+      "kind": "scripted_fixture",
+      "verifier": "fixture_suite"
+    },
+    {
+      "health": "offline_only",
+      "id": "op-fixture-runner",
+      "kind": "local_process",
+      "verifier": "fixture_suite"
+    },
+    {
+      "health": "prototype",
+      "id": "op-snapshot-strip",
+      "kind": "still_placeholder",
+      "verifier": "ledger_events"
+    }
+  ],
+  "performance_claims": "unmeasured",
+  "release_gate": "unmeasured",
+  "report": "spacetime_static_console",
+  "resource_gate": "unmeasured_target_4gb",
+  "resource_meters": {
+    "baseline_target_profile": "4gb_potato",
+    "boot_ms": "unmeasured",
+    "cpu_percent": "unmeasured",
+    "evaluated_memory_budget_kb": 4194304,
+    "measured_peak_rss_kb": "unmeasured",
+    "release_gate": "unmeasured",
+    "tab_switch_ms": "unmeasured",
+    "target_profile": "4gb_potato",
+    "target_profile_registry": 3
+  },
+  "schema_version": 1,
+  "snapshot_strip": [
+    {
+      "fields": {
+        "description": "",
+        "thumbnail": "none",
+        "title": "Spacetime offline demo"
+      },
+      "label": "typed title",
+      "ledger_event_hash": "5cc35768f92d4a4f52132e90b7f319c615eb08380e0885d843a6c72a946ff1cc",
+      "live_video": false,
+      "preview_mode": "snapshot_on_action",
+      "seq": 0
+    },
+    {
+      "fields": {
+        "description": "A local, verifiable mixed-workspace slice.",
+        "thumbnail": "none",
+        "title": "Spacetime offline demo"
+      },
+      "label": "filled description",
+      "ledger_event_hash": "e6f8a623fb43dddfced17858429cfb8bb6f02502a7af94286691f157cff63f5c",
+      "live_video": false,
+      "preview_mode": "snapshot_on_action",
+      "seq": 1
+    },
+    {
+      "fields": {
+        "description": "A local, verifiable mixed-workspace slice.",
+        "thumbnail": "mock-thumbnail-a",
+        "title": "Spacetime offline demo"
+      },
+      "label": "selected thumbnail",
+      "ledger_event_hash": "020459cbdde9634ff738dbfc9441a122ec642765848285ff35ef32a46d82668c",
+      "live_video": false,
+      "preview_mode": "snapshot_on_action",
+      "seq": 2
+    }
+  ],
+  "status": "offline_functional_prototype",
+  "target_profiles": {
+    "baseline": "4gb_potato",
+    "no_ram_inference": true,
+    "optional": [
+      "8gb_reference",
+      "16gb_developer"
+    ],
+    "profile_role": "baseline_gate",
+    "registry_count": 3,
+    "selected": "4gb_potato"
+  },
+  "verifier": {
+    "claims_surviving_reverification": 20,
+    "econbench_fixtures": 20,
+    "false_pass_rate": 0.0,
+    "false_pass_runs": 1000,
+    "fixture_population_fixtures": 26,
+    "real_operator_study": "unmeasured",
+    "synthetic_operator_population": true
+  },
+  "warnings": [
+    "This prototype does not pass the measured 4 GB baseline resource gate.",
+    "No RAM, CPU, boot-time, latency, or concurrency number is claimed as measured.",
+    "CI/sandbox host facts are not target-machine evidence."
+  ],
+  "workspaces": [
+    {
+      "egress_class": "none",
+      "id": "ws-human-terminal",
+      "last_action": "opened local terminal fixture",
+      "liveness": "running",
+      "preview_mode": "terminal_buffer",
+      "surface_id": "surface-human-terminal",
+      "surface_kind": "terminal",
+      "trust_tier": "host_trusted"
+    },
+    {
+      "egress_class": "none",
+      "id": "ws-ai-upload",
+      "last_action": "typed title",
+      "liveness": "running",
+      "preview_mode": "snapshot_on_action",
+      "surface_id": "surface-ai-upload",
+      "surface_kind": "framebuffer",
+      "trust_tier": "ark_cell"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake and bug hunt are merged at `90ceeb20db603c52e313ef718b82710241ad6080`, with strict `main` CI run `43829756506` green (25 gates, 14 steps). The 4 GB baseline resource gate is unmeasured. Current branch prepared reproducible provenance intake (strict run `43831944305`, 25 gates) and added explicit public target profiles plus a 26th registry gate; strict push run `43836410103` verified 26 gates and all 14 CI steps at `6f4745e`. Full evidence is in `docs/VERIFICATION-2026-11-15.md`. No measured gate is claimed.
+**Status:** active roadmap; Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake and bug hunt are merged at `90ceeb20db603c52e313ef718b82710241ad6080`, with strict `main` CI run `43829756506` green (25 gates, 14 steps). The 4 GB baseline resource gate is unmeasured. Current branch prepared reproducible provenance intake (strict run `43831944305`, 25 gates), added explicit public target profiles (strict run `43836410103`, 26 gates), and now starts an offline Block 3 prototype with 20 scripted fixtures, a static HTML console, a mock-economy ledger, and 28 gates. Strict CI evidence for this increment is recorded in `docs/VERIFICATION-2026-11-15.md`. No measured gate is claimed and Block 3 is not `DONE`.
 **Date:** 2026-11-15 (roadmap origin; branch context updated after PR #9 merge)
 **Branch:** `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; PRs #7, #8, and #9 are merged history)
 
@@ -391,6 +391,13 @@ If false-PASS exceeds 1%, **stop feature work and fix determinism first**. All l
 ### Block 3 — EconBench fixtures and the static mixed-workspace console
 
 **Why now:** Build the measuring stick before the product. The console comes before the Rust UI because the organism needs situational awareness, not a window manager — but it also previews the confirmed mixed-tab requirement with snapshot tiles.
+
+**Current branch status:** an offline prototype now exists in `bench/econbench/`,
+`bench/economy/`, `apps/spacetime-console/`, and the `bench`/`console` CLI commands. It uses 20
+scripted fixtures, a verified hash-chained ledger, a static HTML console, and two new end-to-end
+gates. This is not Block 3 `DONE`: the real planted-invariant/transmutation/protocol-distillation
+code, full independent verifiers, measured 4 GB baseline resource gate, and accepted out-of-band
+provenance remain outstanding.
 
 ### Build
 
@@ -891,7 +898,7 @@ No number from `BRAINSTORM.md` or the LLM replies becomes a README claim until i
 8. **When may real money/accounts be introduced?** Default: not before Block 13 and explicit sign-off.
 9. **Should hidden AI tabs keep rendering?** Default: **no**. The AI stays `RUNNING`; only the active tab is `RENDERING`. Switching back produces a fresh snapshot. If true background pixel streaming is required, it becomes a measured RAM/CPU decision.
 
-If these defaults are accepted, **the measured 4 GB baseline resource gate is the next unblocked unit**. Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake, CLI bug hunt, and doc hygiene are merged history at `90ceeb2`, with strict `main` CI run `43829756506` green. The current active branch adds a read-only host-fact collector, an out-of-band provenance template, and an explicit public target-profile registry; it commits no measurement file, no filled provenance record, and no code path that accepts physical provenance as a measured pass. After the baseline and any selected public profiles are identified, measured with accepted out-of-band provenance, and a reviewed gate implementation consumes that provenance, Block 3 becomes the next implementation unit. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
+If these defaults are accepted, **the measured 4 GB baseline resource gate remains the next unblocked unit**. Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake, CLI bug hunt, and doc hygiene are merged history at `90ceeb2`, with strict `main` CI run `43829756506` green. The current active branch adds a read-only host-fact collector, an out-of-band provenance template, an explicit public target-profile registry, and an offline Block 3 console/EconBench prototype; it commits no measurement file, no filled provenance record, and no code path that accepts physical provenance as a measured pass. The prototype is functional groundwork, not a resource sign-off. After the baseline and any selected public profiles are identified, measured with accepted out-of-band provenance, and a reviewed gate implementation consumes that provenance, the real Block 3 implementation can be completed. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
 
 
 ---

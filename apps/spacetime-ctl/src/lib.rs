@@ -19,6 +19,8 @@ use spacetime_verifier::{
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod console;
+mod econbench;
 mod verify;
 
 const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
@@ -36,6 +38,8 @@ Commands:
   crucible population --operators <n> --runs <n>
   crucible fixture-population --runs <n>
   verify --out <file> [--measurement <file>]
+  bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
+  console --ledger <file> --out <file>
   machine
   machine profiles
   machine gate [--measurement <file>]
@@ -78,6 +82,8 @@ pub fn run(args: &[String]) -> Result<()> {
         }
         "crucible" => cmd_crucible(&args[1..]),
         "verify" => verify::cmd_verify_all(&args[1..]),
+        "bench" => econbench::cmd_bench(&args[1..]),
+        "console" => console::cmd_console(&args[1..]),
         "machine" => cmd_machine(&args[1..]),
         "digest" => {
             let text = args
@@ -711,7 +717,7 @@ fn flag(args: &[String], name: &str) -> Result<String> {
     Ok(value.clone())
 }
 
-fn ensure_flag_value(name: &str, value: &str) -> Result<()> {
+pub(crate) fn ensure_flag_value(name: &str, value: &str) -> Result<()> {
     if value.starts_with('-') {
         return Err(SpacetimeError::new(format!("missing value for {name}")));
     }

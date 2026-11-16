@@ -9,6 +9,9 @@ use crate::{
     cmd_crucible_verify, cmd_machine_gate, crucible_inputs, fixture_population_report,
     panel_resolution_for_task, run_task, state_path,
 };
+use crate::console::{cmd_console, console_report, default_ledger_path};
+use crate::econbench::econbench_report;
+use serde_json::Value;
 use spacetime_bench::{
     baseline_profile, baseline_toml, profile_by_id, resource_gate, resource_gate_intake,
     target_profiles, ProfileRole, ResourceGateIntake, ResourceGateStatus, BASELINE_TARGET_PROFILE,
@@ -146,6 +149,10 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     }));
     gates.push(capture("target_profile_registry", || {
         check_target_profile_registry(&root)
+    }));
+    gates.push(capture("econbench_offline", check_econbench_offline));
+    gates.push(capture("static_console_report", || {
+        check_static_console_report(&root)
     }));
 
     let report = render_report(&gates, &intake);
@@ -1175,6 +1182,149 @@ fn check_target_profile_registry(root: &TempRoot) -> Result<String> {
     ))
 }
 
+fn json_u64(value: &Value, key: &str) -> Result<u64> {
+    value
+        .get(key)
+        .and_then(|field| field.as_u64())
+        .ok_or_else(|| SpacetimeError::new(format!("missing numeric field {key}")))
+}
+
+fn json_f64(value: &Value, key: &str) -> Result<f64> {
+    value
+        .get(key)
+        .and_then(|field| field.as_f64())
+        .ok_or_else(|| SpacetimeError::new(format!("missing floating field {key}")))
+}
+
+fn json_str<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
+    value
+        .get(key)
+        .and_then(|field| field.as_str())
+        .ok_or_else(|| SpacetimeError::new(format!("missing string field {key}")))
+}
+
+fn check_econbench_offline() -> Result<String> {
+    let report = econbench_report("A", "scripted-fixture", 1000)?;
+    ensure(
+        json_u64(&report, "fixtures")? == 20,
+        "EconBench seed lost offline fixtures",
+    )?;
+    ensure(
+        json_u64(&report, "completed")? == 20,
+        "an offline EconBench fixture did not complete",
+    )?;
+    ensure(
+        json_u64(&report, "claims_surviving_reverification")? == 20,
+        "an EconBench claim did not survive independent re-verification",
+    )?;
+    ensure(
+        json_f64(&report, "false_pass_rate")? <= 0.01,
+        "EconBench false-PASS rate exceeded the gate",
+    )?;
+    ensure(
+        json_str(&report, "network")? == "none",
+        "EconBench prototype attempted network access",
+    )?;
+    ensure(
+        json_str(&report, "model_adapter")? == "offline_scripted",
+        "EconBench prototype called a real model",
+    )?;
+    ensure(
+        json_str(&report, "resource_gate")? == "unmeasured_target_4gb",
+        "EconBench prototype claimed a measured resource gate",
+    )?;
+    ensure(
+        json_str(&report, "performance_claims")? == "unmeasured",
+        "EconBench prototype claimed measured performance",
+    )?;
+    ensure(
+        report
+            .get("arm_efficacy_claim")
+            .and_then(|field| field.as_bool())
+            == Some(false),
+        "EconBench prototype claimed arm efficacy",
+    )?;
+    Ok(format!(
+        "fixtures=20 completed=20 claims=20 false_pass_rate={:.4} network=none",
+        json_f64(&report, "false_pass_rate")?
+    ))
+}
+
+fn check_static_console_report(root: &TempRoot) -> Result<String> {
+    let ledger_path = default_ledger_path();
+    let report = console_report(&ledger_path)?;
+    ensure(
+        json_str(&report, "resource_gate")? == "unmeasured_target_4gb",
+        "console report claimed a measured resource gate",
+    )?;
+    ensure(
+        json_str(&report, "performance_claims")? == "unmeasured",
+        "console report claimed measured performance",
+    )?;
+    let ledger = report
+        .get("ledger")
+        .ok_or_else(|| SpacetimeError::new("console report has no ledger"))?;
+    ensure(
+        json_u64(ledger, "event_count")? >= 3,
+        "console ledger has too few events",
+    )?;
+    let snapshots = report
+        .get("snapshot_strip")
+        .and_then(|field| field.as_array())
+        .ok_or_else(|| SpacetimeError::new("console report has no snapshot strip"))?;
+    ensure(
+        snapshots.len() == 3,
+        "console snapshot strip lost its ledger frames",
+    )?;
+    let workspaces = report
+        .get("workspaces")
+        .and_then(|field| field.as_array())
+        .ok_or_else(|| SpacetimeError::new("console report has no mixed-workspace tiles"))?;
+    ensure(
+        workspaces.len() == 2,
+        "console report lost a mixed-workspace tile",
+    )?;
+    let html = include_str!("../../spacetime-console/index.html");
+    let css = include_str!("../../spacetime-console/styles.css");
+    let js = include_str!("../../spacetime-console/console.js");
+    ensure(
+        html.contains("Content-Security-Policy"),
+        "static console lost its content security policy",
+    )?;
+    ensure(
+        !html.contains("http://") && !html.contains("https://"),
+        "static console references a remote URL",
+    )?;
+    ensure(
+        !js.contains("innerHTML") && !js.contains("eval("),
+        "static console uses unsafe DOM or code evaluation",
+    )?;
+    ensure(
+        js.contains("fetch(\"./report.json\")"),
+        "static console does not load its offline report",
+    )?;
+    ensure(css.contains("snapshot-frame"), "static console lost snapshot styling")?;
+    let out = root.join("console-report.json");
+    let out_str = out
+        .to_str()
+        .ok_or_else(|| SpacetimeError::new("console report path is not UTF-8"))?;
+    let ledger_str = ledger_path
+        .to_str()
+        .ok_or_else(|| SpacetimeError::new("ledger path is not UTF-8"))?;
+    cmd_console(&[
+        "--ledger".to_string(),
+        ledger_str.to_string(),
+        "--out".to_string(),
+        out_str.to_string(),
+    ])?;
+    let written: Value = serde_json::from_str(&fs::read_to_string(&out)?)?;
+    ensure(
+        json_str(&written, "resource_gate")? == "unmeasured_target_4gb",
+        "exported console report claimed a measured resource gate",
+    )?;
+    Ok("static_html=offline ledger_verified=true snapshot_frames=3 workspaces=2".to_string())
+}
+
 fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {
     let failed = gates.iter().filter(|gate| !gate.ok).count();
     let status = if failed == 0 { "pass" } else { "fail" };
@@ -1228,6 +1378,9 @@ fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {
         "profile_role = {}\n",
         quote(intake.profile_role.as_str())
     ));
+    out.push_str("econbench_fixtures = 20\n");
+    out.push_str("static_console = \"offline_prototype\"\n");
+    out.push_str("block3_done = false\n");
     out.push_str("resource_law = \"holy_grail\"\n");
     out.push_str("ci_host = \"github_actions_not_target\"\n");
     out.push_str(&format!(

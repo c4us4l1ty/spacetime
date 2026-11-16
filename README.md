@@ -36,7 +36,7 @@ cargo run -p spacetime-ctl -- machine
 
 The false-claim and timeout fixtures intentionally exit non-zero after writing their state; the happy path exits zero.
 
-## Development — Blocks 1-2 functional baseline, bounded intake, and explicit target profiles
+## Development — Blocks 1-2 baseline, explicit target profiles, and Block 3 offline prototype
 
 The Crucible adds a second-run determinism check, independent verifier provenance, a flaky-fixture
 family, a false-PASS flip metric, and differential/mutation metrology.
@@ -54,13 +54,17 @@ cargo run -p spacetime-ctl -- machine profiles
 cargo run -p spacetime-ctl -- machine gate
 cargo run -p spacetime-ctl -- verify --out target/verify.toml
 cargo run -p spacetime-ctl -- verify --out target/verify.toml --measurement <file>
+cargo run -p spacetime-ctl -- bench run --arm A --model scripted-fixture --budget 1000 --out target/econbench-A.json
+cargo run -p spacetime-ctl -- console --ledger bench/econbench/sample-ledger.jsonl --out target/console-report.json
+python3 -m http.server 8000 --bind 0.0.0.0 --directory apps/spacetime-console
 bash bench/measurements/capture-host-facts.sh --list-profiles
 ```
 
-`verify --out` runs 26 offline Block 1 and Block 2 gates end to end and writes a TOML-style
-report; the 26th gate checks the explicit target-profile registry. The optional bounded
-`verify --measurement <file>` path evaluates a measurement file against its selected profile for
-the report without ever promoting file shape to a measured resource gate.
+`verify --out` runs 28 offline gates end to end and writes a TOML-style report; the 26th gate
+checks the explicit target-profile registry, the 27th checks the offline EconBench seed, and the
+28th checks the static console report. The optional bounded `verify --measurement <file>` path
+evaluates a measurement file against its selected profile for the report without ever promoting
+file shape to a measured resource gate.
 `crucible panel` resolves five independent verifier sources conservatively; `crucible adversarial`
 runs twenty offline model-authored fixtures; `crucible population` uses synthetic operators, and
 `crucible fixture-population` reruns 26 real declared-oracle fixtures 50 times each. Both population
@@ -81,18 +85,21 @@ gates; strict `main` CI run `43829756506` verified all 14 steps. The measured 4 
 remains outstanding, so both were functional correctness merges, not resource sign-offs.
 
 The active branch is `arena/3782c8f5-spacetime` (status `active`, branched from
-`90ceeb20db603c52e313ef718b82710241ad6080` of `main`). It first added the measurement-provenance
-kit, then generalized the target model: `bench/targets/profiles.tsv`, `machine profiles`, a
-26th `target_profile_registry` gate, an explicit-`--profile` collector, and an updated provenance
-template. `4gb_potato` remains the mandatory release baseline; 8 GB and 16 GB profiles are optional
-and cannot satisfy it. The collector does not write a measurement file; the template is not evidence
-until filled on the selected machine and kept out of band. No target measurement file, filled
-provenance record, or physical attestation is committed. `resource_gate = "unmeasured_target_4gb"`
-and `performance_claims = "unmeasured"` remain; a bounded file can only be `pass_shape_only` until
-physical provenance is accepted and a reviewed code path consumes it. Strict push run
-`43831944305` verified the earlier 25-gate kit; strict push run `43836410103` verified 26 gates
-and all 14 CI steps at `6f4745e`. Full evidence is in `docs/VERIFICATION-2026-11-15.md`.
+`90ceeb20db603c52e313ef718b82710241ad6080` of `main`). It added the measurement-provenance kit,
+generalized the target model, and now starts a Block 3 offline prototype: 20 scripted fixtures in
+`bench/econbench/`, a verified mock-economy ledger, `spacetime-ctl bench run`, `spacetime-ctl
+console`, and a static HTML console in `apps/spacetime-console/`. The console renders a real
+hash-chained ledger tail, mixed-workspace tiles, and a ledger-driven snapshot strip; it uses no
+live backend, public internet, real wallet, or continuous video. This is a functional prototype,
+not a measured resource sign-off and not Block 3 `DONE`. `4gb_potato` remains the mandatory
+release baseline; 8 GB and 16 GB profiles are optional and cannot satisfy it. No target measurement
+file, filled provenance record, or physical attestation is committed. `resource_gate =
+"unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain. Strict push run
+`43831944305` verified the earlier 25-gate kit; strict push run `43836410103` verified 26 gates;
+strict CI evidence for the 28-gate Block 3 prototype is recorded in
+`docs/VERIFICATION-2026-11-15.md`.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,
-`docs/ADR-0002-block2.md` for the Block 2 boundary, and `docs/ADR-0003-target-profiles.md` for the
-public target-profile decision.
+`docs/ADR-0002-block2.md` for the Block 2 boundary, `docs/ADR-0003-target-profiles.md` for the
+public target-profile decision, and `docs/ADR-0004-block3-offline-console.md` for the offline
+Block 3 prototype.

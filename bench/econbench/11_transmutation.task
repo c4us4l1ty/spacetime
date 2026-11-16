@@ -1,0 +1,21 @@
+# Block 3 offline seed: transmutation.
+# Independent verifier is declared before the scripted agent starts; no public internet.
+schema_version=1
+verifier_source=differential_reference
+expected_verdict=pass
+expected_digest=sha256:econbench-transmutation-11-proof
+determinism_runs=2
+mutation_threshold_bps=8000
+candidate_mutation_score_bps=10000
+space_id=space-econbench
+workspace_id=ws-econbench-11
+surface_id=surface-econbench-11
+goal_id=goal-econbench-11
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+category=transmutation
+oracle=declared_before_agent
+network=none
+action produce_evidence evidence=econbench-transmutation-11-proof
+action claim_done expected_digest=sha256:econbench-transmutation-11-proof

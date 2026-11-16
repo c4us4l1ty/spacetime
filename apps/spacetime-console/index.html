@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Spacetime — offline console prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Spacetime / Block 3 prototype</p>
+      <h1>Offline situational-awareness console</h1>
+      <p class="subtitle">Static HTML, offline reports, snapshot-on-action tiles. No live backend and no embedded browser runtime.</p>
+    </div>
+    <div class="topbar-actions">
+      <label class="file-button">Load exported JSON
+        <input id="report-file" type="file" accept="application/json,.json">
+      </label>
+      <span id="source-badge" class="badge">loading report.json</span>
+    </div>
+  </header>
+
+  <div id="error" class="error" hidden></div>
+
+  <main id="app" hidden>
+    <section id="status-strip" class="status-strip" aria-label="Run status"></section>
+    <section id="warnings" class="warnings" aria-label="Trust warnings"></section>
+
+    <div class="grid">
+      <section class="panel" id="goal-tree-panel">
+        <h2>Branch / goal tree</h2>
+        <div id="goal-tree" class="list"></div>
+      </section>
+
+      <section class="panel" id="operators-panel">
+        <h2>Operator registry</h2>
+        <div id="operators" class="list"></div>
+      </section>
+
+      <section class="panel" id="verifier-panel">
+        <h2>Independent verifiers</h2>
+        <div id="verifier" class="list"></div>
+      </section>
+
+      <section class="panel wide" id="ledger-panel">
+        <h2>Hash-chained ledger tail</h2>
+        <div id="ledger-tail" class="ledger"></div>
+      </section>
+
+      <section class="panel wide" id="workspace-panel">
+        <div class="panel-heading">
+          <h2>Mixed-workspace tiles</h2>
+          <div class="controls">
+            <button id="switch-human" type="button">Render human tile</button>
+            <button id="switch-ai" type="button">Render AI tile</button>
+            <button id="advance-ai" type="button">Advance AI action</button>
+          </div>
+        </div>
+        <p class="hint">Switching changes RENDERING, not RUNNING. The offline event-stream tick continues on both tiles: <span id="stream-ticks">0</span>.</p>
+        <div id="workspaces" class="tiles"></div>
+      </section>
+
+      <section class="panel wide" id="snapshot-panel">
+        <div class="panel-heading">
+          <h2>AI snapshot strip</h2>
+          <span id="preview-badge" class="badge">SnapshotOnAction — not live video</span>
+        </div>
+        <div id="snapshot-strip" class="snapshot-strip"></div>
+      </section>
+
+      <section class="panel" id="blockers-panel">
+        <h2>Blockers</h2>
+        <div id="blockers" class="list"></div>
+      </section>
+
+      <section class="panel" id="meters-panel">
+        <h2>Resource / cost meters</h2>
+        <div id="meters" class="list"></div>
+      </section>
+
+      <section class="panel" id="economy-panel">
+        <h2>Mock economy</h2>
+        <div id="economy" class="list"></div>
+      </section>
+
+      <section class="panel" id="leak-panel">
+        <h2>Leak surface</h2>
+        <p class="hint">No “0 traces” claim is made.</p>
+        <div id="leak-surface" class="list"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="console.js"></script>
+</body>
+</html>

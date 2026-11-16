@@ -1,10 +1,10 @@
-# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake and PR #9 bug hunt — 2026-11-16 / measurement-provenance kit / explicit target profiles
+# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake and PR #9 bug hunt — 2026-11-16 / measurement-provenance kit / explicit target profiles / Block 3 offline console
 
 ## Authoritative result and branch lineage
 
 - Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
 - Historical PR #9 branch: `arena/f3c65268-spacetime` (status `pr_open` at the time, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`); merged at `90ceeb20db603c52e313ef718b82710241ad6080`. The measurement-intake increment and PR #9 bug hunt below are verified by strict CI runs `43818080975` and `43829073730`, with strict `main` CI run `43829756506` after merge.
-- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its 25-gate measurement-provenance kit; the following 26-gate explicit-target-profile increment is recorded in the final section below.
+- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its 25-gate measurement-provenance kit; `43836410103` verified the 26-gate explicit-target-profile increment; the following 28-gate Block 3 offline prototype is recorded in the final section below.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -327,3 +327,39 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   provenance-template presence, and the existing bounded negative intake smokes. Diagnostic push
   run `43835942873` was used only to capture rustfmt and the stale baseline assertion; it is not
   acceptance evidence.
+
+## Current increment — Block 3 offline console prototype
+
+- Active branch: `arena/3782c8f5-spacetime` (status `active`, base
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). This increment starts Block 3 as an
+  offline functional prototype only; it does not claim a measured resource gate, target
+  performance, model efficacy, real economy, or Block 3 `DONE`.
+- Added 20 scripted `.task` fixtures in `bench/econbench/` across planted-invariant,
+  transmutation, and protocol-distillation categories. Each declares an independent verifier
+  source, expected verdict, and digest oracle before the scripted agent starts. No fixture uses
+  the public internet, a real wallet, a real account, a live target, or a live model call.
+- Added `spacetime-ctl bench run --arm A|B|C --model <id> --budget <tokens> --out <file>`. It runs
+  the 20 fixtures offline, verifies each ledger, records completion, interventions, tokens, fake
+  cost, claims surviving re-verification, and false-PASS. Arms are harness metadata only; no arm
+  efficacy claim is made. `wall_clock_ms` is explicitly scoped to the CI/local host and is not
+  target-machine evidence.
+- Added a static HTML console in `apps/spacetime-console/` with a content security policy,
+  relative report loading, a file input for CLI exports, branch/goal tree, operator registry,
+  verifier rates, hash-chained ledger tail, blockers, resource/cost meters, execution tier, Ark
+  trust warning, and egress class. Mixed-workspace tiles expose `WorkspaceId`, `SurfaceId`,
+  trust tier, `LivenessState`, `PreviewMode`, and last action. Switching tiles changes
+  `RENDERING`, not `RUNNING`; the offline event-stream tick continues on both tiles.
+- The AI tile uses a ledger-driven snapshot strip with still placeholders after “typed title”,
+  “filled description”, and “selected thumbnail”. It is `SnapshotOnAction`, not continuous live
+  video. The console has no live backend, public internet dependency, real wallet, real account,
+  unsafe DOM injection, or dynamic code evaluation.
+- Added `bench/econbench/sample-ledger.jsonl` and `bench/economy/mock_wallet.jsonl` as checked-in
+  real append-only hash-chained ledgers, plus a mock bounty board. `spacetime-ctl ledger verify`
+  and `spacetime-ctl console --ledger ... --out ...` consume them. Credits and payments are fake.
+- Added `econbench_offline` and `static_console_report` as the 27th and 28th end-to-end gates,
+  plus strict CI smokes for both ledgers, offline bench reports, console exports, negative CLI
+  flags, static asset hygiene, and checked-in `report.json` consistency.
+- Preserved `resource_gate = "unmeasured_target_4gb"`, `release_gate=unmeasured`, and
+  `performance_claims = "unmeasured"`. `block3_done = false` is explicit. A later reviewed code
+  path must consume accepted physical provenance before any measured gate can be reported.
+- Strict CI evidence for this increment will be appended after the push workflow passes.
