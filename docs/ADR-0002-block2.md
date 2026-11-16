@@ -131,4 +131,5 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
 - `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
   `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
   provenance before any measured gate can be reported. See `docs/ADR-0003-target-profiles.md`.
-- Strict CI evidence for this increment is recorded in `docs/VERIFICATION-2026-11-15.md`.
+- Strict push run `43836410103` (job `133194022585`) verified 26 gates and all 14 CI steps at
+  `6f4745e`; full evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.

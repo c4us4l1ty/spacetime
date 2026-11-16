@@ -305,4 +305,25 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   `performance_claims = "unmeasured"` remain. `pass_shape_only` is not a measured gate; a later
   reviewed code path must consume accepted physical provenance before any measured gate can be
   reported.
-- Strict CI evidence for this increment will be appended after the push workflow passes.
+- Strict push run `43836410103` (job `133194022585`) at code head
+  `6f4745e97a463c995e1574069acb9657f7bbf098` verified this increment end to end: all 14 CI steps
+  succeeded with no `continue-on-error`, and `spacetime-ctl verify --out target/verify.toml`
+  reported `status = "pass"`, `gates = 26`, `failed = 0`,
+  `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`,
+  `target_profile = "4gb_potato"`, `baseline_target_profile = "4gb_potato"`,
+  `target_profile_registry = 3`, `evaluated_memory_budget_kb = 4194304`, and
+  `profile_role = "baseline_gate"`.
+- The same strict run verified the new `target_profile_registry` gate detail
+  `profiles=3 baseline=4gb_potato optional=8gb_reference,16gb_developer release_gate=unmeasured`,
+  plus an 8 GB shape-only measurement report with `target_profile = "8gb_reference"`,
+  `baseline_target_profile = "4gb_potato"`, `evaluated_memory_budget_kb = 8388608`,
+  `profile_role = "optional_profile"`, `measurement_evaluator = "pass_shape_only"`, and
+  `resource_gate = "unmeasured_target_4gb"`. `machine gate --measurement` printed
+  `resource_gate=unmeasured`, `release_gate=unmeasured`, and `baseline_target_profile=4gb_potato`;
+  it did not print `resource_gate=pass`.
+- Strict CI also verified `machine profiles`, generated `machine` host facts with
+  `host_profile = "unspecified"` and `profile_count = 3`, `bash -n` on the collector, rejection of
+  missing/forbidden/unknown/duplicate collector arguments, `--list-profiles`, registry file and
+  provenance-template presence, and the existing bounded negative intake smokes. Diagnostic push
+  run `43835942873` was used only to capture rustfmt and the stale baseline assertion; it is not
+  acceptance evidence.

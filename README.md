@@ -89,9 +89,9 @@ and cannot satisfy it. The collector does not write a measurement file; the temp
 until filled on the selected machine and kept out of band. No target measurement file, filled
 provenance record, or physical attestation is committed. `resource_gate = "unmeasured_target_4gb"`
 and `performance_claims = "unmeasured"` remain; a bounded file can only be `pass_shape_only` until
-physical provenance is accepted and a reviewed code path consumes it. Strict push run `43831944305`
-verified the earlier 25-gate kit; strict CI evidence for this 26-gate profile increment is recorded
-in `docs/VERIFICATION-2026-11-15.md`.
+physical provenance is accepted and a reviewed code path consumes it. Strict push run
+`43831944305` verified the earlier 25-gate kit; strict push run `43836410103` verified 26 gates
+and all 14 CI steps at `6f4745e`. Full evidence is in `docs/VERIFICATION-2026-11-15.md`.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,
 `docs/ADR-0002-block2.md` for the Block 2 boundary, and `docs/ADR-0003-target-profiles.md` for the

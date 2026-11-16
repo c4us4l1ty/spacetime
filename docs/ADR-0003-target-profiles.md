@@ -48,6 +48,9 @@ mistaken for baseline evidence.
   assigning every host to `4gb_potato`.
 - Strict CI with committed `Cargo.lock`, `--locked`, `clippy -D warnings`, and no
   `continue-on-error` remains authoritative. Diagnostic runs, if any, are not acceptance evidence.
+- Strict push run `43836410103` (job `133194022585`) verified this increment at `6f4745e`:
+  14/14 steps green, 26/26 gates passed, default baseline profile fields, and an 8 GB
+  `pass_shape_only` smoke that preserved `resource_gate = "unmeasured_target_4gb"`.
 
 ## Non-goals
 
