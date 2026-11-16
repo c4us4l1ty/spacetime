@@ -10,7 +10,8 @@ use crate::{
     panel_resolution_for_task, run_task, state_path,
 };
 use spacetime_bench::{
-    baseline_toml, resource_gate, resource_gate_intake, ResourceGateIntake, ResourceGateStatus,
+    baseline_profile, baseline_toml, profile_by_id, resource_gate, resource_gate_intake,
+    target_profiles, ProfileRole, ResourceGateIntake, ResourceGateStatus, BASELINE_TARGET_PROFILE,
 };
 use spacetime_exec::{RunStatus, Runner, ScriptedRunner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::Ledger;
@@ -142,6 +143,9 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     }));
     gates.push(capture("resource_gate_unmeasured", || {
         check_resource_gate(&root)
+    }));
+    gates.push(capture("target_profile_registry", || {
+        check_target_profile_registry(&root)
     }));
 
     let report = render_report(&gates, &intake);
@@ -1029,6 +1033,9 @@ fn check_measurement_intake(root: &TempRoot) -> Result<String> {
         shape_report.contains("measurement_evaluator = \"pass_shape_only\"")
             && shape_report.contains("resource_gate = \"unmeasured_target_4gb\"")
             && shape_report.contains("performance_claims = \"unmeasured\"")
+            && shape_report.contains("target_profile = \"4gb_potato\"")
+            && shape_report.contains("baseline_target_profile = \"4gb_potato\"")
+            && shape_report.contains("target_profile_registry = 3")
             && !shape_report.contains("resource_gate = \"measured"),
         "shape pass was promoted to a measured resource gate",
     )?;
@@ -1091,6 +1098,68 @@ fn check_resource_gate(root: &TempRoot) -> Result<String> {
     Ok("evaluator=unmeasured/fail/pass/non_target_host real_target_4gb=unmeasured".to_string())
 }
 
+fn check_target_profile_registry(root: &TempRoot) -> Result<String> {
+    let profiles = target_profiles();
+    ensure(profiles.len() == 3, "target profile registry lost a profile")?;
+    let baseline = baseline_profile();
+    ensure(
+        baseline.id == BASELINE_TARGET_PROFILE && baseline.role == ProfileRole::BaselineGate,
+        "release baseline profile is not the 4 GB potato gate",
+    )?;
+    ensure(
+        profiles
+            .iter()
+            .filter(|profile| profile.role == ProfileRole::BaselineGate)
+            .count()
+            == 1,
+        "target profile registry must have exactly one baseline gate",
+    )?;
+    ensure(
+        profiles
+            .iter()
+            .all(|profile| profile.memory_budget_kb >= baseline.memory_budget_kb),
+        "an optional profile lowered the release baseline",
+    )?;
+    let mut ids: Vec<&str> = profiles.iter().map(|profile| profile.id).collect();
+    ids.sort_unstable();
+    ids.dedup();
+    ensure(
+        ids.len() == profiles.len(),
+        "target profile registry contains duplicate ids",
+    )?;
+    let public = profile_by_id("8gb_reference")
+        .ok_or_else(|| SpacetimeError::new("8 GB public profile is not registered"))?;
+    let path = root.join("public-profile.measurement");
+    fs::write(
+        &path,
+        "schema_version=1\ntarget_profile=8gb_reference\nmeasurement_host=public-target-lab\npeak_rss_kb=6000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+    )?;
+    let gate = resource_gate(Some(path.as_path()))?;
+    ensure(
+        gate.status == ResourceGateStatus::Pass
+            && gate.target_profile == public.id
+            && gate.baseline_profile == BASELINE_TARGET_PROFILE
+            && gate.profile_role == ProfileRole::OptionalProfile
+            && gate.memory_budget_kb == public.memory_budget_kb,
+        "8 GB profile shape did not use its own budget while preserving the baseline",
+    )?;
+    let intake = resource_gate_intake(Some(path.as_path()));
+    let report = render_report(&[], &intake);
+    ensure(
+        report.contains("target_profile = \"8gb_reference\"")
+            && report.contains("baseline_target_profile = \"4gb_potato\"")
+            && report.contains("resource_gate = \"unmeasured_target_4gb\"")
+            && report.contains("profile_role = \"optional_profile\"")
+            && !report.contains("resource_gate = \"measured"),
+        "8 GB shape pass promoted the release gate or hid the baseline",
+    )?;
+    Ok(format!(
+        "profiles={} baseline={} optional=8gb_reference,16gb_developer release_gate=unmeasured",
+        profiles.len(),
+        baseline.id
+    ))
+}
+
 fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {
     let failed = gates.iter().filter(|gate| !gate.ok).count();
     let status = if failed == 0 { "pass" } else { "fail" };
@@ -1124,7 +1193,26 @@ fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {
         .map(|reason| quote(reason))
         .collect();
     out.push_str(&format!("measurement_reasons = [{}]\n", reasons.join(", ")));
-    out.push_str("target_profile = \"4gb_potato\"\n");
+    out.push_str(&format!(
+        "target_profile = {}\n",
+        quote(&intake.target_profile)
+    ));
+    out.push_str(&format!(
+        "baseline_target_profile = {}\n",
+        quote(&intake.baseline_profile)
+    ));
+    out.push_str(&format!(
+        "target_profile_registry = {}\n",
+        target_profiles().len()
+    ));
+    out.push_str(&format!(
+        "evaluated_memory_budget_kb = {}\n",
+        intake.memory_budget_kb
+    ));
+    out.push_str(&format!(
+        "profile_role = {}\n",
+        quote(intake.profile_role.as_str())
+    ));
     out.push_str("resource_law = \"holy_grail\"\n");
     out.push_str("ci_host = \"github_actions_not_target\"\n");
     out.push_str(&format!(

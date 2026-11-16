@@ -108,10 +108,27 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   evidence hashes, measurement definitions, operator/reviewer sign-off, and a bounded-file recipe.
   Filled copies and raw evidence stay out of band; no filled template is committed here.
 - Strict CI checks the collector's shell syntax and template presence; it does not run the collector
-  or treat CI runner host facts as target evidence. `verify --out` remains 25 gates and
+  or treat CI runner host facts as target evidence. `verify --out` had 25 gates at that point and
   `machine gate --measurement` remains shape-only at most.
 - `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
   `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
   provenance before any measured gate can be reported.
 - Strict push run `43831944305` verified 25 gates, all 14 CI steps, and the new kit checks; full
   evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.
+
+## Addendum — explicit target profiles (active branch `arena/3782c8f5-spacetime`)
+
+- Public release does not mean every target is a 4 GB machine. `bench/targets/profiles.tsv`
+  declares `4gb_potato` as the mandatory `baseline_gate`, plus `8gb_reference` and
+  `16gb_developer` as `optional_profile` entries. A larger profile never satisfies or replaces the
+  baseline.
+- `capture-host-facts.sh` requires an explicit `--profile`; it never infers a profile from detected
+  RAM. `PROVENANCE-TEMPLATE.md` records selected profile, machine identity, separate baseline
+  evidence, and out-of-band sign-off.
+- The CLI exposes `machine profiles`; `verify --out` adds a 26th `target_profile_registry` gate and
+  report fields for selected profile, baseline profile, registry count, evaluated budget, and role.
+  `machine gate` prints `release_gate=unmeasured` and `baseline_target_profile=4gb_potato`.
+- `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
+  `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
+  provenance before any measured gate can be reported. See `docs/ADR-0003-target-profiles.md`.
+- Strict CI evidence for this increment is recorded in `docs/VERIFICATION-2026-11-15.md`.

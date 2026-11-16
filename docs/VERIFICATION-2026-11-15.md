@@ -1,10 +1,10 @@
-# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake and PR #9 bug hunt — 2026-11-16 / measurement-provenance kit
+# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake and PR #9 bug hunt — 2026-11-16 / measurement-provenance kit / explicit target profiles
 
 ## Authoritative result and branch lineage
 
 - Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
 - Historical PR #9 branch: `arena/f3c65268-spacetime` (status `pr_open` at the time, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`); merged at `90ceeb20db603c52e313ef718b82710241ad6080`. The measurement-intake increment and PR #9 bug hunt below are verified by strict CI runs `43818080975` and `43829073730`, with strict `main` CI run `43829756506` after merge.
-- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its measurement-provenance kit and branch hygiene; details are in the final section below.
+- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its 25-gate measurement-provenance kit; the following 26-gate explicit-target-profile increment is recorded in the final section below.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -163,8 +163,9 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 
 1. Live separate-model adversarial tests that must survive the mutation gate and independence rules.
 2. Full 50-rerun operator-population studies on real operators, not synthetic kinds or fixtures.
-3. Measured 4 GB resource gate on the recorded target machine, including cold boot, tab switch,
-   peak RSS, and CPU/latency numbers.
+3. Measured 4 GB baseline resource gate on the recorded target machine, including cold boot, tab
+   switch, peak RSS, and CPU/latency numbers, plus separate evidence for any optional public
+   profiles.
 4. A complete execution boundary for real `net=none` and untrusted guest code, deferred to the later
    Ark/quarantine blocks; the local `LD_PRELOAD` shim is not that boundary.
 5. Block 2 was merged to `main` via PR #8 at the user's explicit request after strict CI passed.
@@ -277,3 +278,31 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   collector argument, and provenance-template checks.
 - Documentation head: the commit containing this file. Docs-only evidence changes after `9ab7c2a`
   do not alter validated code and are covered by the strict push workflow for this head.
+
+## Current increment — explicit target profiles for public release
+
+- Active branch: `arena/3782c8f5-spacetime` (status `active`, base
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). PR #9 and the 25-gate provenance kit are
+  merged/history increments described above; this increment adds a 26th gate.
+- User correction: public release must not assume every target is a 4 GB machine. `4gb_potato`
+  remains the mandatory First Law baseline; `8gb_reference` and `16gb_developer` are additive
+  optional profiles. Profiles are explicit registry entries, never inferred from detected RAM.
+- Added `bench/targets/profiles.tsv` as the single source of truth for profile IDs, memory labels,
+  memory/boot/tab-switch/CPU budgets, and roles. `spacetime-ctl machine profiles` and
+  `capture-host-facts.sh --list-profiles` expose the registry. The collector now requires
+  `--profile <registered-id>`, rejects missing/unknown/duplicate/flag-like values, and prints the
+  selected profile plus the unchanged baseline profile.
+- Generalized `resource_gate`, `bounded_resource_gate`, and `resource_gate_intake` to evaluate a
+  measurement file against the selected profile's budget. The report now prints `target_profile`,
+  `baseline_target_profile`, `target_profile_registry`, `evaluated_memory_budget_kb`, and
+  `profile_role`; `machine gate` prints `release_gate=unmeasured` and the baseline profile. A
+  shape-only 8 GB pass never promotes the 4 GB baseline gate.
+- Added a 26th `target_profile_registry` end-to-end gate and strict CI smokes for the 8 GB profile,
+  `machine profiles`, collector argument rejection/list modes, and generated baseline host facts.
+  Historical 25-gate strict runs remain distinct from this 26-gate increment.
+- No target measurement file, filled provenance record, or physical attestation is committed.
+  `resource_gate = "unmeasured_target_4gb"`, `release_gate=unmeasured`, and
+  `performance_claims = "unmeasured"` remain. `pass_shape_only` is not a measured gate; a later
+  reviewed code path must consume accepted physical provenance before any measured gate can be
+  reported.
+- Strict CI evidence for this increment will be appended after the push workflow passes.

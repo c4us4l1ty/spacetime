@@ -1,0 +1,4 @@
+# id	memory_label	memory_budget_kb	boot_budget_ms	tab_switch_budget_ms	cpu_budget_percent	role
+4gb_potato	4 GB	4194304	1000	1000	100	baseline_gate
+8gb_reference	8 GB	8388608	1000	1000	100	optional_profile
+16gb_developer	16 GB	16777216	1000	1000	100	optional_profile
