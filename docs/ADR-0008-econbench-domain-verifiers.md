@@ -1,7 +1,7 @@
 # ADR-0008 — Add deterministic domain-case verifiers to EconBench
 
 Date: 2026-11-16
-Status: implemented; CI validation pending.
+Status: implemented; strict CI passed on `ebedc1945c2009e69fe3a6f0038907c30b6eca55` (run `43857257962`).
 
 ## Context
 
@@ -40,5 +40,6 @@ they are not WASM task skeletons or candidate code-repair tasks.
 
 Manifest audit confirmed 20 unique case IDs with offline network metadata and verifier-source labels
 matching the registered verifier families. Rust formatting and `git diff --check` passed locally;
-the local environment has no Rust toolchain. Strict CI compilation, tests, and end-to-end EconBench
-validation are pending.
+the local environment has no Rust toolchain. Strict CI run `43857257962` passed all 14 steps on
+`ebedc1945c2009e69fe3a6f0038907c30b6eca55`, including Clippy, workspace tests, release build, and
+Block 3 offline EconBench validation.
