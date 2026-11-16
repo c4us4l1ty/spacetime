@@ -82,6 +82,7 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
     let text = fs::read_to_string(path)?;
     let mut metadata: BTreeMap<String, String> = BTreeMap::new();
     let mut measurements: BTreeMap<String, u64> = BTreeMap::new();
+    let mut seen = BTreeSet::new();
     for raw_line in text.lines() {
         let line = raw_line.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -92,6 +93,11 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
             .ok_or_else(|| SpacetimeError::new(format!("invalid measurement line: {line}")))?;
         let key = key.trim().to_string();
         let value = value.trim();
+        if !seen.insert(key.clone()) {
+            return Err(SpacetimeError::new(format!(
+                "duplicate measurement key: {key}"
+            )));
+        }
         if key == "schema_version" || key == "target_profile" || key == "measurement_host" {
             metadata.insert(key, value.to_string());
         } else {
@@ -157,6 +163,17 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
     Ok(gate)
 }
 
+/// Bounded evaluator for `machine gate --measurement`. It preserves budget-arithmetic
+/// failures but never establishes physical provenance.
+pub fn bounded_resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
+    let Some(path) = measurement_path else {
+        return resource_gate(None);
+    };
+    let text = read_bounded_measurement(path).map_err(SpacetimeError::new)?;
+    validate_measurement_shape(&text).map_err(SpacetimeError::new)?;
+    resource_gate(Some(path))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResourceGateIntake {
     pub file_supplied: bool,
@@ -184,6 +201,7 @@ pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateInta
     let text = match read_bounded_measurement(path) {
         Ok(text) => text,
         Err(reason) => {
+            intake.digest = "unavailable".to_string();
             intake.reasons = vec![reason];
             return intake;
         }
@@ -479,6 +497,41 @@ mod tests {
             .iter()
             .any(|reason| reason.contains("no measurement")));
         Ok(())
+    }
+
+    #[test]
+    fn resource_gate_rejects_duplicate_metadata_keys() -> Result<()> {
+        let path = temp_measurement(
+            "duplicate-host",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n",
+        )?;
+        let result = resource_gate(Some(path.as_path()));
+        let _ = fs::remove_file(&path);
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn bounded_resource_gate_rejects_oversize_file() -> Result<()> {
+        let path = temp_measurement("bounded-oversize", &"a".repeat(70_000))?;
+        let result = bounded_resource_gate(Some(path.as_path()));
+        let _ = fs::remove_file(&path);
+        assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn intake_marks_unreadable_digest_unavailable() {
+        let missing = std::env::temp_dir().join(format!(
+            "spacetime-missing-measurement-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_file(&missing);
+        let intake = resource_gate_intake(Some(missing.as_path()));
+        assert!(intake.file_supplied);
+        assert_eq!(intake.status, ResourceGateStatus::Unmeasured);
+        assert_eq!(intake.digest, "unavailable");
+        assert!(intake.reasons.iter().any(|r| r.contains("unreadable")));
     }
 
     #[test]

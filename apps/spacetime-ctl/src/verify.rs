@@ -866,6 +866,38 @@ fn check_cli_input_validation(root: &TempRoot) -> Result<String> {
         cmd_machine_gate(&["--measurement".to_string()]),
         "missing measurement value",
     )?;
+    ensure_rejected(
+        parse_verify_args(&[
+            "--out".to_string(),
+            "a".to_string(),
+            "--out".to_string(),
+            "b".to_string(),
+        ])
+        .map(|_| ()),
+        "duplicate verify --out",
+    )?;
+    ensure_rejected(
+        parse_verify_args(&[
+            "--out".to_string(),
+            "a".to_string(),
+            "--measurement".to_string(),
+            "m1".to_string(),
+            "--measurement".to_string(),
+            "m2".to_string(),
+        ])
+        .map(|_| ()),
+        "duplicate verify --measurement",
+    )?;
+    ensure_rejected(
+        parse_verify_args(&[
+            "--out".to_string(),
+            "a".to_string(),
+            "--bogus".to_string(),
+            "b".to_string(),
+        ])
+        .map(|_| ()),
+        "unknown verify flag",
+    )?;
 
     let mismatch = root.join("expected-verdict-mismatch.task");
     fs::write(
@@ -880,7 +912,7 @@ fn check_cli_input_validation(root: &TempRoot) -> Result<String> {
         cmd_crucible_verify(&["--task".to_string(), hello]).is_ok(),
         "valid crucible verify was rejected",
     )?;
-    Ok("rejected_cases=7 valid_verify=accepted".to_string())
+    Ok("rejected_cases=10 valid_verify=accepted".to_string())
 }
 
 fn check_measurement_intake(root: &TempRoot) -> Result<String> {
@@ -916,7 +948,7 @@ fn check_measurement_intake(root: &TempRoot) -> Result<String> {
             true,
         ),
         (
-            "synthetic-host.measurement",
+            "intake-synthetic-host.measurement",
             "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n",
             true,
         ),
@@ -952,6 +984,23 @@ fn check_measurement_intake(root: &TempRoot) -> Result<String> {
             format!("{name} produced a measured report claim"),
         )?;
     }
+
+    let missing = root.join("missing-file.measurement");
+    let missing_intake = resource_gate_intake(Some(missing.as_path()));
+    ensure(
+        missing_intake.digest == "unavailable"
+            && missing_intake
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("unreadable")),
+        "unreadable measurement file lost its unavailable digest or reason",
+    )?;
+    let missing_report = render_report(&[], &missing_intake);
+    ensure(
+        missing_report.contains("measurement_digest = \"unavailable\"")
+            && missing_report.contains("measurement_evaluator = \"unmeasured\""),
+        "unreadable measurement file produced a measured digest or evaluator",
+    )?;
 
     let oversize = root.join("oversize.measurement");
     fs::write(&oversize, "a".repeat(70_000))?;
