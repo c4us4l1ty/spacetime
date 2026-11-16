@@ -18,8 +18,7 @@ pub const TARGET_MEMORY_BUDGET_KB: u64 = 4 * 1024 * 1024;
 pub const BOOT_BUDGET_MILLIS: u64 = 1_000;
 pub const TAB_SWITCH_BUDGET_MILLIS: u64 = 1_000;
 pub const CPU_BUDGET_PERCENT: u64 = 100;
-pub const PROFILE_REGISTRY_TSV: &str =
-    include_str!("../../../bench/targets/profiles.tsv");
+pub const PROFILE_REGISTRY_TSV: &str = include_str!("../../../bench/targets/profiles.tsv");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProfileRole {

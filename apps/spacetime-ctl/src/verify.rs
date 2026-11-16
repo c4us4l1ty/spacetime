@@ -609,8 +609,20 @@ fn check_determinism_profile(_root: &TempRoot) -> Result<String> {
 fn check_machine_baseline() -> Result<String> {
     let toml = baseline_toml()?;
     ensure(
-        toml.contains("baseline_only_performance_claims_unmeasured"),
+        toml.contains("host_facts_only_performance_claims_unmeasured"),
         "machine baseline does not mark performance claims unmeasured",
+    )?;
+    ensure(
+        toml.contains("host_profile = \"unspecified\""),
+        "machine baseline inferred a target profile from host facts",
+    )?;
+    ensure(
+        toml.contains("release_baseline_profile = \"4gb_potato\""),
+        "machine baseline lost the 4 GB release gate",
+    )?;
+    ensure(
+        toml.contains("profile_count = 3"),
+        "machine baseline lost the explicit profile registry",
     )?;
     ensure(
         toml.contains("resource_law = \"holy_grail\""),
@@ -620,7 +632,7 @@ fn check_machine_baseline() -> Result<String> {
         !toml.contains("boot_ms"),
         "machine baseline made an unapproved boot-time claim",
     )?;
-    Ok("resource_gate=unmeasured_target_4gb host_facts_only".to_string())
+    Ok("resource_gate=unmeasured_target_4gb host_facts_only profiles=3".to_string())
 }
 
 fn check_determinism_controls() -> Result<String> {
@@ -1100,7 +1112,10 @@ fn check_resource_gate(root: &TempRoot) -> Result<String> {
 
 fn check_target_profile_registry(root: &TempRoot) -> Result<String> {
     let profiles = target_profiles();
-    ensure(profiles.len() == 3, "target profile registry lost a profile")?;
+    ensure(
+        profiles.len() == 3,
+        "target profile registry lost a profile",
+    )?;
     let baseline = baseline_profile();
     ensure(
         baseline.id == BASELINE_TARGET_PROFILE && baseline.role == ProfileRole::BaselineGate,
