@@ -420,34 +420,51 @@ mod tests {
         use std::thread;
         use std::time::Duration;
 
+        fn run_guest(kernel: &str, initramfs: &str, commands: &'static [u8]) -> String {
+            let mut child = sandbox_command(Path::new(kernel), Path::new(initramfs), false)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .unwrap();
+            let mut stdin = child.stdin.take().unwrap();
+            let writer = thread::spawn(move || {
+                thread::sleep(Duration::from_secs(25));
+                stdin.write_all(commands)
+            });
+            let output = child.wait_with_output().unwrap();
+            writer.join().unwrap().unwrap();
+            let stdout = String::from_utf8_lossy(&output.stdout).replace('\r', "");
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            assert!(
+                output.status.success(),
+                "stdout: {stdout}\nstderr: {stderr}"
+            );
+            stdout
+        }
+
         let kernel = std::env::var("SPACETIME_GUEST_KERNEL").unwrap();
         let initramfs = std::env::var("SPACETIME_GUEST_INITRAMFS").unwrap();
-        let mut child = sandbox_command(Path::new(&kernel), Path::new(&initramfs), false)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .unwrap();
-        let mut stdin = child.stdin.take().unwrap();
-        let writer = thread::spawn(move || {
-            thread::sleep(Duration::from_secs(25));
-            stdin.write_all(b"app\nif [ -z \"$(ls /sys/class/net | grep -v '^lo$')\" ]; then echo SPACETIME_OFFLINE_OK; fi\nexit\n")
-        });
-        let output = child.wait_with_output().unwrap();
-        let _ = writer.join();
-        let stdout = String::from_utf8_lossy(&output.stdout).replace('\r', "");
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(
-            output.status.success(),
-            "stdout: {stdout}\nstderr: {stderr}"
+        let first = run_guest(&kernel, &initramfs,
+            b"app\nif [ -z \"$(ls /sys/class/net | grep -v '^lo$')\" ]; then echo SPACETIME_OFFLINE_OK; fi\ntouch /tmp/spacetime-canary; test -f /tmp/spacetime-canary && echo SPACETIME_WRITE_OK\nexit\n");
+        for marker in [
+            "SPACETIME_APP_OK",
+            "SPACETIME_OFFLINE_OK",
+            "SPACETIME_WRITE_OK",
+        ] {
+            assert!(
+                first.lines().any(|line| line == marker),
+                "missing {marker}: {first}"
+            );
+        }
+        let second = run_guest(
+            &kernel,
+            &initramfs,
+            b"test ! -e /tmp/spacetime-canary && echo SPACETIME_DISPOSABLE_OK\nexit\n",
         );
         assert!(
-            stdout.lines().any(|line| line == "SPACETIME_APP_OK"),
-            "{stdout}"
-        );
-        assert!(
-            stdout.lines().any(|line| line == "SPACETIME_OFFLINE_OK"),
-            "{stdout}"
+            second.lines().any(|line| line == "SPACETIME_DISPOSABLE_OK"),
+            "{second}"
         );
     }
 
