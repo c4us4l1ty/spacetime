@@ -1,9 +1,9 @@
-# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16
+# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake — 2026-11-16
 
 ## Authoritative result
 
 - Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
-- Current active branch: `arena/f3c65268-spacetime` (status `active`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). The measurement-intake increment below is pending strict CI evidence.
+- Current active branch: `arena/f3c65268-spacetime` (status `active`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). The measurement-intake increment below is verified by strict CI run `43818080975`.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -17,8 +17,9 @@
 - Local Rust toolchain: unavailable. GitHub Actions with committed `Cargo.lock` and `--locked`
   invocations was the compiler and verifier. A local `cc` was used only to sanity-check the C shim
   before commit.
-- Documentation head: the commit containing this file. Any changes after `969d5cf` are
-  documentation-only and are covered by a further strict CI run; they do not alter the validated code.
+- Historical PR #8 documentation head: the commit containing this file. Any changes after `969d5cf`
+  on that branch were documentation-only and were covered by a further strict CI run; they did not
+  alter the validated code.
 - Merged to `main` via PR #8 at explicit user request. `main` was updated from Block 1 merge
   `d30a31508aecc675be6661d85e38c1b95c12bb06`. The measured 4 GB resource gate remains outstanding,
   so this is a functional merge, not a resource sign-off.
@@ -168,16 +169,32 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 5. Block 2 was merged to `main` via PR #8 at the user's explicit request after strict CI passed.
    Under the First Law, Block 2 is still not `DONE` until the measured 4 GB target budget is proven.
 
-## Current increment — hygiene + measurement intake (strict CI pending)
+## Current increment — hygiene + measurement intake (strict CI verified)
 
 - Active branch: `arena/f3c65268-spacetime`, status `active`, base `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70`.
-- Scope: fix stale branch/status docs; add bounded `verify --measurement <file>` intake; add a
-  25th `measurement_intake` gate; keep `resource_gate = "unmeasured_target_4gb"` and
-  `performance_claims = "unmeasured"` unless the recorded 4 GB machine is measured with
-  out-of-band physical provenance.
-- No real target measurement file is committed. CI-host, synthetic-host, wrong-profile,
-  incomplete, malformed, and oversized files stay unmeasured; a within-budget file is only
-  `pass_shape_only`.
-- Strict GitHub Actions run, job, and 25-gate report evidence will be recorded here after the
-  final strict run succeeds. The historical 24-gate result above belongs to PR #8 and is not
-  evidence for this increment.
+- Strict code head: `d0d6ce662e3f2ed28bfdd20b9be0d8963dc58263`.
+- Strict GitHub Actions run `43818080975`, job `133134609083`: all 14 numbered steps succeeded —
+  Set up job, Checkout, Install Rust, Format, `clippy --workspace --all-targets --locked --
+  -D warnings`, Tests, Release build, three CLI smokes, Crucible smoke, **End-to-end
+  verification**, **Measurement intake smoke**, and Machine baseline; post-job steps also
+  succeeded. The workflow has no `continue-on-error` and no relaxed Clippy; committed
+  `Cargo.lock` and `--locked` are authoritative.
+- `spacetime-ctl verify --out target/verify.toml` passed with `status = "pass"`, `gates = 25`,
+  `failed = 0`, `resource_gate = "unmeasured_target_4gb"`,
+  `performance_claims = "unmeasured"`, `measurement_intake = "none"`,
+  `measurement_evaluator = "none"`, `measurement_digest = "none"`, and the new
+  `measurement_intake` gate. All other 24 PR #8 gates still pass.
+- `verify --measurement` smoke cases: CI-host file → `measurement_evaluator = "unmeasured"` with
+  a `non-target host` reason; non-numeric value → `unmeasured` with `bounded unsigned integer`;
+  70,000-byte file → `unmeasured` with `64 KiB bound`; within-budget shape file →
+  `pass_shape_only` while `resource_gate` and `performance_claims` stay unmeasured and reasons
+  include `physical provenance out of band`.
+- No real target measurement file is committed. Physical provenance remains out of band; this is
+  bounded measurement intake, **not** a measured 4 GB resource gate or a performance claim.
+- The stale branch/status, README, BUILD-PLAN, and plan next-step text are corrected for the
+  active f3 branch; PR #8's 24-gate result above remains historical evidence, not evidence for
+  this increment.
+- Submitted as a PR; not merged to `main` unless explicitly requested.
+- A temporary diagnostic workflow at `23db3ea` (run `43817571481`, job `133133013340`) used
+  `continue-on-error` only to collect rustfmt/Clippy findings in one pass. Strict CI was restored
+  at `d0d6ce6`; that diagnostic run is **not** authoritative.

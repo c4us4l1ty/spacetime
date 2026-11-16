@@ -87,4 +87,6 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
 - `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
   A within-budget file is `pass_shape_only`: file shape and budget arithmetic are not physical
   provenance, which must be recorded out of band before any measured gate claim.
-- This addendum is a PR-only increment; it is not merged to `main` without an explicit request.
+- Strict CI run `43818080975` (job `133134609083`) verified 25 gates, including the bounded
+  intake smoke cases. This addendum is a PR-only increment; it is not merged to `main` without an
+  explicit request.

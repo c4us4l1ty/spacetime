@@ -76,7 +76,8 @@ sign-off.
 The active branch is `arena/f3c65268-spacetime` (status `active`, branched from
 `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). Its small hygiene + measurement-intake
 increment adds a 25th `measurement_intake` gate, bounded `verify --measurement <file>` file
-handling, and report fields derived from the evaluated file. The report keeps
+handling, and report fields derived from the evaluated file. Strict CI run `43818080975` verified
+all 25 gates. The report keeps
 `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"`; a within-budget
 file is labelled `pass_shape_only` until the recorded 4 GB machine is measured and physical
 provenance is recorded out of band. No target measurement file is committed. This increment is

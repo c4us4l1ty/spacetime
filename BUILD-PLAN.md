@@ -1,6 +1,6 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 and Block 2 bug-hunt fixes merged to `main` via PR #8; 24 gates verified there; 4 GB resource gate unmeasured. Current branch adds a measurement-intake increment (25 gates in strict CI).
+**Status:** active roadmap; Block 1 and Block 2 bug-hunt fixes merged to `main` via PR #8; 24 gates verified there; 4 GB resource gate unmeasured. Current branch adds a measurement-intake increment (25 gates verified in strict CI run `43818080975`).
 **Date:** 2026-11-15
 **Branch:** `arena/f3c65268-spacetime` (status `active`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`; PRs #7 and #8 are merged history)
 
