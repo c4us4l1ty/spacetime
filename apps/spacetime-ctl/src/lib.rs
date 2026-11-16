@@ -46,6 +46,7 @@ Commands:
   console --ledger <file> --out <file>
   dashboard [ledger-file]
   workspace
+  space doctor
   space run --experimental --kernel <file> --busybox <file> [--app <file>]
   space boot --experimental --kernel <file> --initramfs <file>
   space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>

@@ -46,6 +46,33 @@ host file share configured. This is not a verified security guarantee, and neith
 nor the 4 GB resource target has been validated on the target machine. See the experimental VM
 section below for kernel and guest requirements.
 
+## Try the experimental Linux workspace
+
+Spacetime is still a prototype, **not a finished MVP or a malware-safe product**. The current
+workspace can run one trusted static Linux terminal program in an offline disposable VM. It does
+not yet run normal desktop apps, provide a graphical tabbed interface, or include the AI features.
+
+On an x86-64 Linux computer, install Rust 1.75 or newer, QEMU, bubblewrap, and util-linux. On
+Debian or Ubuntu, the system packages can be installed with:
+
+```sh
+sudo apt install qemu-system-x86 bubblewrap busybox-static util-linux
+cargo run --locked -p spacetime-ctl -- space doctor
+cargo run --locked -p spacetime-ctl -- workspace
+```
+
+The workspace asks for a readable, compatible Linux kernel, a static BusyBox binary (typically
+`/bin/busybox` on Debian/Ubuntu), and optionally a trusted static terminal program. In the guest,
+type `app` to start the supplied program and `exit` to shut down the guest. Do **not** run
+Spacetime with `sudo`: your normal user needs access to `/dev/kvm`. Some systems restrict
+unprivileged user namespaces or access to `/boot`; `space doctor` checks the basic host
+requirements, but cannot verify the supplied kernel, complete security, or 4 GB performance.
+
+The monitor is isolated from host networking and home files where supported, but this has not
+been verified against hostile software. Do **not** use the prototype to run malware or untrusted
+apps. Guest memory, terminal output, and crash or swap data may leave traces on the host. See the
+experimental VM section below for the full requirements and limitations.
+
 ## Development — Block 1
 
 GitHub Actions is the compiler for this repository. The first Rust slice is intentionally small and

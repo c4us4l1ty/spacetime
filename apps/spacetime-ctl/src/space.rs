@@ -178,7 +178,114 @@ fn require_program(path: &str, package: &str) -> Result<()> {
     Ok(())
 }
 
+fn require_unprivileged() -> Result<()> {
+    let status = fs::read_to_string("/proc/self/status")?;
+    let effective = status
+        .lines()
+        .find_map(|line| line.strip_prefix("Uid:"))
+        .and_then(|line| line.split_whitespace().nth(1))
+        .ok_or_else(|| SpacetimeError::new("cannot determine effective user ID"))?;
+    if effective == "0" {
+        return Err(SpacetimeError::new(
+            "do not run Spacetime as root; configure access to /dev/kvm for your normal user",
+        ));
+    }
+    Ok(())
+}
+
+fn namespace_probe() -> Result<()> {
+    let status = Command::new("/usr/bin/bwrap")
+        .env_clear()
+        .args([
+            "--unshare-all",
+            "--die-with-parent",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--ro-bind-try",
+            "/bin",
+            "/bin",
+            "--ro-bind-try",
+            "/lib",
+            "/lib",
+            "--ro-bind-try",
+            "/lib64",
+            "/lib64",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--tmpfs",
+            "/tmp",
+            "--",
+            "/usr/bin/true",
+        ])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()?;
+    if !status.success() {
+        return Err(SpacetimeError::new(
+            "bubblewrap could not create the required namespaces",
+        ));
+    }
+    Ok(())
+}
+
+fn doctor(args: &[String]) -> Result<()> {
+    if !args.is_empty() {
+        return Err(SpacetimeError::new("usage: space doctor"));
+    }
+    println!("Spacetime experimental workspace checks");
+    let mut failed = false;
+    let mut check = |name: &str, result: Result<()>| match result {
+        Ok(()) => println!("  OK      {name}"),
+        Err(error) => {
+            println!("  MISSING {name}: {error}");
+            failed = true;
+        }
+    };
+    check(
+        "Linux x86-64",
+        if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+            Ok(())
+        } else {
+            Err(SpacetimeError::new("a Linux x86-64 host is required"))
+        },
+    );
+    check("normal user", require_unprivileged());
+    check(
+        "KVM access",
+        OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open("/dev/kvm")
+            .map(|_| ())
+            .map_err(|error| SpacetimeError::new(error.to_string())),
+    );
+    check(
+        "QEMU",
+        require_program("/usr/bin/qemu-system-x86_64", "QEMU"),
+    );
+    check(
+        "bubblewrap",
+        require_program("/usr/bin/bwrap", "bubblewrap"),
+    );
+    check(
+        "prlimit",
+        require_program("/usr/bin/prlimit", "util-linux prlimit"),
+    );
+    check("sandbox namespaces", namespace_probe());
+    println!("Guest kernel and static BusyBox must still be supplied; this check does not prove security or performance.");
+    if failed {
+        return Err(SpacetimeError::new("workspace requirements are not met"));
+    }
+    Ok(())
+}
+
 pub fn cmd_space(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("doctor") {
+        return doctor(&args[1..]);
+    }
     if args.first().map(String::as_str) == Some("run") {
         return crate::workspace::cmd_run(&args[1..]);
     }
@@ -191,6 +298,7 @@ pub fn cmd_space(args: &[String]) -> Result<()> {
             "the experimental VM requires Linux on x86-64 with KVM",
         ));
     }
+    require_unprivileged()?;
     let kernel = regular_file(&parsed.kernel, "kernel")?;
     let initramfs = regular_file(&parsed.initramfs, "initramfs")?;
     OpenOptions::new()
