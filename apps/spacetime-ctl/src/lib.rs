@@ -45,7 +45,7 @@ Commands:
   console --ledger <file> --out <file>
   dashboard [ledger-file]
   space boot --experimental --kernel <file> --initramfs <file>
-  space initramfs --busybox <static-binary> --out <new-file>
+  space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>
   machine
   machine profiles
   machine gate [--measurement <file>]

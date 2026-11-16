@@ -166,3 +166,9 @@ required drivers must be built into the kernel rather than supplied as modules. 
 `exit` asks BusyBox to power off. This is a minimal shell, not yet an app installer or desktop.
 These steps have not yet been boot-tested on a physical KVM machine; see the safety limitations
 above. The image contains the supplied executable, so use only software you trust.
+
+To include one trusted, statically linked x86-64 terminal program in the image, add
+`--app /path/to/program` when creating it. Once the guest shell starts, run it by typing `app`.
+Dynamic executables, graphical apps, and programs requiring files outside the image are not yet
+supported. The generated image remains on the host and includes the program; remove that image
+when it is no longer wanted.

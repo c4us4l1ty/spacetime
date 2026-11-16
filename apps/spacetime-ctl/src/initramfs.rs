@@ -4,7 +4,7 @@
 use spacetime_types::{Result, SpacetimeError};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const MAX_BUSYBOX: u64 = 32 * 1024 * 1024;
 const INIT: &str = "#!/bin/sh\n\
@@ -20,15 +20,25 @@ const APPLETS: &[&str] = &[
     "poweroff", "dmesg", "grep", "find", "sleep", "vi",
 ];
 
-fn parse_args(args: &[String]) -> Result<(PathBuf, PathBuf)> {
-    let usage = "usage: space initramfs --busybox <static-binary> --out <new-file>";
+#[derive(Debug, PartialEq, Eq)]
+struct ImageArgs {
+    busybox: PathBuf,
+    output: PathBuf,
+    app: Option<PathBuf>,
+}
+
+fn parse_args(args: &[String]) -> Result<ImageArgs> {
+    let usage =
+        "usage: space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>";
     let mut busybox = None;
     let mut out = None;
+    let mut app = None;
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
         let slot = match arg.as_str() {
             "--busybox" => &mut busybox,
             "--out" => &mut out,
+            "--app" => &mut app,
             _ => {
                 return Err(SpacetimeError::new(format!(
                     "unexpected argument: {arg}\n{usage}"
@@ -43,17 +53,23 @@ fn parse_args(args: &[String]) -> Result<(PathBuf, PathBuf)> {
             return Err(SpacetimeError::new(format!("duplicate {arg}")));
         }
     }
-    Ok((
-        busybox.ok_or_else(|| SpacetimeError::new(format!("missing --busybox\n{usage}")))?,
-        out.ok_or_else(|| SpacetimeError::new(format!("missing --out\n{usage}")))?,
-    ))
+    Ok(ImageArgs {
+        busybox: busybox
+            .ok_or_else(|| SpacetimeError::new(format!("missing --busybox\n{usage}")))?,
+        output: out.ok_or_else(|| SpacetimeError::new(format!("missing --out\n{usage}")))?,
+        app,
+    })
 }
 
 // The ELF interpreter segment indicates a dynamically linked binary, which cannot start in
 // our image because it contains no dynamic loader or libraries. This is an integrity check,
 // not a trust or security check of the supplied executable.
-fn validate_busybox(data: &[u8]) -> Result<()> {
-    let invalid = || SpacetimeError::new("BusyBox must be a static x86-64 Linux ELF executable");
+fn validate_elf(data: &[u8], name: &str) -> Result<()> {
+    let invalid = || {
+        SpacetimeError::new(format!(
+            "{name} must be a static x86-64 Linux ELF executable"
+        ))
+    };
     if data.len() < 64
         || &data[..6] != b"\x7fELF\x02\x01"
         || u16::from_le_bytes([data[18], data[19]]) != 62
@@ -115,8 +131,11 @@ fn entry(archive: &mut Vec<u8>, name: &str, mode: u32, contents: &[u8], rdev: (u
     }
 }
 
-fn build_archive(busybox: &[u8]) -> Result<Vec<u8>> {
-    validate_busybox(busybox)?;
+fn build_archive(busybox: &[u8], app: Option<&[u8]>) -> Result<Vec<u8>> {
+    validate_elf(busybox, "BusyBox")?;
+    if let Some(app) = app {
+        validate_elf(app, "app")?;
+    }
     let mut archive = Vec::new();
     for dir in ["bin", "dev", "proc", "sys", "tmp"] {
         entry(&mut archive, dir, 0o040755, &[], (0, 0));
@@ -124,6 +143,9 @@ fn build_archive(busybox: &[u8]) -> Result<Vec<u8>> {
     entry(&mut archive, "dev/console", 0o020600, &[], (5, 1));
     entry(&mut archive, "dev/null", 0o020666, &[], (1, 3));
     entry(&mut archive, "bin/busybox", 0o100755, busybox, (0, 0));
+    if let Some(app) = app {
+        entry(&mut archive, "bin/app", 0o100755, app, (0, 0));
+    }
     for applet in APPLETS {
         entry(
             &mut archive,
@@ -138,32 +160,44 @@ fn build_archive(busybox: &[u8]) -> Result<Vec<u8>> {
     Ok(archive)
 }
 
-pub fn cmd_initramfs(args: &[String]) -> Result<()> {
-    let (input, output) = parse_args(args)?;
-    let source = File::open(&input)?;
+fn read_binary(path: &Path, name: &str) -> Result<Vec<u8>> {
+    let source = File::open(path)?;
     let metadata = source.metadata()?;
     if !metadata.is_file() || metadata.len() > MAX_BUSYBOX {
-        return Err(SpacetimeError::new(
-            "BusyBox must be a regular file no larger than 32 MiB",
-        ));
+        return Err(SpacetimeError::new(format!(
+            "{name} must be a regular file no larger than 32 MiB"
+        )));
     }
     let mut data = Vec::new();
     source.take(MAX_BUSYBOX + 1).read_to_end(&mut data)?;
-    // Limit the read even if the input grows after the metadata check.
     if data.len() as u64 > MAX_BUSYBOX {
-        return Err(SpacetimeError::new("BusyBox is larger than 32 MiB"));
+        return Err(SpacetimeError::new(format!("{name} is larger than 32 MiB")));
     }
-    let archive = build_archive(&data)?;
+    Ok(data)
+}
+
+pub fn cmd_initramfs(args: &[String]) -> Result<()> {
+    let parsed = parse_args(args)?;
+    let busybox = read_binary(&parsed.busybox, "BusyBox")?;
+    let app = parsed
+        .app
+        .as_deref()
+        .map(|path| read_binary(path, "app"))
+        .transpose()?;
+    let archive = build_archive(&busybox, app.as_deref())?;
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(&output)?;
+        .open(&parsed.output)?;
     if let Err(error) = file.write_all(&archive).and_then(|()| file.sync_all()) {
         drop(file);
-        let _ = fs::remove_file(&output);
+        let _ = fs::remove_file(&parsed.output);
         return Err(error.into());
     }
-    println!("Created experimental initramfs: {}", output.display());
+    println!(
+        "Created experimental initramfs: {}",
+        parsed.output.display()
+    );
     Ok(())
 }
 
@@ -185,19 +219,19 @@ mod tests {
     #[test]
     fn rejects_dynamic_wrong_arch_and_truncated_images() {
         let mut binary = elf();
-        assert!(validate_busybox(&binary).is_ok());
+        assert!(validate_elf(&binary, "BusyBox").is_ok());
         binary[64] = 3;
-        assert!(validate_busybox(&binary).is_err());
+        assert!(validate_elf(&binary, "BusyBox").is_err());
         binary[64] = 1;
         binary[18] = 40;
-        assert!(validate_busybox(&binary).is_err());
-        assert!(validate_busybox(&elf()[..80]).is_err());
+        assert!(validate_elf(&binary, "BusyBox").is_err());
+        assert!(validate_elf(&elf()[..80], "BusyBox").is_err());
     }
 
     #[test]
     fn archive_contains_boot_files_and_is_deterministic() {
-        let archive = build_archive(&elf()).unwrap();
-        assert_eq!(archive, build_archive(&elf()).unwrap());
+        let archive = build_archive(&elf(), None).unwrap();
+        assert_eq!(archive, build_archive(&elf(), None).unwrap());
         assert_eq!(&archive[..6], b"070701");
         for expected in [
             "bin/busybox\0",
@@ -215,7 +249,7 @@ mod tests {
     #[test]
     fn archive_headers_describe_bootable_entries() {
         use std::collections::BTreeMap;
-        let archive = build_archive(&elf()).unwrap();
+        let archive = build_archive(&elf(), None).unwrap();
         let mut entries = BTreeMap::new();
         let mut pos = 0;
         loop {
@@ -266,6 +300,19 @@ mod tests {
         assert!(cmd_initramfs(&args).is_err());
         assert_eq!(fs::read(&output).unwrap(), b"keep me");
         fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn optional_app_is_included_and_dynamic_apps_are_rejected() {
+        let archive = build_archive(&elf(), Some(&elf())).unwrap();
+        assert!(archive
+            .windows(b"bin/app\0".len())
+            .any(|w| w == b"bin/app\0"));
+        let mut dynamic = elf();
+        dynamic[64] = 3;
+        assert!(build_archive(&elf(), Some(&dynamic)).is_err());
+        let args = ["--busybox", "b", "--app", "a", "--out", "o"].map(str::to_string);
+        assert_eq!(parse_args(&args).unwrap().app, Some(PathBuf::from("a")));
     }
 
     #[test]
