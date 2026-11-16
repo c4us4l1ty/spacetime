@@ -27,29 +27,18 @@ jobs:
           components: rustfmt, clippy
 
       - name: Format check
-        continue-on-error: true
         run: cargo fmt --all -- --check
 
-      - name: Format patch capture
-        continue-on-error: true
-        run: |
-          cargo fmt --all
-          git diff --no-color -- '*.rs'
-
       - name: Clippy
-        continue-on-error: true
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Tests
-        continue-on-error: true
         run: cargo test --workspace --all-targets --locked
 
       - name: Release build
-        continue-on-error: true
         run: cargo build --workspace --release --locked
 
       - name: CLI smoke - happy path
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_hello.task --cortex scripted --ledger target/block1.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/block1.jsonl
@@ -57,21 +46,18 @@ jobs:
           cmp target/block1.jsonl.state target/replay.json
 
       - name: CLI smoke - false claim
-        continue-on-error: true
         run: |
           ! cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_false_claim.task --cortex scripted --ledger target/false.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/false.jsonl
           grep -q '"goal_status":"unverified"' target/false.jsonl.state
 
       - name: CLI smoke - timeout
-        continue-on-error: true
         run: |
           ! cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_timeout.task --cortex scripted --ledger target/timeout.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/timeout.jsonl
           grep -q '"goal_status":"failed"' target/timeout.jsonl.state
 
       - name: Crucible smoke - determinism and metrology
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- crucible verify --task bench/tasks/block1_hello.task > target/crucible-verify.txt
           grep -q 'verdict=pass' target/crucible-verify.txt
@@ -124,7 +110,6 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- crucible adversarial --bogus x
 
       - name: End-to-end verification
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml > target/verify.stdout
           cat target/verify.toml
@@ -171,16 +156,7 @@ jobs:
           grep -q '^measurement_digest = "none"$' target/verify.toml
           grep -q 'no measurement file supplied' target/verify.toml
 
-      - name: Diagnostic verification report capture
-        continue-on-error: true
-        run: |
-          echo "=== verify stdout ==="
-          cat target/verify.stdout || true
-          echo "=== verify report ==="
-          cat target/verify.toml || true
-
       - name: Measurement intake smoke
-        continue-on-error: true
         run: |
           printf 'schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n' > target/ci-host.measurement
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-ci-host.toml --measurement target/ci-host.measurement > target/verify-ci-host.stdout
@@ -250,7 +226,6 @@ jobs:
           grep -q 'out of band' bench/measurements/PROVENANCE-TEMPLATE.md
 
       - name: Block 3 offline console and EconBench
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- ledger verify bench/econbench/sample-ledger.jsonl
           cargo run --release --locked -p spacetime-ctl -- ledger verify bench/economy/mock_wallet.jsonl
@@ -298,7 +273,6 @@ jobs:
           ! grep -RInE 'https?://|Electron|WebView|innerHTML|eval\(' apps/spacetime-console
 
       - name: Machine baseline
-        continue-on-error: true
         run: |
           cargo run --release --locked -p spacetime-ctl -- machine > target/machine-baseline.toml
           cat target/machine-baseline.toml
