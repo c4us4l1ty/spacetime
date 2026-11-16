@@ -169,6 +169,22 @@ prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profil
 `docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction, and
 `docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules.
 
+## Experimental native window
+
+For an early Rust graphical front end on Linux with an X11-compatible desktop and Rust 1.88 or
+newer, run:
+
+```sh
+cargo run --release --locked -p spacetime-gui
+```
+
+It starts the same experimental offline VM described above, showing a line-oriented console in a
+native window. It is not a full terminal emulator: full-screen or interactive terminal programs,
+multiple tabs, graphical guest apps, and AI are not supported. Use only trusted software. The VM
+still requires KVM, bubblewrap, a compatible Linux kernel, and static BusyBox. Stopping the window
+terminates its worker and removes its temporary guest image on normal shutdown; forced termination,
+swap and logs can leave traces. No 4 GB performance or hostile-code security claims are made.
+
 ## Rust terminal dashboard (early prototype)
 
 On Linux, install a Rust toolchain (Rust 1.75 or newer) and build from a checkout:

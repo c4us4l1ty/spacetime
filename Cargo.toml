@@ -8,6 +8,7 @@ members = [
   "crates/spacetime-verifier",
   "crates/spacetime-bench",
   "apps/spacetime-ctl",
+  "apps/spacetime-gui",
 ]
 
 [workspace.package]

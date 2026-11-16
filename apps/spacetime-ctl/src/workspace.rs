@@ -189,7 +189,8 @@ fn prompt(label: &str) -> Result<Option<String>> {
     Ok(Some(line.trim().to_string()))
 }
 
-fn default_kernel() -> Option<String> {
+/// Find a readable kernel matching the running host, if one exists.
+pub fn default_kernel() -> Option<String> {
     let release = fs::read_to_string("/proc/sys/kernel/osrelease").ok()?;
     let release = release.trim();
     if release.is_empty()
@@ -207,7 +208,8 @@ fn default_kernel() -> Option<String> {
     }
 }
 
-fn default_busybox() -> Option<String> {
+/// Find a readable BusyBox at a standard system path, if one exists.
+pub fn default_busybox() -> Option<String> {
     ["/bin/busybox", "/usr/bin/busybox"]
         .iter()
         .find(|path| std::path::Path::new(path).is_file() && fs::File::open(path).is_ok())

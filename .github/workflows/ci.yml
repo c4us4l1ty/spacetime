@@ -7,12 +7,31 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  generate-lock:
+    name: Generate Rust dependency lock
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/6d91c672-spacetime
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Update lock file on this working branch
+        run: |
+          cargo generate-lockfile
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Cargo.lock
+          if ! git diff --cached --quiet; then
+            git commit -m 'Lock native workspace dependencies'
+            git push origin HEAD:arena/6d91c672-spacetime
+          fi
+
   build:
     name: Compile and verify Blocks 1-3 offline prototype
     runs-on: ubuntu-latest
