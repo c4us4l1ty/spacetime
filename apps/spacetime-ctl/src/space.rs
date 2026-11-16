@@ -105,6 +105,9 @@ fn qemu_command(kernel: &Path, initramfs: &Path) -> Command {
 }
 
 pub fn cmd_space(args: &[String]) -> Result<()> {
+    if args.first().map(String::as_str) == Some("run") {
+        return crate::workspace::cmd_run(&args[1..]);
+    }
     if args.first().map(String::as_str) == Some("initramfs") {
         return crate::initramfs::cmd_initramfs(&args[1..]);
     }

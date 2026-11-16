@@ -18,6 +18,34 @@ NOT use, modify, sub-license, or redistribute this code for any purpose without 
 
 ---
 
+## Try the experimental Rust workspace (Linux x86-64)
+
+Spacetime is **not yet a finished or hardened product**. The early workspace is a Rust
+terminal interface, not the planned graphical tabbed app. Use trusted programs only; do not use
+it for malware or assume it prevents host compromise. It requires a Rust toolchain, QEMU with
+microvm and seccomp support, usable KVM, a compatible Linux kernel, and a static BusyBox.
+
+```sh
+cargo run --locked -p spacetime-ctl -- workspace
+```
+
+Choose **Start a workspace** and enter the paths it asks for. You may include one static x86-64
+terminal program; run it inside the guest by typing `app`. Type `exit` to shut down the guest.
+Alternatively, use the one-shot command:
+
+```sh
+cargo run --locked -p spacetime-ctl -- space run --experimental \
+  --kernel /path/to/linux-kernel --busybox /path/to/static-busybox \
+  --app /path/to/static-program
+```
+
+Omit `--app` to launch just the guest shell. The generated guest image is placed in a private
+temporary directory and normally removed when the VM exits or startup fails. Forced termination,
+crashes, swap, logs and other host mechanisms can leave traces. There is no guest network, disk or
+host file share configured. This is not a verified security guarantee, and neither KVM isolation
+nor the 4 GB resource target has been validated on the target machine. See the experimental VM
+section below for kernel and guest requirements.
+
 ## Development — Block 1
 
 GitHub Actions is the compiler for this repository. The first Rust slice is intentionally small and

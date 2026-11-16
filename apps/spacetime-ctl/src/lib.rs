@@ -25,6 +25,7 @@ mod econbench;
 mod initramfs;
 mod space;
 mod verify;
+mod workspace;
 
 const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
 
@@ -44,6 +45,8 @@ Commands:
   bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
   console --ledger <file> --out <file>
   dashboard [ledger-file]
+  workspace
+  space run --experimental --kernel <file> --busybox <file> [--app <file>]
   space boot --experimental --kernel <file> --initramfs <file>
   space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>
   machine
@@ -91,6 +94,7 @@ pub fn run(args: &[String]) -> Result<()> {
         "bench" => econbench::cmd_bench(&args[1..]),
         "console" => console::cmd_console(&args[1..]),
         "dashboard" => dashboard::cmd_dashboard(&args[1..]),
+        "workspace" => workspace::cmd_ui(&args[1..]),
         "space" => space::cmd_space(&args[1..]),
         "machine" => cmd_machine(&args[1..]),
         "digest" => {

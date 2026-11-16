@@ -38,6 +38,12 @@ jobs:
       - name: Release build
         run: cargo build --workspace --release --locked
 
+      - name: Rust workspace interface smoke
+        run: |
+          printf '2\n' | target/release/spacetime-ctl workspace > target/workspace-ui.txt
+          grep -q 'experimental offline workspace' target/workspace-ui.txt
+          ! target/release/spacetime-ctl space run --kernel missing --busybox missing
+
       - name: CLI smoke - happy path
         run: |
           cargo run --release --locked -p spacetime-ctl -- run --task bench/tasks/block1_hello.task --cortex scripted --ledger target/block1.jsonl
