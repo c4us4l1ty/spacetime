@@ -7,3 +7,4 @@
 !bench/economy/mock_wallet.jsonl
 !bench/economy/mock_wallet.jsonl.head
 *.tmp
+__pycache__/

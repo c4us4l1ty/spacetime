@@ -201,9 +201,33 @@ printf 'kernel_release=%s\n' "$(uname -r 2>/dev/null || printf unavailable)"
 printf 'machine_arch=%s\n' "$(uname -m 2>/dev/null || printf unavailable)"
 show_file /etc/os-release
 
+section 'exact hardware model (serial numbers intentionally omitted)'
+for identity_file in \
+  /sys/class/dmi/id/sys_vendor \
+  /sys/class/dmi/id/product_name \
+  /sys/class/dmi/id/product_version; do
+  if [ -r "$identity_file" ]; then
+    printf '%s=' "${identity_file##*/}"
+    tr '\n' ' ' < "$identity_file"
+    printf '\n'
+  else
+    printf 'unavailable: %s\n' "$identity_file"
+  fi
+done
+if [ -r /sys/firmware/devicetree/base/model ]; then
+  printf 'device_tree_model='
+  tr -d '\000' < /sys/firmware/devicetree/base/model
+  printf '\n'
+fi
+
 section 'cpu'
 grep -m 1 -E '^(model name|Hardware|Processor)[[:space:]]*:' /proc/cpuinfo 2>/dev/null || printf 'cpu_model=unavailable\n'
 run_if_available nproc nproc
+if command -v lscpu >/dev/null 2>&1; then
+  lscpu | grep -E '^(Architecture|CPU\(s\)|On-line CPU\(s\) list|Thread\(s\) per core|Core\(s\) per socket|Socket\(s\)|Model name):' || true
+else
+  printf 'unavailable: lscpu\n'
+fi
 
 section 'memory and swap'
 grep -E '^(MemTotal|MemAvailable|SwapTotal|SwapFree):' /proc/meminfo 2>/dev/null || printf 'memory_facts=unavailable\n'
@@ -216,15 +240,40 @@ else
   printf 'zram_devices=none_or_unavailable\n'
 fi
 
-section 'filesystem and virtualization'
+section 'storage and filesystem'
+run_if_available findmnt findmnt --target "$PWD" -no SOURCE,FSTYPE,OPTIONS
+run_if_available df df -hT "$PWD"
+if command -v lsblk >/dev/null 2>&1; then
+  lsblk -o NAME,TYPE,SIZE,ROTA,TRAN,MOUNTPOINTS 2>/dev/null || true
+else
+  printf 'unavailable: lsblk\n'
+fi
 run_if_available stat stat -f -c 'filesystem_at_cwd=%T' .
 run_if_available findmnt findmnt -no FSTYPE,PROPAGATION /
+printf 'copy_on_write_or_reflink=requires_filesystem_specific_review\n'
+
+section 'virtualization and cgroups'
 if [ -e /dev/kvm ]; then
   printf 'kvm_device=present\n'
 else
   printf 'kvm_device=absent_or_unavailable\n'
 fi
 run_if_available stat stat -f -c 'cgroup_filesystem=%T' /sys/fs/cgroup
+if [ -r /sys/fs/cgroup/cgroup.controllers ]; then
+  printf 'cgroup_version=2\n'
+  printf 'cgroup_controllers='
+  tr '\n' ' ' < /sys/fs/cgroup/cgroup.controllers
+  printf '\n'
+else
+  printf 'cgroup_version=1_or_unavailable\n'
+fi
+if [ -r /sys/module/zswap/parameters/enabled ]; then
+  printf 'zswap_enabled='
+  tr '\n' ' ' < /sys/module/zswap/parameters/enabled
+  printf '\n'
+else
+  printf 'zswap_enabled=unavailable\n'
+fi
 
 section 'boundary'
 printf '%s\n' 'host_facts_are_not_performance_measurements'

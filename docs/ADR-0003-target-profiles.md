@@ -1,8 +1,9 @@
 # ADR-0003 — Explicit target profiles for a public release
 
-Status: active increment on `arena/3782c8f5-spacetime` (branched from
-`90ceeb20db603c52e313ef718b82710241ad6080` of `main`). This ADR does not claim a measured
-resource gate.
+Status: merged to `main` via PR #10 at `33149fe9ecac077bd1d37468c96197fefe94bca2`; this ADR does not claim a measured resource gate.
+
+The target-profile increment was developed on `arena/3782c8f5-spacetime`, branched from
+`90ceeb20db603c52e313ef718b82710241ad6080`.
 
 ## Context
 

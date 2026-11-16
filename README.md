@@ -56,6 +56,7 @@ cargo run -p spacetime-ctl -- verify --out target/verify.toml
 cargo run -p spacetime-ctl -- verify --out target/verify.toml --measurement <file>
 cargo run -p spacetime-ctl -- bench run --arm A --model scripted-fixture --budget 1000 --out target/econbench-A.json
 cargo run -p spacetime-ctl -- console --ledger bench/econbench/sample-ledger.jsonl --out target/console-report.json
+# Optional local preview of the static review artifact only (no product backend or web app).
 python3 -m http.server 8000 --bind 0.0.0.0 --directory apps/spacetime-console
 bash bench/measurements/capture-host-facts.sh --list-profiles
 ```
@@ -84,23 +85,26 @@ PR #9's bounded measurement-intake and bug-hunt increment was merged to `main` a
 gates; strict `main` CI run `43829756506` verified all 14 steps. The measured 4 GB resource gate
 remains outstanding, so both were functional correctness merges, not resource sign-offs.
 
-The active branch is `arena/3782c8f5-spacetime` (status `active`, branched from
-`90ceeb20db603c52e313ef718b82710241ad6080` of `main`). It added the measurement-provenance kit,
-generalized the target model, and now starts a Block 3 offline prototype: 20 scripted fixtures in
-`bench/econbench/`, a verified mock-economy ledger, `spacetime-ctl bench run`, `spacetime-ctl
-console`, and a static HTML console in `apps/spacetime-console/`. The console renders a real
-hash-chained ledger tail, mixed-workspace tiles, and a ledger-driven snapshot strip; it uses no
-live backend, public internet, real wallet, or continuous video. This is a functional prototype,
-not a measured resource sign-off and not Block 3 `DONE`. `4gb_potato` remains the mandatory
-release baseline; 8 GB and 16 GB profiles are optional and cannot satisfy it. No target measurement
-file, filled provenance record, or physical attestation is committed. `resource_gate =
-"unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain. Strict push run
-`43831944305` verified the earlier 25-gate kit; strict push run `43836410103` verified 26 gates;
-strict push run `43843891738` verified the 28-gate Block 3 prototype at `e455556` with 14/14
-steps green and zero `continue-on-error`. Evidence is recorded in
+PR #10 merged the measurement-provenance kit, explicit target profiles, and offline Block 3
+prototype to `main` at `33149fe9ecac077bd1d37468c96197fefe94bca2`. The prototype includes 20 scripted
+fixtures, a verified mock-economy ledger, `spacetime-ctl bench run`, `spacetime-ctl console`, and a
+static HTML review artifact in `apps/spacetime-console/`. It is functional groundwork, not a
+measured resource sign-off and not Block 3 `DONE`; the artifact is not a web application or the
+product UI. `4gb_potato` remains the mandatory release baseline; 8 GB and 16 GB profiles are
+optional and cannot satisfy it. No target measurement file, filled provenance record, or physical
+attestation is committed. `resource_gate = "unmeasured_target_4gb"` and
+`performance_claims = "unmeasured"` remain.
+
+The current active branch is `arena/faa483b2-spacetime` (status `active`, based on
+`33149fe9ecac077bd1d37468c96197fefe94bca2` of `main`). It adds an exploratory profiler for the
+existing headless CLI commands only. The profiler does not measure the native workspace, cold
+product startup, tab switching, snapshots, or physical provenance, and cannot mark any resource
+gate as passed. Strict CI evidence for the merged prototype is recorded in
 `docs/VERIFICATION-2026-11-15.md`.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,
 `docs/ADR-0002-block2.md` for the Block 2 boundary, `docs/ADR-0003-target-profiles.md` for the
-public target-profile decision, and `docs/ADR-0004-block3-offline-console.md` for the offline
-Block 3 prototype.
+public target-profile decision, `docs/ADR-0004-block3-offline-console.md` for the offline Block 3
+prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the current diagnostic profiler, and
+`docs/TARGET-MEASUREMENT-READINESS.md` for the partially identified 4 GB candidate and target-side
+host-facts collection steps.

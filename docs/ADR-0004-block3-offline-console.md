@@ -1,8 +1,9 @@
 # ADR-0004 — Offline Block 3 console and EconBench seed
 
-Status: active increment on `arena/3782c8f5-spacetime` (branched from
-`90ceeb20db603c52e313ef718b82710241ad6080` of `main`). This ADR does not claim a measured
-resource gate and does not mark Block 3 `DONE`.
+Status: merged to `main` via PR #10 at `33149fe9ecac077bd1d37468c96197fefe94bca2`. This ADR does not claim a measured resource gate and does not mark Block 3 `DONE`.
+
+The offline prototype was developed on `arena/3782c8f5-spacetime`, branched from
+`90ceeb20db603c52e313ef718b82710241ad6080`.
 
 ## Context
 
@@ -55,7 +56,7 @@ mixed-workspace preview semantics.
 - No real planted-invariant/transmutation/protocol-distillation implementations yet.
 - No API Cortex adapter, population-per-turn cycler, or A/B/C efficacy result.
 - No live mixed-workspace shell, real browser, VM, account, money, or continuous video.
-- No open-source license, public release action, or merge to `main`.
+- No open-source license or public release action. PR #10 later merged this functional prototype to `main`; that merge did not establish a measured resource sign-off.
 
 ## Evidence
 
