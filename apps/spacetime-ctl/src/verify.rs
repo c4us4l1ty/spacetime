@@ -1209,22 +1209,20 @@ fn json_str<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
 }
 
 fn check_mock_economy_invariants() -> Result<String> {
-    let mut economy = MockEconomy::with_accounts([
-        ("alice".to_string(), 100),
-        ("bounty-board".to_string(), 10),
-    ])?;
+    let mut economy =
+        MockEconomy::with_accounts([("alice".to_string(), 100), ("bounty-board".to_string(), 10)])?;
     ensure(
-        economy.transfer("payout-001", "alice", "bounty-board", 25)?
-            == TransferOutcome::Applied,
+        economy.transfer("payout-001", "alice", "bounty-board", 25)? == TransferOutcome::Applied,
         "first mock-economy payout was not applied",
     )?;
     ensure(
-        economy.transfer("payout-001", "alice", "bounty-board", 25)?
-            == TransferOutcome::Duplicate,
+        economy.transfer("payout-001", "alice", "bounty-board", 25)? == TransferOutcome::Duplicate,
         "replayed mock-economy payout was not idempotent",
     )?;
     ensure(
-        economy.transfer("overdraft", "alice", "bounty-board", 76).is_err(),
+        economy
+            .transfer("overdraft", "alice", "bounty-board", 76)
+            .is_err(),
         "mock economy accepted an overdraft",
     )?;
     ensure(

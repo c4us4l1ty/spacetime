@@ -221,9 +221,7 @@ fn validate_id(value: &str, field: &str) -> Result<()> {
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
     {
-        return Err(SpacetimeError::new(format!(
-            "invalid mock economy {field}"
-        )));
+        return Err(SpacetimeError::new(format!("invalid mock economy {field}")));
     }
     Ok(())
 }
@@ -285,7 +283,9 @@ mod tests {
     #[test]
     fn destination_overflow_does_not_debit_source() -> Result<()> {
         let mut economy = wallet(10, u64::MAX)?;
-        assert!(economy.transfer("overflow", "source", "destination", 1).is_err());
+        assert!(economy
+            .transfer("overflow", "source", "destination", 1)
+            .is_err());
         assert_eq!(economy.balance("source"), Some(10));
         assert_eq!(economy.balance("destination"), Some(u64::MAX));
         assert!(economy.events().is_empty());
@@ -295,10 +295,14 @@ mod tests {
     #[test]
     fn invalid_transfers_are_rejected_without_events() -> Result<()> {
         let mut economy = wallet(10, 0)?;
-        assert!(economy.transfer("zero", "source", "destination", 0).is_err());
+        assert!(economy
+            .transfer("zero", "source", "destination", 0)
+            .is_err());
         assert!(economy.transfer("self", "source", "source", 1).is_err());
         assert!(economy.transfer("missing", "source", "other", 1).is_err());
-        assert!(economy.transfer("bad id", "source", "destination", 1).is_err());
+        assert!(economy
+            .transfer("bad id", "source", "destination", 1)
+            .is_err());
         assert!(economy.events().is_empty());
         Ok(())
     }
@@ -321,13 +325,14 @@ mod tests {
 
     #[test]
     fn duplicate_and_unsafe_initial_accounts_are_rejected() {
-        assert!(MockEconomy::with_accounts([
-            ("same".to_string(), 1),
-            ("same".to_string(), 2),
-        ])
-        .is_err());
-        assert!(MockEconomy::with_accounts([("bad name".to_string(), 1), ("ok".to_string(), 2)])
-            .is_err());
+        assert!(
+            MockEconomy::with_accounts([("same".to_string(), 1), ("same".to_string(), 2),])
+                .is_err()
+        );
+        assert!(
+            MockEconomy::with_accounts([("bad name".to_string(), 1), ("ok".to_string(), 2)])
+                .is_err()
+        );
         assert!(MockEconomy::with_accounts([("only".to_string(), 1)]).is_err());
     }
 }
