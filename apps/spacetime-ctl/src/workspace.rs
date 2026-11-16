@@ -74,7 +74,7 @@ fn has_tmpfs_shm(mountinfo: &str) -> bool {
     })
 }
 
-fn temporary_base() -> Result<PathBuf> {
+pub(crate) fn temporary_base() -> Result<PathBuf> {
     if !cfg!(target_os = "linux") {
         return Err(SpacetimeError::new(
             "the experimental workspace requires Linux",

@@ -275,6 +275,10 @@ fn doctor(args: &[String]) -> Result<()> {
         require_program("/usr/bin/prlimit", "util-linux prlimit"),
     );
     check("sandbox namespaces", namespace_probe());
+    check(
+        "RAM-backed temporary storage",
+        crate::workspace::temporary_base().map(|_| ()),
+    );
     println!("Guest kernel and static BusyBox must still be supplied; this check does not prove security or performance.");
     if failed {
         return Err(SpacetimeError::new("workspace requirements are not met"));
@@ -466,6 +470,11 @@ mod tests {
             second.lines().any(|line| line == "SPACETIME_DISPOSABLE_OK"),
             "{second}"
         );
+    }
+
+    #[test]
+    fn doctor_rejects_unknown_arguments() {
+        assert!(doctor(&["--unexpected".to_string()]).is_err());
     }
 
     #[test]
