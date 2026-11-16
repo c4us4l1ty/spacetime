@@ -70,7 +70,9 @@ requirements, but cannot verify the supplied kernel, complete security, or 4 GB 
 
 The monitor is isolated from host networking and home files where supported, but this has not
 been verified against hostile software. Do **not** use the prototype to run malware or untrusted
-apps. Guest memory, terminal output, and crash or swap data may leave traces on the host. See the
+apps. Generated one-shot guest images use a private `/dev/shm` tmpfs directory, removed on normal
+exit. A crash or forced stop can leave it there; tmpfs and guest memory can be swapped. Terminal
+output and crash data can also leave traces on the host. See the
 experimental VM section below for the full requirements and limitations.
 
 ## Development — Block 1

@@ -62,13 +62,41 @@ fn parse_args(args: &[String]) -> Result<RunArgs> {
     })
 }
 
+// Use a private RAM-backed directory for the generated guest image. A tmpfs can still be
+// swapped, and an abrupt termination can leave the file there until manually removed or reboot.
+fn has_tmpfs_shm(mountinfo: &str) -> bool {
+    mountinfo.lines().any(|line| {
+        let Some((mount, details)) = line.split_once(" - ") else {
+            return false;
+        };
+        mount.split_whitespace().nth(4) == Some("/dev/shm")
+            && details.split_whitespace().next() == Some("tmpfs")
+    })
+}
+
+fn temporary_base() -> Result<PathBuf> {
+    if !cfg!(target_os = "linux") {
+        return Err(SpacetimeError::new(
+            "the experimental workspace requires Linux",
+        ));
+    }
+    let mountinfo = fs::read_to_string("/proc/self/mountinfo")?;
+    if !has_tmpfs_shm(&mountinfo) {
+        return Err(SpacetimeError::new(
+            "/dev/shm must be a mounted tmpfs for the temporary guest image",
+        ));
+    }
+    Ok(PathBuf::from("/dev/shm"))
+}
+
 struct TemporaryImage(PathBuf);
 
 impl TemporaryImage {
     fn create() -> Result<Self> {
+        let base = temporary_base()?;
         for _ in 0..100 {
             let id = NEXT_DIR.fetch_add(1, Ordering::Relaxed);
-            let path = std::env::temp_dir().join(format!("spacetime-{}-{id}", std::process::id()));
+            let path = base.join(format!("spacetime-{}-{id}", std::process::id()));
             let mut builder = DirBuilder::new();
             #[cfg(unix)]
             builder.mode(0o700);
@@ -222,6 +250,16 @@ mod tests {
             .as_deref(),
             Some("a")
         );
+    }
+
+    #[test]
+    fn detects_only_actual_shm_tmpfs_mounts() {
+        assert!(has_tmpfs_shm("36 25 0:32 / /dev/shm rw - tmpfs tmpfs rw"));
+        assert!(!has_tmpfs_shm(
+            "36 25 0:32 / /dev/shm rw - ext4 /dev/sda rw"
+        ));
+        assert!(!has_tmpfs_shm("36 25 0:32 / /tmp rw - tmpfs tmpfs rw"));
+        assert!(!has_tmpfs_shm("not a mount entry"));
     }
 
     #[test]
