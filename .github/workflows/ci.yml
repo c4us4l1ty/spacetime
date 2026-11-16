@@ -325,6 +325,15 @@ jobs:
           grep -q 'baseline_target_profile=4gb_potato' target/machine-gate.txt
           cat target/machine-gate.txt
 
+  gui-msrv:
+    name: Native UI Rust 1.88 compatibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - run: cargo check --locked -p spacetime-gui
+
   vm-boot-spike:
     name: Experimental guest boot (software emulation)
     runs-on: ubuntu-24.04
