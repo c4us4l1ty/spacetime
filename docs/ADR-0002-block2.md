@@ -76,7 +76,7 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
   sign-off.
 
-## Addendum — bounded measurement intake (active branch `arena/f3c65268-spacetime`)
+## Addendum — bounded measurement intake (merged via PR #9)
 
 - `verify --out <file> [--measurement <file>]` accepts one bounded file path; missing values,
   duplicate/unknown flags, control characters, overlarge files, unsupported keys, duplicate keys,
@@ -97,3 +97,20 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   PR #9 check run `43829086354` (job `133169767434`) verified 25 gates with no diagnostics.
 - Merged to `main` via PR #9 at explicit user request after strict CI passed. The measured 4 GB
   resource gate remains outstanding; this is a functional merge, not a resource sign-off.
+
+## Addendum — measurement provenance kit (active branch `arena/3782c8f5-spacetime`)
+
+- `bench/measurements/capture-host-facts.sh` collects host identity, OS/kernel, CPU, memory,
+  swap/zram, filesystem, KVM, and cgroup facts read-only. It writes no measurement file and makes no
+  performance claim; its output is out-of-band evidence only when captured on the exact target
+  machine.
+- `bench/measurements/PROVENANCE-TEMPLATE.md` is a human checklist for machine identity, raw
+  evidence hashes, measurement definitions, operator/reviewer sign-off, and a bounded-file recipe.
+  Filled copies and raw evidence stay out of band; no filled template is committed here.
+- Strict CI checks the collector's shell syntax and template presence; it does not run the collector
+  or treat CI runner host facts as target evidence. `verify --out` remains 25 gates and
+  `machine gate --measurement` remains shape-only at most.
+- `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
+  `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
+  provenance before any measured gate can be reported.
+- Strict CI evidence for this branch is recorded in `docs/VERIFICATION-2026-11-15.md`.

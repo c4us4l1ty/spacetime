@@ -36,7 +36,7 @@ cargo run -p spacetime-ctl -- machine
 
 The false-claim and timeout fixtures intentionally exit non-zero after writing their state; the happy path exits zero.
 
-## Development — Blocks 1-2 functional baseline (merged); measurement intake in progress
+## Development — Blocks 1-2 functional baseline and bounded intake (merged)
 
 The Crucible adds a second-run determinism check, independent verifier provenance, a flaky-fixture
 family, a false-PASS flip metric, and differential/mutation metrology.
@@ -70,21 +70,22 @@ CI/synthetic host labels are rejected. CI host facts are not the recorded 4 GB p
 performance or resource-budget claim is made.
 
 Block 2 was merged to `main` via PR #8 at explicit user request after strict CI passed 24 gates.
-The measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
-sign-off.
+PR #9's bounded measurement-intake and bug-hunt increment was merged to `main` at
+`90ceeb20db603c52e313ef718b82710241ad6080` at explicit user request after strict CI passed 25
+gates; strict `main` CI run `43829756506` verified all 14 steps. The measured 4 GB resource gate
+remains outstanding, so both were functional correctness merges, not resource sign-offs.
 
-The active branch is `arena/f3c65268-spacetime` (status `pr_open`, branched from
-`4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). Its small hygiene + measurement-intake
-increment adds a 25th `measurement_intake` gate, bounded `verify --measurement <file>` file
-handling, and report fields derived from the evaluated file. Strict CI run `43818080975` verified
-all 25 gates. A subsequent bug hunt bounded `machine gate --measurement`, rejected duplicate and
-unknown CLI flags, removed a shape-pass `resource_gate=pass` claim, and rejected duplicate
-measurement keys; strict CI run `43829073730` verified the hardening with 25 gates. The report keeps
-`resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"`; a within-budget
-file is labelled `pass_shape_only` until the recorded 4 GB machine is measured and physical
-provenance is recorded out of band. No target measurement file is committed. Merged to `main` via
-PR #9 at explicit user request after strict CI passed; this is a functional correctness merge, not a
-resource sign-off.
+The active branch is `arena/3782c8f5-spacetime` (status `active`, branched from
+`90ceeb20db603c52e313ef718b82710241ad6080` of `main`). It adds
+`bench/measurements/capture-host-facts.sh`, a read-only host-fact collector, and
+`bench/measurements/PROVENANCE-TEMPLATE.md`, a human out-of-band provenance checklist, plus stale
+branch/status doc hygiene. The collector does not write a measurement file; the template is not
+evidence until filled on the recorded target machine and kept out of band. No target measurement
+file, filled provenance record, or physical attestation is committed.
+`resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain; a bounded
+file can only be `pass_shape_only` until physical provenance is accepted and a reviewed code path
+consumes it. Strict CI evidence for this increment is recorded in
+`docs/VERIFICATION-2026-11-15.md`.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
 `docs/ADR-0002-block2.md` for the Block 2 boundary.

@@ -182,6 +182,10 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/over-budget.measurement
           printf 'schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n' > target/duplicate-host.measurement
           ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/duplicate-host.measurement
+          bash -n bench/measurements/capture-host-facts.sh
+          ! bash bench/measurements/capture-host-facts.sh --measurement target/forbidden.measurement
+          test -f bench/measurements/PROVENANCE-TEMPLATE.md
+          grep -q 'out of band' bench/measurements/PROVENANCE-TEMPLATE.md
 
       - name: Machine baseline
         run: |

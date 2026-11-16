@@ -46,3 +46,16 @@ measured pass: `resource_gate=unmeasured` with `evaluator=pass_shape_only`, `fai
 `unmeasured`. An over-budget shape still exits non-zero. Duplicate keys (including a duplicate
 `measurement_host`) are rejected, so a CI-host label cannot be overridden by a later target-looking
 label. Physical provenance remains out of band.
+
+## Reproducible provenance kit
+
+`capture-host-facts.sh` is a read-only, no-argument host-fact collector. Run it on the recorded 4 GB
+machine and retain its output out of band with `PROVENANCE-TEMPLATE.md`, a human checklist covering
+machine identity, raw evidence hashes, measurement definitions, and sign-off. The script does not
+write a measurement file; the template is not evidence until filled on the target machine. No filled
+template, raw evidence, or target measurement file is committed here.
+
+The current code can only label a bounded file `pass_shape_only`; `resource_gate` and
+`performance_claims` remain unmeasured until physical provenance is accepted out of band and a
+reviewed code path consumes it. Strict CI checks the collector's shell syntax and template presence
+only; CI host facts are never target evidence.
