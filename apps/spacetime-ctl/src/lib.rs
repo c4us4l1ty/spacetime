@@ -20,6 +20,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 mod console;
+mod dashboard;
 mod econbench;
 mod verify;
 
@@ -40,6 +41,7 @@ Commands:
   verify --out <file> [--measurement <file>]
   bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
   console --ledger <file> --out <file>
+  dashboard [ledger-file]
   machine
   machine profiles
   machine gate [--measurement <file>]
@@ -84,6 +86,7 @@ pub fn run(args: &[String]) -> Result<()> {
         "verify" => verify::cmd_verify_all(&args[1..]),
         "bench" => econbench::cmd_bench(&args[1..]),
         "console" => console::cmd_console(&args[1..]),
+        "dashboard" => dashboard::cmd_dashboard(&args[1..]),
         "machine" => cmd_machine(&args[1..]),
         "digest" => {
             let text = args

@@ -110,3 +110,17 @@ prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profil
 `docs/TARGET-MEASUREMENT-READINESS.md` for target-side host-facts collection,
 `docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction, and
 `docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules.
+
+## Rust terminal dashboard (early prototype)
+
+On Linux, install a Rust toolchain (Rust 1.75 or newer) and build from a checkout:
+
+```sh
+cargo run --locked -p spacetime-ctl -- dashboard
+```
+
+This Rust-only, read-only terminal interface verifies the included sample ledger before displaying
+recent activity. To inspect another ledger, provide its path after `dashboard`; keep its `.head`
+file alongside it. This is a view of recorded fixture activity, **not** a graphical application,
+real AI, or a secure sandbox. Do not run untrusted software with this prototype. The intended
+4 GB resource budget has not yet been measured.
