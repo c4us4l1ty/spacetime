@@ -12,5 +12,10 @@ Verify locally with:
 spacetime-ctl ledger verify bench/economy/mock_wallet.jsonl
 ```
 
-This is evidence-preparation plumbing only; it is not a measured resource gate and not a
+The Rust `spacetime-bench::economy::MockEconomy` primitive also exercises fake-credit transfers
+in memory: checked arithmetic, all-or-nothing updates, idempotency keys, and a hash-chained event
+sequence. `spacetime-ctl verify` runs an end-to-end invariant gate for it. Its state is process-local;
+it is not a replacement for the checked-in verified ledger or a real payment system.
+
+This is offline evidence-preparation plumbing only; it is not a measured resource gate and not a
 performance claim.

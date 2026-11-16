@@ -97,15 +97,16 @@ attestation is committed. `resource_gate = "unmeasured_target_4gb"` and
 
 PR #11 merged the exploratory profiler and target-intake preparation to `main` at
 `a6a722efb1068ef04861035c0e89657c49e37f41`. The active branch `arena/3f609a12-spacetime` (based
-on that commit) is hardening the existing differential smoke check so its candidate no longer calls
-the reference oracle. This synthetic check still does not implement the real EconBench task pack or
-measure the native workspace, cold startup, tab switching, snapshots, or physical provenance; it
-cannot mark any resource gate as passed. Strict CI evidence for PR #11 is recorded in the pull
-request checks.
+on that commit) is hardening differential verification and adding a process-local mock-economy
+primitive with atomic, idempotent fake-credit transfers. These are verification and library slices;
+they do not implement the full EconBench task pack or measure the native workspace, cold startup,
+tab switching, snapshots, or physical provenance, and cannot mark any resource gate as passed. PR
+#11's strict CI evidence is recorded in the pull request checks.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,
 `docs/ADR-0002-block2.md` for the Block 2 boundary, `docs/ADR-0003-target-profiles.md` for the
 public target-profile decision, `docs/ADR-0004-block3-offline-console.md` for the offline Block 3
 prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profiler,
-`docs/TARGET-MEASUREMENT-READINESS.md` for target-side host-facts collection, and
-`docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction.
+`docs/TARGET-MEASUREMENT-READINESS.md` for target-side host-facts collection,
+`docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction, and
+`docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules.
