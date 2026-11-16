@@ -449,6 +449,29 @@ mod tests {
 
         let kernel = std::env::var("SPACETIME_GUEST_KERNEL").unwrap();
         let initramfs = std::env::var("SPACETIME_GUEST_INITRAMFS").unwrap();
+
+        // Exercise the actual monitor namespace separately from the guest: host home and
+        // environment must not be visible, the core limit must be zero, and no network route
+        // may be present. This does not constitute a hostile-code security audit.
+        let template = sandbox_command(Path::new(&kernel), Path::new(&initramfs), false);
+        let args: Vec<_> = template.get_args().map(|arg| arg.to_os_string()).collect();
+        let separator = args.iter().rposition(|arg| arg == "--").unwrap();
+        let probe = Command::new(template.get_program())
+            .env_clear()
+            .env("SPACETIME_PROBE_SECRET", "must-not-be-visible")
+            .args(&args[..=separator])
+            .args([
+                "/usr/bin/sh", "-c",
+                "test ! -e /home && test ! -e /run && test -z \"$SPACETIME_PROBE_SECRET\" && test \"$(ulimit -c)\" = 0 && test \"$(wc -l < /proc/net/route)\" = 1",
+            ])
+            .output()
+            .unwrap();
+        assert!(
+            probe.status.success(),
+            "sandbox probe failed: {}",
+            String::from_utf8_lossy(&probe.stderr)
+        );
+
         let first = run_guest(&kernel, &initramfs,
             b"app\nif [ -z \"$(ls /sys/class/net | grep -v '^lo$')\" ]; then echo SPACETIME_OFFLINE_OK; fi\ntouch /tmp/spacetime-canary; test -f /tmp/spacetime-canary && echo SPACETIME_WRITE_OK\nexit\n");
         for marker in [
