@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn input_is_bounded_and_never_waits_for_a_busy_guest() {
         let (sender, receiver) = mpsc::sync_channel(1);
-        assert!(queue_input(&sender, &vec![0; 4097]).is_err());
+        assert!(queue_input(&sender, &[0; 4097]).is_err());
         queue_input(&sender, b"hello").unwrap();
         assert!(queue_input(&sender, b"again").is_err());
         assert_eq!(receiver.recv().unwrap(), b"hello");
