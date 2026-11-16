@@ -38,3 +38,11 @@ A file that passes all file-shape checks is labelled `pass_shape_only`, **not** 
 `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain until the
 recorded 4 GB machine is measured and physical provenance is recorded out of band. No target
 measurement is committed here.
+
+## `machine gate --measurement`
+
+`machine gate --measurement <file>` uses the same bounded file checks. Its output never claims a
+measured pass: `resource_gate=unmeasured` with `evaluator=pass_shape_only`, `fail_shape_only`, or
+`unmeasured`. An over-budget shape still exits non-zero. Duplicate keys (including a duplicate
+`measurement_host`) are rejected, so a CI-host label cannot be overridden by a later target-looking
+label. Physical provenance remains out of band.

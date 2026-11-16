@@ -88,5 +88,12 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   A within-budget file is `pass_shape_only`: file shape and budget arithmetic are not physical
   provenance, which must be recorded out of band before any measured gate claim.
 - Strict CI run `43818080975` (job `133134609083`) verified 25 gates, including the bounded
-  intake smoke cases. This addendum is a PR-only increment; it is not merged to `main` without an
-  explicit request.
+  intake smoke cases.
+- Bug hunt: `machine gate --measurement` is now bounded and prints `resource_gate=unmeasured`
+  with `evaluator=pass_shape_only` / `fail_shape_only` / `unmeasured` instead of a shape-based
+  `resource_gate=pass`; duplicate measurement keys, duplicate/unknown CLI flags, flag-like values,
+  control characters, overlong values, and unknown `machine` arguments are rejected; unreadable
+  measurement digests are `"unavailable"`. Strict CI run `43829073730` (job `133169726643`) and
+  PR #9 check run `43829086354` (job `133169767434`) verified 25 gates with no diagnostics.
+- Merged to `main` via PR #9 at explicit user request after strict CI passed. The measured 4 GB
+  resource gate remains outstanding; this is a functional merge, not a resource sign-off.

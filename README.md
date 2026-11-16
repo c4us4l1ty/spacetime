@@ -73,15 +73,18 @@ Block 2 was merged to `main` via PR #8 at explicit user request after strict CI 
 The measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
 sign-off.
 
-The active branch is `arena/f3c65268-spacetime` (status `active`, branched from
+The active branch is `arena/f3c65268-spacetime` (status `pr_open`, branched from
 `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). Its small hygiene + measurement-intake
 increment adds a 25th `measurement_intake` gate, bounded `verify --measurement <file>` file
 handling, and report fields derived from the evaluated file. Strict CI run `43818080975` verified
-all 25 gates. The report keeps
+all 25 gates. A subsequent bug hunt bounded `machine gate --measurement`, rejected duplicate and
+unknown CLI flags, removed a shape-pass `resource_gate=pass` claim, and rejected duplicate
+measurement keys; strict CI run `43829073730` verified the hardening with 25 gates. The report keeps
 `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"`; a within-budget
 file is labelled `pass_shape_only` until the recorded 4 GB machine is measured and physical
-provenance is recorded out of band. No target measurement file is committed. This increment is
-submitted as a PR and is not merged to `main` without an explicit request.
+provenance is recorded out of band. No target measurement file is committed. Merged to `main` via
+PR #9 at explicit user request after strict CI passed; this is a functional correctness merge, not a
+resource sign-off.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
 `docs/ADR-0002-block2.md` for the Block 2 boundary.
