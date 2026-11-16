@@ -101,6 +101,13 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml --measurement --out target/verify.toml
           ! cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml --unknown value
           ! cargo run --release --locked -p spacetime-ctl -- verify --measurement target/ci-host.measurement
+          ! cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml --out target/verify.toml
+          ! cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml --measurement a --measurement b
+          ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement a --measurement b
+          ! cargo run --release --locked -p spacetime-ctl -- machine gate --bogus x
+          ! cargo run --release --locked -p spacetime-ctl -- machine --bogus
+          ! cargo run --release --locked -p spacetime-ctl -- crucible adversarial --dir bench/adversarial --dir bench/adversarial
+          ! cargo run --release --locked -p spacetime-ctl -- crucible adversarial --bogus x
 
       - name: End-to-end verification
         run: |
@@ -158,6 +165,7 @@ jobs:
           head -c 70000 /dev/zero > target/oversize.measurement
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-oversize.toml --measurement target/oversize.measurement > target/verify-oversize.stdout
           grep -q '^measurement_evaluator = "unmeasured"$' target/verify-oversize.toml
+          grep -q '^measurement_digest = "unavailable"$' target/verify-oversize.toml
           grep -q '64 KiB bound' target/verify-oversize.toml
           printf 'schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n' > target/shape-only.measurement
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-shape.toml --measurement target/shape-only.measurement > target/verify-shape.stdout
@@ -165,10 +173,20 @@ jobs:
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify-shape.toml
           grep -q '^performance_claims = "unmeasured"$' target/verify-shape.toml
           grep -q 'physical provenance out of band' target/verify-shape.toml
+          cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/shape-only.measurement > target/machine-shape.txt
+          cat target/machine-shape.txt
+          grep -q 'resource_gate=unmeasured' target/machine-shape.txt
+          grep -q 'evaluator=pass_shape_only' target/machine-shape.txt
+          ! grep -q 'resource_gate=pass' target/machine-shape.txt
+          printf 'schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=99999999\nboot_ms=900\ntab_switch_ms=900\n' > target/over-budget.measurement
+          ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/over-budget.measurement
+          printf 'schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n' > target/duplicate-host.measurement
+          ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/duplicate-host.measurement
 
       - name: Machine baseline
         run: |
           cargo run --release --locked -p spacetime-ctl -- machine
           cargo run --release --locked -p spacetime-ctl -- machine gate > target/machine-gate.txt
           grep -q 'resource_gate=unmeasured' target/machine-gate.txt
+          grep -q 'evaluator=unmeasured' target/machine-gate.txt
           cat target/machine-gate.txt
