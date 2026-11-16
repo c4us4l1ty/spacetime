@@ -66,5 +66,9 @@ boundary. `machine gate` stays unmeasured until a real 4 GB machine measurement 
 CI/synthetic host labels are rejected. CI host facts are not the recorded 4 GB potato machine, so no
 performance or resource-budget claim is made.
 
+Block 2 was merged to `main` via PR #8 at explicit user request after strict CI passed 24 gates.
+The measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
+sign-off.
+
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
 `docs/ADR-0002-block2.md` for the Block 2 boundary.

@@ -1,7 +1,7 @@
 # ADR 0002 — Block 2 Crucible boundary
 
 Date: 2026-11-15  
-Status: in progress; functional verification expanded with shims, capability enforcement, and fixture population; 4 GB resource gate unmeasured
+Status: merged to `main` via PR #8; 24 functional gates verified; 4 GB resource gate unmeasured
 
 ## Context
 
@@ -72,3 +72,6 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   the measured 4 GB resource gate remain later Block 2 work. The LD_PRELOAD shim is a local probe,
   not a complete security boundary.
 - Under the First Law, Block 2 is not `DONE` until it works inside the measured target budget.
+- The user explicitly requested the merge to `main`; PR #8 was merged after strict CI passed. The
+  measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
+  sign-off.
