@@ -2,7 +2,8 @@
 
 ## Authoritative result
 
-- Active branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`).
+- Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
+- Current active branch: `arena/f3c65268-spacetime` (status `active`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). The measurement-intake increment below is pending strict CI evidence.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -166,3 +167,17 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
    Ark/quarantine blocks; the local `LD_PRELOAD` shim is not that boundary.
 5. Block 2 was merged to `main` via PR #8 at the user's explicit request after strict CI passed.
    Under the First Law, Block 2 is still not `DONE` until the measured 4 GB target budget is proven.
+
+## Current increment — hygiene + measurement intake (strict CI pending)
+
+- Active branch: `arena/f3c65268-spacetime`, status `active`, base `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70`.
+- Scope: fix stale branch/status docs; add bounded `verify --measurement <file>` intake; add a
+  25th `measurement_intake` gate; keep `resource_gate = "unmeasured_target_4gb"` and
+  `performance_claims = "unmeasured"` unless the recorded 4 GB machine is measured with
+  out-of-band physical provenance.
+- No real target measurement file is committed. CI-host, synthetic-host, wrong-profile,
+  incomplete, malformed, and oversized files stay unmeasured; a within-budget file is only
+  `pass_shape_only`.
+- Strict GitHub Actions run, job, and 25-gate report evidence will be recorded here after the
+  final strict run succeeds. The historical 24-gate result above belongs to PR #8 and is not
+  evidence for this increment.

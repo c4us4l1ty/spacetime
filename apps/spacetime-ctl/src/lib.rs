@@ -33,7 +33,7 @@ Commands:
   crucible adversarial --dir <dir>
   crucible population --operators <n> --runs <n>
   crucible fixture-population --runs <n>
-  verify --out <file>
+  verify --out <file> [--measurement <file>]
   machine
   machine gate [--measurement <file>]
   digest <text>

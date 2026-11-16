@@ -3,8 +3,8 @@
 //! Host facts are cheap and unmeasured; the resource gate stays unmeasured until a real
 //! target-machine measurement file is supplied. No RAM, CPU, boot-time, or latency claim is made.
 
-use spacetime_types::{Result, SpacetimeError};
-use std::collections::BTreeMap;
+use spacetime_types::{sha256_hex, Result, SpacetimeError};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs;
 use std::path::Path;
@@ -15,6 +15,22 @@ pub const TARGET_MEMORY_BUDGET_KB: u64 = 4 * 1024 * 1024;
 pub const BOOT_BUDGET_MILLIS: u64 = 1_000;
 pub const TAB_SWITCH_BUDGET_MILLIS: u64 = 1_000;
 pub const CPU_BUDGET_PERCENT: u64 = 100;
+
+pub const MEASUREMENT_FILE_LIMIT_BYTES: u64 = 64 * 1024;
+pub const MEASUREMENT_LINE_LIMIT: usize = 64;
+pub const MEASUREMENT_LINE_LIMIT_BYTES: usize = 512;
+pub const MEASUREMENT_VALUE_LIMIT_BYTES: usize = 256;
+pub const MEASUREMENT_HOST_LIMIT_BYTES: usize = 128;
+
+const MEASUREMENT_KEYS: [&str; 7] = [
+    "schema_version",
+    "target_profile",
+    "measurement_host",
+    "peak_rss_kb",
+    "boot_ms",
+    "tab_switch_ms",
+    "cpu_percent",
+];
 
 const NON_TARGET_HOST_MARKERS: [&str; 7] = [
     "github",
@@ -141,6 +157,134 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
     Ok(gate)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResourceGateIntake {
+    pub file_supplied: bool,
+    pub status: ResourceGateStatus,
+    pub digest: String,
+    pub measurements: BTreeMap<String, u64>,
+    pub reasons: Vec<String>,
+}
+
+/// Bounded measurement intake for `verify --measurement`.
+///
+/// A file that passes the evaluator's shape and budget arithmetic is only a shape pass. Physical
+/// provenance must be recorded out of band, so this function never establishes a measured gate.
+pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateIntake {
+    let mut intake = ResourceGateIntake {
+        file_supplied: measurement_path.is_some(),
+        status: ResourceGateStatus::Unmeasured,
+        digest: "none".to_string(),
+        measurements: BTreeMap::new(),
+        reasons: vec!["no measurement file supplied; 4 GB potato machine unmeasured".to_string()],
+    };
+    let Some(path) = measurement_path else {
+        return intake;
+    };
+    let text = match read_bounded_measurement(path) {
+        Ok(text) => text,
+        Err(reason) => {
+            intake.reasons = vec![reason];
+            return intake;
+        }
+    };
+    intake.digest = sha256_hex(text.as_bytes());
+    if let Err(reason) = validate_measurement_shape(&text) {
+        intake.reasons = vec![reason];
+        return intake;
+    }
+    match resource_gate(Some(path)) {
+        Ok(gate) => {
+            intake.measurements = gate.measurements;
+            if gate.status == ResourceGateStatus::Pass {
+                intake.status = ResourceGateStatus::Pass;
+                let reason = "shape passed budgets; physical provenance out of band; no measured gate";
+                intake.reasons = vec![reason.to_string()];
+            } else {
+                let mut reasons = gate.reasons;
+                reasons.push(
+                    "measurement file does not establish a measured resource gate".to_string(),
+                );
+                intake.reasons = reasons;
+            }
+        }
+        Err(_) => {
+            intake.reasons = vec!["measurement evaluator rejected the file".to_string()];
+        }
+    }
+    intake
+}
+
+fn read_bounded_measurement(path: &Path) -> std::result::Result<String, String> {
+    let metadata = match fs::metadata(path) {
+        Ok(metadata) => metadata,
+        Err(_) => return Err("measurement file is unreadable".to_string()),
+    };
+    if !metadata.is_file() {
+        return Err("measurement path is not a regular file".to_string());
+    }
+    if metadata.len() > MEASUREMENT_FILE_LIMIT_BYTES {
+        return Err("measurement file exceeds 64 KiB bound".to_string());
+    }
+    let bytes = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(_) => return Err("measurement file is unreadable".to_string()),
+    };
+    if bytes.len() as u64 > MEASUREMENT_FILE_LIMIT_BYTES {
+        return Err("measurement file exceeds 64 KiB bound".to_string());
+    }
+    String::from_utf8(bytes).map_err(|_| "measurement file is not valid UTF-8".to_string())
+}
+
+fn validate_measurement_shape(text: &str) -> std::result::Result<(), String> {
+    let mut seen = BTreeSet::new();
+    let mut lines = 0usize;
+    for raw_line in text.lines() {
+        lines += 1;
+        if lines > MEASUREMENT_LINE_LIMIT {
+            return Err("measurement file exceeds line bound".to_string());
+        }
+        let line = raw_line.trim();
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+        if line.len() > MEASUREMENT_LINE_LIMIT_BYTES {
+            return Err("measurement line exceeds bound".to_string());
+        }
+        let (key, value) = line
+            .split_once('=')
+            .ok_or_else(|| "measurement line is not key=value".to_string())?;
+        let key = key.trim();
+        let value = value.trim();
+        if !MEASUREMENT_KEYS.contains(&key) {
+            return Err("unsupported measurement key".to_string());
+        }
+        if !seen.insert(key) {
+            return Err("duplicate measurement key".to_string());
+        }
+        if value.is_empty() || value.len() > MEASUREMENT_VALUE_LIMIT_BYTES {
+            return Err("measurement value is empty or too long".to_string());
+        }
+        if !value.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.')
+        }) {
+            return Err("measurement value contains unsupported characters".to_string());
+        }
+        if key == "measurement_host" && value.len() > MEASUREMENT_HOST_LIMIT_BYTES {
+            return Err("measurement host exceeds bound".to_string());
+        }
+        if matches!(
+            key,
+            "peak_rss_kb" | "boot_ms" | "tab_switch_ms" | "cpu_percent"
+        ) {
+            value
+                .parse::<u64>()
+                .map_err(|_| "measurement value is not a bounded unsigned integer".to_string())?;
+        }
+    }
+    Ok(())
+}
+
 pub fn baseline_toml() -> Result<String> {
     let meminfo = read("/proc/meminfo");
     let cpuinfo = read("/proc/cpuinfo");
@@ -251,6 +395,51 @@ fn quote(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn intake_is_bounded_and_shape_pass_is_not_a_measurement() -> Result<()> {
+        let none = resource_gate_intake(None);
+        assert!(!none.file_supplied);
+        assert_eq!(none.status, ResourceGateStatus::Unmeasured);
+        assert_eq!(none.digest, "none");
+        assert!(none.reasons.iter().any(|r| r.contains("no measurement")));
+
+        let malformed = temp_measurement("intake-malformed", "not-key-value\n")?;
+        let bad = resource_gate_intake(Some(malformed.as_path()));
+        let _ = fs::remove_file(&malformed);
+        assert!(bad.file_supplied);
+        assert_eq!(bad.status, ResourceGateStatus::Unmeasured);
+        assert!(bad.reasons.iter().any(|r| r.contains("not key=value")));
+
+        let oversize = temp_measurement("intake-oversize", &"a".repeat(70_000))?;
+        let big = resource_gate_intake(Some(oversize.as_path()));
+        let _ = fs::remove_file(&oversize);
+        assert_eq!(big.status, ResourceGateStatus::Unmeasured);
+        assert!(big.reasons.iter().any(|r| r.contains("64 KiB bound")));
+
+        let ci = temp_measurement(
+            "intake-ci-host",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n",
+        )?;
+        let ci_gate = resource_gate_intake(Some(ci.as_path()));
+        let _ = fs::remove_file(&ci);
+        assert_eq!(ci_gate.status, ResourceGateStatus::Unmeasured);
+        assert!(ci_gate.reasons.iter().any(|r| r.contains("non-target host")));
+
+        let shape = temp_measurement(
+            "intake-shape",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+        )?;
+        let pass = resource_gate_intake(Some(shape.as_path()));
+        let _ = fs::remove_file(&shape);
+        assert_eq!(pass.status, ResourceGateStatus::Pass);
+        assert_ne!(pass.digest, "none");
+        assert!(pass
+            .reasons
+            .iter()
+            .any(|r| r.contains("provenance out of band")));
+        Ok(())
+    }
 
     #[test]
     fn baseline_keeps_performance_claims_unmeasured() -> Result<()> {

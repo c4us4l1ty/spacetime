@@ -1,8 +1,8 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 and Block 2 bug-hunt fixes merged to `main` via PR #8; 24 gates verified; 4 GB resource gate unmeasured.
+**Status:** active roadmap; Block 1 and Block 2 bug-hunt fixes merged to `main` via PR #8; 24 gates verified there; 4 GB resource gate unmeasured. Current branch adds a measurement-intake increment (25 gates in strict CI).
 **Date:** 2026-11-15
-**Branch:** `arena/d7d47fd2-spacetime` (Block 1 merged via PR #7; Block 2 merged via PR #8)
+**Branch:** `arena/f3c65268-spacetime` (status `active`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`; PRs #7 and #8 are merged history)
 
 **Confirmed product decisions (user, 2026-11-15):**
 
@@ -889,7 +889,7 @@ No number from `BRAINSTORM.md` or the LLM replies becomes a README claim until i
 8. **When may real money/accounts be introduced?** Default: not before Block 13 and explicit sign-off.
 9. **Should hidden AI tabs keep rendering?** Default: **no**. The AI stays `RUNNING`; only the active tab is `RENDERING`. Switching back produces a fresh snapshot. If true background pixel streaming is required, it becomes a measured RAM/CPU decision.
 
-If these defaults are accepted, **Block 1 is the next implementation unit**. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
+If these defaults are accepted, **the measured 4 GB resource gate is the next unblocked unit**. Block 1 and Block 2 functional increments are already merged to `main` via PRs #7 and #8; the current small increment on `arena/f3c65268-spacetime` adds bounded measurement intake and doc hygiene without claiming a measured gate. After the recorded target machine is identified and measured with out-of-band provenance, Block 3 becomes the next implementation unit. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
 
 
 ---
