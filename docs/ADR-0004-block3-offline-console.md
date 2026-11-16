@@ -59,4 +59,18 @@ mixed-workspace preview semantics.
 
 ## Evidence
 
-Strict CI evidence for this increment will be appended after the push workflow passes.
+Strict push run `43843891738` (job `133219100433`) verified commit `e455556` with 14/14 steps and
+28/28 gates green. The committed workflow had zero `continue-on-error`, a committed `Cargo.lock`,
+`--locked` commands, `clippy -D warnings`, and no diagnostic capture steps. The default
+`spacetime-ctl verify --out` report printed `status = "pass"`, `gates = 28`, `failed = 0`,
+`resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`, and
+`block3_done = false`. The new `econbench_offline` gate reported
+`fixtures=20 completed=20 claims=20 false_pass_rate=0.0000 network=none`; the
+`static_console_report` gate reported `static_html=offline ledger_verified=true
+snapshot_frames=3 workspaces=2`. CI also verified both checked-in hash-chained ledgers,
+the offline `bench run` report, the console CLI export, negative flags, static console hygiene,
+bounded measurement intake, explicit target profiles, and machine baseline commands. Diagnostic
+runs `43841244588`, `43842052899`, and `43842803508` were used only to capture and fix compile,
+format, and tracking errors; they are not acceptance evidence. This run is functional CI
+evidence only. It does not establish a measured 4 GB baseline gate, physical provenance, release
+readiness, model efficacy, or Block 3 `DONE`.

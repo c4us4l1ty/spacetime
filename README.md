@@ -96,7 +96,8 @@ release baseline; 8 GB and 16 GB profiles are optional and cannot satisfy it. No
 file, filled provenance record, or physical attestation is committed. `resource_gate =
 "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain. Strict push run
 `43831944305` verified the earlier 25-gate kit; strict push run `43836410103` verified 26 gates;
-strict CI evidence for the 28-gate Block 3 prototype is recorded in
+strict push run `43843891738` verified the 28-gate Block 3 prototype at `e455556` with 14/14
+steps green and zero `continue-on-error`. Evidence is recorded in
 `docs/VERIFICATION-2026-11-15.md`.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,

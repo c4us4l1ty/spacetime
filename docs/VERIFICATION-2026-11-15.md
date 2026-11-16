@@ -362,4 +362,45 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 - Preserved `resource_gate = "unmeasured_target_4gb"`, `release_gate=unmeasured`, and
   `performance_claims = "unmeasured"`. `block3_done = false` is explicit. A later reviewed code
   path must consume accepted physical provenance before any measured gate can be reported.
-- Strict CI evidence for this increment will be appended after the push workflow passes.
+### Strict CI evidence — 28 gates
+
+- Authoritative strict push run `43843891738` (job `133219100433`) verified commit
+  `e455556184fc8c8c5f8edb63cea12aa47f103152` on branch `arena/3782c8f5-spacetime`. All 14 job
+  steps passed: format check, Clippy, tests, release build, three CLI smokes, Crucible smoke,
+  end-to-end verification, measurement intake smoke, Block 3 offline console and EconBench, and
+  machine baseline. The committed workflow had zero `continue-on-error`, a committed `Cargo.lock`,
+  `--locked` commands, `clippy -D warnings`, three `gates = 28` assertions, and no diagnostic
+  capture steps. Only Node.js 20 deprecation and Ubuntu 26 migration warnings were reported.
+- `spacetime-ctl verify --out` produced `status = "pass"`, `gates = 28`, `failed = 0`,
+  `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`,
+  `measurement_intake = "none"`, `target_profile = "4gb_potato"`,
+  `baseline_target_profile = "4gb_potato"`, `target_profile_registry = 3`,
+  `evaluated_memory_budget_kb = 4194304`, `profile_role = "baseline_gate"`,
+  `econbench_fixtures = 20`, `static_console = "offline_prototype"`, and `block3_done = false`.
+- The two added gates passed with details `econbench_offline`:
+  `fixtures=20 completed=20 claims=20 false_pass_rate=0.0000 network=none` and
+  `static_console_report`: `static_html=offline ledger_verified=true snapshot_frames=3
+  workspaces=2`. All 26 earlier functional, intake, profile, and resource-boundary gates also
+  passed.
+- `ledger verify` accepted both checked-in offline fixtures with `ok 4 events` for
+  `bench/econbench/sample-ledger.jsonl` and `bench/economy/mock_wallet.jsonl`, proving Python-
+  generated canonical JSON and hash chaining are compatible with the Rust ledger verifier.
+  `bench run --arm A --model scripted-fixture --budget 1000` printed
+  `fixtures=20 completed=20 claims_surviving_reverification=20 false_pass_rate=0.0000`; bad arm,
+  zero budget, and duplicate `--out` were rejected. `console --ledger ... --out ...` printed
+  `ledger_events=4 wallet_ledger_verified=true`; missing flag values and unknown flags were
+  rejected. Static console checks verified report JSON, CSP, relative report loading, snapshot
+  preview mode, styles, and absence of external URLs or unsafe browser-runtime patterns.
+- Measurement intake stayed bounded: the CI-host sample was `measurement_evaluator =
+  "unmeasured"` with digest
+  `2f12654878cbb8986da14c6c7142f4fe49f2a7b11a9e547539f1987fdb4718b9`; malformed, oversized,
+  over-budget, duplicate-host, and unregistered-profile inputs remained unmeasured or were
+  rejected. A shape-only 4 GB file was `pass_shape_only`, not a pass; an 8 GB optional profile
+  was also `pass_shape_only` with `resource_gate = "unmeasured_target_4gb"` and
+  `release_gate=unmeasured`. `machine gate` without accepted provenance printed
+  `resource_gate=unmeasured` and `release_gate=unmeasured`.
+- Diagnostic runs `43841244588`, `43842052899`, and `43842803508` used `continue-on-error` or
+  diagnostic capture steps to locate rustfmt diffs, an `E0308` temp-path compile error, and
+  ignored checked-in `.jsonl` fixtures. They are not acceptance evidence. The strict run is
+  functional CI evidence only: it does not establish a measured 4 GB baseline gate, physical
+  provenance, release readiness, model efficacy, real-economy results, or Block 3 `DONE`.
