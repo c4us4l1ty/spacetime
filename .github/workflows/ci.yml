@@ -332,7 +332,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.88.0
-      - run: cargo check --locked -p spacetime-gui
+      - name: Check minimum supported Rust
+        run: |
+          if ! cargo check --locked -p spacetime-gui > gui-msrv.log 2>&1; then
+            tail -40 gui-msrv.log | sed 's/^/::error::/'
+            exit 1
+          fi
 
   vm-boot-spike:
     name: Experimental guest boot (software emulation)
