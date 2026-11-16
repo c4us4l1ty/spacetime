@@ -34,6 +34,18 @@ fn forward_output(mut reader: impl Read + Send + 'static, sender: SyncSender<Vec
     });
 }
 
+fn queue_input(sender: &SyncSender<Vec<u8>>, bytes: &[u8]) -> Result<(), String> {
+    if bytes.len() > 4096 {
+        return Err("Input is limited to 4096 bytes at a time".into());
+    }
+    sender
+        .try_send(bytes.to_vec())
+        .map_err(|error| match error {
+            mpsc::TrySendError::Full(_) => "Guest input queue is full".to_string(),
+            mpsc::TrySendError::Disconnected(_) => "Guest input is closed".to_string(),
+        })
+}
+
 impl Session {
     fn start(kernel: &str, busybox: &str, app: &str) -> Result<Self, String> {
         if kernel.is_empty() || busybox.is_empty() {
@@ -91,15 +103,7 @@ impl Session {
     }
 
     fn send_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
-        if bytes.len() > 4096 {
-            return Err("Input is limited to 4096 bytes at a time".into());
-        }
-        self.input
-            .try_send(bytes.to_vec())
-            .map_err(|error| match error {
-                mpsc::TrySendError::Full(_) => "Guest input queue is full".to_string(),
-                mpsc::TrySendError::Disconnected(_) => "Guest input is closed".to_string(),
-            })
+        queue_input(&self.input, bytes)
     }
 
     fn send_line(&mut self, text: &str) -> Result<(), String> {
@@ -300,6 +304,28 @@ mod tests {
     fn requires_guest_inputs_before_starting() {
         assert!(Session::start("", "busybox", "").is_err());
         assert!(Session::start("kernel", "", "").is_err());
+    }
+
+    #[test]
+    fn input_is_bounded_and_never_waits_for_a_busy_guest() {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        assert!(queue_input(&sender, &vec![0; 4097]).is_err());
+        queue_input(&sender, b"hello").unwrap();
+        assert!(queue_input(&sender, b"again").is_err());
+        assert_eq!(receiver.recv().unwrap(), b"hello");
+        drop(receiver);
+        assert!(queue_input(&sender, b"closed").is_err());
+    }
+
+    #[test]
+    fn output_reader_forwards_data_and_closes() {
+        let (sender, receiver) = mpsc::sync_channel(2);
+        forward_output(std::io::Cursor::new(b"hello".to_vec()), sender);
+        assert_eq!(
+            receiver.recv_timeout(Duration::from_secs(2)).unwrap(),
+            b"hello"
+        );
+        assert!(receiver.recv_timeout(Duration::from_secs(2)).is_err());
     }
 
     #[test]
