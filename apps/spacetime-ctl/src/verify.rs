@@ -432,8 +432,7 @@ fn check_flaky_family(_root: &TempRoot) -> Result<String> {
             proof.verdict == Verdict::Error,
             format!("{name} was promoted instead of classified ERROR"),
         )?;
-        let (flip_rate, leak_rate) =
-            false_pass_report_checked(&candidate, &config, &runner, 50)?;
+        let (flip_rate, leak_rate) = false_pass_report_checked(&candidate, &config, &runner, 50)?;
         ensure(
             flip_rate <= 0.01 && leak_rate <= 0.01,
             format!("{name} leaked false-PASS verdicts"),

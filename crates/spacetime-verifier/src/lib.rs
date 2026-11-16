@@ -9,8 +9,8 @@
 use spacetime_exec::{RunStatus, Runner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::LedgerState;
 use spacetime_types::{
-    Action, ActionOp, Observation, Result, SpacetimeError, Verdict, VerifierProof,
-    VerifierSource, VERIFIER_SOURCE_PRIORITY,
+    Action, ActionOp, Observation, Result, SpacetimeError, Verdict, VerifierProof, VerifierSource,
+    VERIFIER_SOURCE_PRIORITY,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -25,7 +25,7 @@ pub const MIN_DIFFERENTIAL_INPUTS: u64 = 1_000_000;
 pub const MAX_DIFFERENTIAL_INPUTS: u64 = 10_000_000;
 
 pub fn validate_reruns(runs: u32) -> Result<()> {
-    if runs < MIN_RERUNS || runs > MAX_RERUNS {
+    if !(MIN_RERUNS..=MAX_RERUNS).contains(&runs) {
         return Err(SpacetimeError::new(format!(
             "reruns must be between {MIN_RERUNS} and {MAX_RERUNS}"
         )));
@@ -34,7 +34,7 @@ pub fn validate_reruns(runs: u32) -> Result<()> {
 }
 
 pub fn validate_operator_count(operator_count: usize) -> Result<()> {
-    if operator_count < MIN_OPERATORS || operator_count > MAX_OPERATORS {
+    if !(MIN_OPERATORS..=MAX_OPERATORS).contains(&operator_count) {
         return Err(SpacetimeError::new(format!(
             "operator count must be between {MIN_OPERATORS} and {MAX_OPERATORS}"
         )));
@@ -43,7 +43,7 @@ pub fn validate_operator_count(operator_count: usize) -> Result<()> {
 }
 
 pub fn validate_differential_limit(limit: u64) -> Result<()> {
-    if limit < MIN_DIFFERENTIAL_INPUTS || limit > MAX_DIFFERENTIAL_INPUTS {
+    if !(MIN_DIFFERENTIAL_INPUTS..=MAX_DIFFERENTIAL_INPUTS).contains(&limit) {
         return Err(SpacetimeError::new(format!(
             "differential limit must be between {MIN_DIFFERENTIAL_INPUTS} and {MAX_DIFFERENTIAL_INPUTS}"
         )));
@@ -607,10 +607,7 @@ pub fn population_report(operator_count: usize, runs: u32) -> PopulationReport {
     }
 }
 
-pub fn population_report_checked(
-    operator_count: usize,
-    runs: u32,
-) -> Result<PopulationReport> {
+pub fn population_report_checked(operator_count: usize, runs: u32) -> Result<PopulationReport> {
     validate_operator_count(operator_count)?;
     validate_reruns(runs)?;
     Ok(population_report(operator_count, runs))
@@ -942,9 +939,7 @@ mod tests {
         });
         let fixture = fixture("stable", Verdict::Pass);
         assert!(false_pass_report_checked(&candidate, &fixture, &runner, 0).is_err());
-        assert!(
-            false_pass_report_checked(&candidate, &fixture, &runner, MAX_RERUNS + 1).is_err()
-        );
+        assert!(false_pass_report_checked(&candidate, &fixture, &runner, MAX_RERUNS + 1).is_err());
         assert_eq!(
             false_pass_report_checked(&candidate, &fixture, &runner, MIN_RERUNS)?,
             (0.0, 0.0)

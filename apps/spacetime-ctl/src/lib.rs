@@ -9,10 +9,10 @@ use spacetime_types::{
     VerifierSource,
 };
 use spacetime_verifier::{
-    differential_score, false_pass_report_checked, mutation_score_bps,
-    population_report_checked, validate_differential_limit, validate_operator_count,
-    validate_reruns, verifier_source_priority, Candidate, CrucibleVerifier, Fixture,
-    FixtureVerifier, PanelResolution, Verifier, VerifierPanel,
+    differential_score, false_pass_report_checked, mutation_score_bps, population_report_checked,
+    validate_differential_limit, validate_operator_count, validate_reruns,
+    verifier_source_priority, Candidate, CrucibleVerifier, Fixture, FixtureVerifier,
+    PanelResolution, Verifier, VerifierPanel,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -511,7 +511,13 @@ fn cmd_crucible_verify(args: &[String]) -> Result<()> {
         "execution_profile_digest={}",
         proof.execution_profile_digest
     );
-    if proof.verdict != Verdict::Pass || proof.verdict != fixture.expected_verdict {
+    if proof.verdict != Verdict::Pass {
+        return Err(SpacetimeError::new(format!(
+            "crucible did not pass: {:?}",
+            proof.verdict
+        )));
+    }
+    if proof.verdict != fixture.expected_verdict {
         return Err(SpacetimeError::new(format!(
             "crucible verdict {:?} did not match expected {:?}",
             proof.verdict, fixture.expected_verdict
@@ -908,9 +914,7 @@ mod tests {
             "0".to_string(),
         ])
         .is_err());
-        assert!(
-            cmd_crucible_fixture_population(&["--runs".to_string(), "0".to_string()]).is_err()
-        );
+        assert!(cmd_crucible_fixture_population(&["--runs".to_string(), "0".to_string()]).is_err());
         assert!(cmd_crucible_adversarial(&["--dir".to_string()]).is_err());
         assert!(cmd_machine_gate(&["--measurement".to_string()]).is_err());
         assert!(cmd_crucible_verify(&["--task".to_string(), hello]).is_ok());
@@ -925,9 +929,7 @@ mod tests {
             &task,
             "schema_version=1\nverifier_source=fixture_suite\nexpected_verdict=fail\nexpected_digest=sha256:stable\ndeterminism_runs=2\nmutation_threshold_bps=8000\ncandidate_mutation_score_bps=10000\nspace_id=space-mismatch\ngoal_id=goal-mismatch\nsurface_kind=terminal\npreview_mode=headless\nliveness=running\naction echo text=stable\n",
         )?;
-        assert!(
-            cmd_crucible_verify(&["--task".to_string(), task.display().to_string()]).is_err()
-        );
+        assert!(cmd_crucible_verify(&["--task".to_string(), task.display().to_string()]).is_err());
         Ok(())
     }
 
