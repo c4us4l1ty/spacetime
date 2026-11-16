@@ -9,7 +9,9 @@ use crate::{
     cmd_crucible_verify, cmd_machine_gate, crucible_inputs, fixture_population_report,
     panel_resolution_for_task, run_task, state_path,
 };
-use spacetime_bench::{baseline_toml, resource_gate, ResourceGateStatus};
+use spacetime_bench::{
+    baseline_toml, resource_gate, resource_gate_intake, ResourceGateIntake, ResourceGateStatus,
+};
 use spacetime_exec::{RunStatus, Runner, ScriptedRunner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::Ledger;
 use spacetime_types::{
@@ -32,6 +34,12 @@ struct Gate {
     name: &'static str,
     ok: bool,
     detail: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct VerifyArgs {
+    out: String,
+    measurement: Option<String>,
 }
 
 impl Gate {
@@ -77,7 +85,9 @@ impl Drop for TempRoot {
 }
 
 pub fn cmd_verify_all(args: &[String]) -> Result<()> {
-    let out = flag(args, "--out")?;
+    let parsed = parse_verify_args(args)?;
+    let measurement_path = parsed.measurement.as_deref().map(Path::new);
+    let intake = resource_gate_intake(measurement_path);
     let root = TempRoot::new("spacetime-verify")?;
     let mut gates = Vec::new();
 
@@ -127,12 +137,15 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     gates.push(capture("adversarial_corpus", check_adversarial_corpus));
     gates.push(capture("operator_population", check_operator_population));
     gates.push(capture("fixture_population", check_fixture_population));
+    gates.push(capture("measurement_intake", || {
+        check_measurement_intake(&root)
+    }));
     gates.push(capture("resource_gate_unmeasured", || {
         check_resource_gate(&root)
     }));
 
-    let report = render_report(&gates);
-    let out_path = Path::new(out.as_str());
+    let report = render_report(&gates, &intake);
+    let out_path = Path::new(parsed.out.as_str());
     if let Some(parent) = out_path.parent() {
         if !parent.as_os_str().is_empty() {
             fs::create_dir_all(parent)?;
@@ -178,13 +191,41 @@ fn ensure(condition: bool, message: impl Into<String>) -> Result<()> {
     }
 }
 
-fn flag(args: &[String], name: &str) -> Result<String> {
-    let Some(index) = args.iter().position(|arg| arg.as_str() == name) else {
-        return Err(SpacetimeError::new(format!("missing flag {name}")));
-    };
-    args.get(index + 1)
-        .cloned()
-        .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))
+fn parse_verify_args(args: &[String]) -> Result<VerifyArgs> {
+    let mut out = None;
+    let mut measurement = None;
+    let mut index = 0;
+    while index < args.len() {
+        let name = args[index].as_str();
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))?;
+        ensure(!value.starts_with('-'), format!("missing value for {name}"))?;
+        ensure(
+            !value.is_empty() && value.len() <= 512,
+            format!("invalid value for {name}"),
+        )?;
+        ensure(
+            !value.chars().any(|character| character.is_control()),
+            format!("invalid value for {name}"),
+        )?;
+        match name {
+            "--out" => {
+                ensure(out.is_none(), "duplicate --out flag")?;
+                out = Some(value.clone());
+            }
+            "--measurement" => {
+                ensure(measurement.is_none(), "duplicate --measurement flag")?;
+                measurement = Some(value.clone());
+            }
+            _ => return Err(SpacetimeError::new(format!("unknown verify flag: {name}"))),
+        }
+        index += 2;
+    }
+    Ok(VerifyArgs {
+        out: out.ok_or_else(|| SpacetimeError::new("missing flag --out"))?,
+        measurement,
+    })
 }
 
 fn check_happy(root: &TempRoot) -> Result<String> {
@@ -825,6 +866,38 @@ fn check_cli_input_validation(root: &TempRoot) -> Result<String> {
         cmd_machine_gate(&["--measurement".to_string()]),
         "missing measurement value",
     )?;
+    ensure_rejected(
+        parse_verify_args(&[
+            "--out".to_string(),
+            "a".to_string(),
+            "--out".to_string(),
+            "b".to_string(),
+        ])
+        .map(|_| ()),
+        "duplicate verify --out",
+    )?;
+    ensure_rejected(
+        parse_verify_args(&[
+            "--out".to_string(),
+            "a".to_string(),
+            "--measurement".to_string(),
+            "m1".to_string(),
+            "--measurement".to_string(),
+            "m2".to_string(),
+        ])
+        .map(|_| ()),
+        "duplicate verify --measurement",
+    )?;
+    ensure_rejected(
+        parse_verify_args(&[
+            "--out".to_string(),
+            "a".to_string(),
+            "--bogus".to_string(),
+            "b".to_string(),
+        ])
+        .map(|_| ()),
+        "unknown verify flag",
+    )?;
 
     let mismatch = root.join("expected-verdict-mismatch.task");
     fs::write(
@@ -839,7 +912,127 @@ fn check_cli_input_validation(root: &TempRoot) -> Result<String> {
         cmd_crucible_verify(&["--task".to_string(), hello]).is_ok(),
         "valid crucible verify was rejected",
     )?;
-    Ok("rejected_cases=7 valid_verify=accepted".to_string())
+    Ok("rejected_cases=10 valid_verify=accepted".to_string())
+}
+
+fn check_measurement_intake(root: &TempRoot) -> Result<String> {
+    let none = resource_gate_intake(None);
+    ensure(
+        none.status == ResourceGateStatus::Unmeasured && !none.file_supplied,
+        "missing measurement file was not recorded as unmeasured",
+    )?;
+    let none_report = render_report(&[], &none);
+    ensure(
+        none_report.contains("measurement_intake = \"none\"")
+            && none_report.contains("resource_gate = \"unmeasured_target_4gb\"")
+            && none_report.contains("performance_claims = \"unmeasured\""),
+        "default report lost its unmeasured measurement fields",
+    )?;
+
+    let cases: [(&str, &str, bool); 8] = [
+        ("missing-file.measurement", "", false),
+        ("malformed.measurement", "not-key-value\n", true),
+        (
+            "bad-number.measurement",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=oops\n",
+            true,
+        ),
+        (
+            "duplicate.measurement",
+            "schema_version=1\nschema_version=1\n",
+            true,
+        ),
+        (
+            "ci-host.measurement",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n",
+            true,
+        ),
+        (
+            "intake-synthetic-host.measurement",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n",
+            true,
+        ),
+        (
+            "incomplete.measurement",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\n",
+            true,
+        ),
+        (
+            "wrong-profile.measurement",
+            "schema_version=1\ntarget_profile=github_actions\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n",
+            true,
+        ),
+    ];
+    for (name, content, write) in cases {
+        let path = root.join(name);
+        if write {
+            fs::write(&path, content)?;
+        }
+        let intake = resource_gate_intake(Some(path.as_path()));
+        ensure(
+            intake.file_supplied && intake.status == ResourceGateStatus::Unmeasured,
+            format!("{name} did not stay unmeasured"),
+        )?;
+        ensure(
+            !intake.reasons.is_empty(),
+            format!("{name} lost its measurement reasons"),
+        )?;
+        let report = render_report(&[], &intake);
+        ensure(
+            report.contains("resource_gate = \"unmeasured_target_4gb\"")
+                && report.contains("performance_claims = \"unmeasured\""),
+            format!("{name} produced a measured report claim"),
+        )?;
+    }
+
+    let missing = root.join("missing-file.measurement");
+    let missing_intake = resource_gate_intake(Some(missing.as_path()));
+    ensure(
+        missing_intake.digest == "unavailable"
+            && missing_intake
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("unreadable")),
+        "unreadable measurement file lost its unavailable digest or reason",
+    )?;
+    let missing_report = render_report(&[], &missing_intake);
+    ensure(
+        missing_report.contains("measurement_digest = \"unavailable\"")
+            && missing_report.contains("measurement_evaluator = \"unmeasured\""),
+        "unreadable measurement file produced a measured digest or evaluator",
+    )?;
+
+    let oversize = root.join("oversize.measurement");
+    fs::write(&oversize, "a".repeat(70_000))?;
+    let big = resource_gate_intake(Some(oversize.as_path()));
+    ensure(
+        big.status == ResourceGateStatus::Unmeasured
+            && big
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("64 KiB bound")),
+        "oversize measurement file was not bounded",
+    )?;
+
+    let shape = root.join("shape-only.measurement");
+    fs::write(
+        &shape,
+        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+    )?;
+    let shape_intake = resource_gate_intake(Some(shape.as_path()));
+    ensure(
+        shape_intake.status == ResourceGateStatus::Pass,
+        "within-budget shape evaluator self-test did not pass",
+    )?;
+    let shape_report = render_report(&[], &shape_intake);
+    ensure(
+        shape_report.contains("measurement_evaluator = \"pass_shape_only\"")
+            && shape_report.contains("resource_gate = \"unmeasured_target_4gb\"")
+            && shape_report.contains("performance_claims = \"unmeasured\"")
+            && !shape_report.contains("resource_gate = \"measured"),
+        "shape pass was promoted to a measured resource gate",
+    )?;
+    Ok("bounded=none/unreadable/malformed/duplicate/ci/synthetic/incomplete/wrong-profile/oversize shape_pass_only".to_string())
 }
 
 fn check_resource_gate(root: &TempRoot) -> Result<String> {
@@ -898,7 +1091,7 @@ fn check_resource_gate(root: &TempRoot) -> Result<String> {
     Ok("evaluator=unmeasured/fail/pass/non_target_host real_target_4gb=unmeasured".to_string())
 }
 
-fn render_report(gates: &[Gate]) -> String {
+fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {
     let failed = gates.iter().filter(|gate| !gate.ok).count();
     let status = if failed == 0 { "pass" } else { "fail" };
     let mut out = String::new();
@@ -909,6 +1102,28 @@ fn render_report(gates: &[Gate]) -> String {
     out.push_str(&format!("failed = {failed}\n"));
     out.push_str("resource_gate = \"unmeasured_target_4gb\"\n");
     out.push_str("performance_claims = \"unmeasured\"\n");
+    let intake_label = if intake.file_supplied {
+        "evaluated"
+    } else {
+        "none"
+    };
+    let evaluator_label = if !intake.file_supplied {
+        "none"
+    } else if intake.status == ResourceGateStatus::Pass {
+        "pass_shape_only"
+    } else {
+        "unmeasured"
+    };
+    out.push_str(&format!("measurement_intake = \"{intake_label}\"\n"));
+    out.push_str(&format!("measurement_evaluator = \"{evaluator_label}\"\n"));
+    out.push_str(&format!("measurement_digest = {}\n", quote(&intake.digest)));
+    let reasons: Vec<String> = intake
+        .reasons
+        .iter()
+        .take(16)
+        .map(|reason| quote(reason))
+        .collect();
+    out.push_str(&format!("measurement_reasons = [{}]\n", reasons.join(", ")));
     out.push_str("target_profile = \"4gb_potato\"\n");
     out.push_str("resource_law = \"holy_grail\"\n");
     out.push_str("ci_host = \"github_actions_not_target\"\n");

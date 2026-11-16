@@ -75,3 +75,25 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
 - The user explicitly requested the merge to `main`; PR #8 was merged after strict CI passed. The
   measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
   sign-off.
+
+## Addendum — bounded measurement intake (active branch `arena/f3c65268-spacetime`)
+
+- `verify --out <file> [--measurement <file>]` accepts one bounded file path; missing values,
+  duplicate/unknown flags, control characters, overlarge files, unsupported keys, duplicate keys,
+  and non-numeric measurements are rejected as unmeasured rather than crashing the report.
+- Report fields `measurement_intake`, `measurement_evaluator`, `measurement_digest`, and
+  `measurement_reasons` are derived from the evaluated file. A 25th `measurement_intake` gate
+  self-tests the bounded cases.
+- `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
+  A within-budget file is `pass_shape_only`: file shape and budget arithmetic are not physical
+  provenance, which must be recorded out of band before any measured gate claim.
+- Strict CI run `43818080975` (job `133134609083`) verified 25 gates, including the bounded
+  intake smoke cases.
+- Bug hunt: `machine gate --measurement` is now bounded and prints `resource_gate=unmeasured`
+  with `evaluator=pass_shape_only` / `fail_shape_only` / `unmeasured` instead of a shape-based
+  `resource_gate=pass`; duplicate measurement keys, duplicate/unknown CLI flags, flag-like values,
+  control characters, overlong values, and unknown `machine` arguments are rejected; unreadable
+  measurement digests are `"unavailable"`. Strict CI run `43829073730` (job `133169726643`) and
+  PR #9 check run `43829086354` (job `133169767434`) verified 25 gates with no diagnostics.
+- Merged to `main` via PR #9 at explicit user request after strict CI passed. The measured 4 GB
+  resource gate remains outstanding; this is a functional merge, not a resource sign-off.

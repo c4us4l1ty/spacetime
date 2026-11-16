@@ -1,6 +1,6 @@
 //! CLI supervisor for Spacetime Blocks 1-2.
 
-use spacetime_bench::{baseline_toml, resource_gate, ResourceGateStatus};
+use spacetime_bench::{baseline_toml, bounded_resource_gate, ResourceGateStatus};
 use spacetime_cortex::{Cortex, ScriptedCortex};
 use spacetime_exec::{Runner, ScriptedRunner};
 use spacetime_ledger::{Ledger, LedgerState};
@@ -33,7 +33,7 @@ Commands:
   crucible adversarial --dir <dir>
   crucible population --operators <n> --runs <n>
   crucible fixture-population --runs <n>
-  verify --out <file>
+  verify --out <file> [--measurement <file>]
   machine
   machine gate [--measurement <file>]
   digest <text>
@@ -591,6 +591,11 @@ fn cmd_machine(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("gate") {
         return cmd_machine_gate(&args[1..]);
     }
+    if let Some(argument) = args.first() {
+        return Err(SpacetimeError::new(format!(
+            "unknown machine argument: {argument}"
+        )));
+    }
     let baseline = baseline_toml()?;
     print!("{baseline}");
     Ok(())
@@ -599,10 +604,12 @@ fn cmd_machine(args: &[String]) -> Result<()> {
 fn cmd_machine_gate(args: &[String]) -> Result<()> {
     let measurement = optional_flag(args, "--measurement")?;
     let path = measurement.as_deref().map(Path::new);
-    let gate = resource_gate(path)?;
+    let gate = bounded_resource_gate(path)?;
+    let (gate_label, evaluator_label) = machine_gate_labels(gate.status);
     println!(
-        "resource_gate={} target_profile={} memory_budget_kb={} measurement_count={}",
-        gate.status.as_str(),
+        "resource_gate={} evaluator={} target_profile={} memory_budget_kb={} measurement_count={}",
+        gate_label,
+        evaluator_label,
         gate.target_profile,
         gate.memory_budget_kb,
         gate.measurements.len(),
@@ -611,9 +618,19 @@ fn cmd_machine_gate(args: &[String]) -> Result<()> {
         println!("reason={reason}");
     }
     if gate.status == ResourceGateStatus::Fail {
-        return Err(SpacetimeError::new("resource budget gate failed"));
+        return Err(SpacetimeError::new(
+            "bounded measurement shape exceeded a budget; no measured gate claimed",
+        ));
     }
     Ok(())
+}
+
+fn machine_gate_labels(status: ResourceGateStatus) -> (&'static str, &'static str) {
+    match status {
+        ResourceGateStatus::Pass => ("unmeasured", "pass_shape_only"),
+        ResourceGateStatus::Fail => ("unmeasured", "fail_shape_only"),
+        ResourceGateStatus::Unmeasured => ("unmeasured", "unmeasured"),
+    }
 }
 
 fn cmd_digest(text: &str) -> Result<()> {
@@ -623,23 +640,55 @@ fn cmd_digest(text: &str) -> Result<()> {
 }
 
 fn optional_flag(args: &[String], name: &str) -> Result<Option<String>> {
-    match args.iter().position(|arg| arg.as_str() == name) {
-        Some(index) => args
+    let mut found = None;
+    let mut index = 0;
+    while index < args.len() {
+        let flag_name = args[index].as_str();
+        if flag_name != name {
+            return Err(SpacetimeError::new(format!(
+                "unknown {name} flag: {flag_name}"
+            )));
+        }
+        let value = args
             .get(index + 1)
-            .cloned()
-            .map(Some)
-            .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}"))),
-        None => Ok(None),
+            .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))?;
+        ensure_flag_value(name, value)?;
+        if found.is_some() {
+            return Err(SpacetimeError::new(format!("duplicate {name} flag")));
+        }
+        found = Some(value.clone());
+        index += 2;
     }
+    Ok(found)
 }
 
 fn flag(args: &[String], name: &str) -> Result<String> {
-    let Some(index) = args.iter().position(|arg| arg.as_str() == name) else {
+    let mut indices = args
+        .iter()
+        .enumerate()
+        .filter(|(_, arg)| arg.as_str() == name)
+        .map(|(index, _)| index);
+    let Some(index) = indices.next() else {
         return Err(SpacetimeError::new(format!("missing flag {name}")));
     };
-    args.get(index + 1)
-        .cloned()
-        .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))
+    if indices.next().is_some() {
+        return Err(SpacetimeError::new(format!("duplicate {name} flag")));
+    }
+    let value = args
+        .get(index + 1)
+        .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))?;
+    ensure_flag_value(name, value)?;
+    Ok(value.clone())
+}
+
+fn ensure_flag_value(name: &str, value: &str) -> Result<()> {
+    if value.starts_with('-') {
+        return Err(SpacetimeError::new(format!("missing value for {name}")));
+    }
+    if value.is_empty() || value.len() > 512 || value.chars().any(char::is_control) {
+        return Err(SpacetimeError::new(format!("invalid value for {name}")));
+    }
+    Ok(())
 }
 
 pub fn run_task(task_path: &Path, ledger_path: &Path) -> Result<()> {
@@ -897,6 +946,59 @@ mod tests {
     }
 
     #[test]
+    fn optional_flag_rejects_duplicate_unknown_and_unsafe_values() -> Result<()> {
+        let a = "a".to_string();
+        let b = "b".to_string();
+        assert!(optional_flag(
+            &[
+                "--dir".to_string(),
+                a.clone(),
+                "--dir".to_string(),
+                b.clone()
+            ],
+            "--dir"
+        )
+        .is_err());
+        assert!(optional_flag(&["--bogus".to_string(), a.clone()], "--dir").is_err());
+        assert!(optional_flag(&["--dir".to_string(), "--bogus".to_string()], "--dir").is_err());
+        assert!(optional_flag(&["--dir".to_string(), "a\u{1}b".to_string()], "--dir").is_err());
+        assert!(optional_flag(&["--dir".to_string(), "x".repeat(513)], "--dir").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn flag_rejects_duplicate_and_unsafe_values() {
+        assert!(flag(
+            &[
+                "--runs".to_string(),
+                "50".to_string(),
+                "--runs".to_string(),
+                "51".to_string(),
+            ],
+            "--runs"
+        )
+        .is_err());
+        assert!(flag(&["--runs".to_string(), "--bogus".to_string()], "--runs").is_err());
+    }
+
+    #[test]
+    fn machine_gate_never_labels_shape_pass_as_measured() {
+        assert_eq!(
+            machine_gate_labels(ResourceGateStatus::Pass),
+            ("unmeasured", "pass_shape_only")
+        );
+        assert_eq!(
+            machine_gate_labels(ResourceGateStatus::Fail),
+            ("unmeasured", "fail_shape_only")
+        );
+        assert_eq!(
+            machine_gate_labels(ResourceGateStatus::Unmeasured),
+            ("unmeasured", "unmeasured")
+        );
+        assert!(cmd_machine(&["--bogus".to_string()]).is_err());
+    }
+
+    #[test]
     fn cli_commands_reject_invalid_inputs() -> Result<()> {
         let hello = fixture("block1_hello.task").display().to_string();
         assert!(cmd_crucible_false_pass(&[
@@ -917,6 +1019,13 @@ mod tests {
         assert!(cmd_crucible_fixture_population(&["--runs".to_string(), "0".to_string()]).is_err());
         assert!(cmd_crucible_adversarial(&["--dir".to_string()]).is_err());
         assert!(cmd_machine_gate(&["--measurement".to_string()]).is_err());
+        assert!(cmd_machine_gate(&[
+            "--measurement".to_string(),
+            "a".to_string(),
+            "--measurement".to_string(),
+            "b".to_string(),
+        ])
+        .is_err());
         assert!(cmd_crucible_verify(&["--task".to_string(), hello]).is_ok());
         Ok(())
     }
