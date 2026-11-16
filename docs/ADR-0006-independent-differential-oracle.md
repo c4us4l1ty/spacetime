@@ -1,7 +1,7 @@
 # ADR-0006 — Make the differential smoke gate non-tautological
 
 Date: 2026-11-16
-Status: implemented on `arena/3f609a12-spacetime`; strict Rust CI pending.
+Status: implemented on `arena/3f609a12-spacetime`; strict CI passed for code head `9461ae40c57262c32dde5c29a14dab8cf0ed3aa8` (run `43854267357`).
 
 ## Context
 
@@ -34,5 +34,9 @@ EconBench placeholders into the real seven transmutation tasks required by Block
 
 ## Validation
 
-Rust tests are part of strict CI. The local checkout has no `cargo` or `rustc`, so formatting,
-Clippy, and Rust tests must be verified by CI before merging.
+Strict push run `43854267357` on code head `9461ae40c57262c32dde5c29a14dab8cf0ed3aa8` passed all
+14 CI steps, including `cargo fmt --all -- --check`, Clippy with `-D warnings`, workspace tests,
+release build, and the Crucible smoke. A local Python model also checked one million deterministic
+inputs and confirmed all eight distinct mutations are detected; this is supplementary reasoning,
+not a substitute for the Rust tests. The repo still lacks the real EconBench task pack and target
+machine measurement.
