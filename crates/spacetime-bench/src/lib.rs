@@ -16,6 +16,16 @@ pub const BOOT_BUDGET_MILLIS: u64 = 1_000;
 pub const TAB_SWITCH_BUDGET_MILLIS: u64 = 1_000;
 pub const CPU_BUDGET_PERCENT: u64 = 100;
 
+const NON_TARGET_HOST_MARKERS: [&str; 7] = [
+    "github",
+    "actions",
+    "runner",
+    "azure",
+    "synthetic",
+    "ci_host",
+    "self_test",
+];
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResourceGateStatus {
     Unmeasured,
@@ -87,8 +97,12 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
         .get("measurement_host")
         .map(|value| value.to_ascii_lowercase())
         .unwrap_or_default();
-    if host.is_empty() || host.contains("github") {
-        unmeasured_reasons.push("measurement_host missing or CI host".to_string());
+    if host.is_empty()
+        || NON_TARGET_HOST_MARKERS
+            .iter()
+            .any(|marker| host.contains(marker))
+    {
+        unmeasured_reasons.push("measurement_host missing or non-target host".to_string());
     }
     let required = ["peak_rss_kb", "boot_ms", "tab_switch_ms"];
     for key in required {
@@ -286,6 +300,26 @@ mod tests {
             .reasons
             .iter()
             .any(|reason| reason.contains("wrong target_profile")));
+        assert!(gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("non-target host")));
+        Ok(())
+    }
+
+    #[test]
+    fn resource_gate_rejects_synthetic_host_label() -> Result<()> {
+        let path = temp_measurement(
+            "synthetic-host",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+        )?;
+        let gate = resource_gate(Some(path.as_path()))?;
+        let _ = fs::remove_file(&path);
+        assert_eq!(gate.status, ResourceGateStatus::Unmeasured);
+        assert!(gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("non-target host")));
         Ok(())
     }
 
@@ -293,7 +327,7 @@ mod tests {
     fn resource_gate_passes_only_with_explicit_target_measurements() -> Result<()> {
         let path = temp_measurement(
             "within-budget",
-            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
         )?;
         let gate = resource_gate(Some(path.as_path()))?;
         let _ = fs::remove_file(&path);
@@ -306,7 +340,7 @@ mod tests {
     fn resource_gate_fails_over_budget() -> Result<()> {
         let path = temp_measurement(
             "over-budget",
-            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-target-lab\npeak_rss_kb=99999999\nboot_ms=900\ntab_switch_ms=900\n",
+            "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=99999999\nboot_ms=900\ntab_switch_ms=900\n",
         )?;
         let gate = resource_gate(Some(path.as_path()))?;
         let _ = fs::remove_file(&path);

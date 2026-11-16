@@ -9,12 +9,47 @@
 use spacetime_exec::{RunStatus, Runner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::LedgerState;
 use spacetime_types::{
-    Action, ActionOp, Observation, Verdict, VerifierProof, VerifierSource, VERIFIER_SOURCE_PRIORITY,
+    Action, ActionOp, Observation, Result, SpacetimeError, Verdict, VerifierProof,
+    VerifierSource, VERIFIER_SOURCE_PRIORITY,
 };
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub const FIXTURE_VERIFIER_ID: &str = "fixture-verifier-v1";
 pub const CRUCIBLE_VERIFIER_ID: &str = "crucible-verifier-v2";
+
+pub const MIN_RERUNS: u32 = 50;
+pub const MAX_RERUNS: u32 = 10_000;
+pub const MIN_OPERATORS: usize = 5;
+pub const MAX_OPERATORS: usize = 10_000;
+pub const MIN_DIFFERENTIAL_INPUTS: u64 = 1_000_000;
+pub const MAX_DIFFERENTIAL_INPUTS: u64 = 10_000_000;
+
+pub fn validate_reruns(runs: u32) -> Result<()> {
+    if runs < MIN_RERUNS || runs > MAX_RERUNS {
+        return Err(SpacetimeError::new(format!(
+            "reruns must be between {MIN_RERUNS} and {MAX_RERUNS}"
+        )));
+    }
+    Ok(())
+}
+
+pub fn validate_operator_count(operator_count: usize) -> Result<()> {
+    if operator_count < MIN_OPERATORS || operator_count > MAX_OPERATORS {
+        return Err(SpacetimeError::new(format!(
+            "operator count must be between {MIN_OPERATORS} and {MAX_OPERATORS}"
+        )));
+    }
+    Ok(())
+}
+
+pub fn validate_differential_limit(limit: u64) -> Result<()> {
+    if limit < MIN_DIFFERENTIAL_INPUTS || limit > MAX_DIFFERENTIAL_INPUTS {
+        return Err(SpacetimeError::new(format!(
+            "differential limit must be between {MIN_DIFFERENTIAL_INPUTS} and {MAX_DIFFERENTIAL_INPUTS}"
+        )));
+    }
+    Ok(())
+}
 
 pub trait Verifier {
     fn verify(
@@ -297,6 +332,16 @@ pub fn false_pass_rate(
     false_pass_report(candidate, fixture, runner, runs).0
 }
 
+pub fn false_pass_report_checked(
+    candidate: &Candidate,
+    fixture: &Fixture,
+    runner: &dyn Runner,
+    runs: u32,
+) -> Result<(f64, f64)> {
+    validate_reruns(runs)?;
+    Ok(false_pass_report(candidate, fixture, runner, runs))
+}
+
 #[derive(Debug, Default)]
 pub struct UnstableVerifier {
     counter: AtomicU64,
@@ -511,6 +556,19 @@ fn operator_kind(index: usize) -> OperatorKind {
 }
 
 pub fn population_report(operator_count: usize, runs: u32) -> PopulationReport {
+    if runs == 0 {
+        return PopulationReport {
+            operators: operator_count,
+            runs_per_operator: 0,
+            total_runs: 0,
+            accepted: 0,
+            unstable: 0,
+            max_flip_rate: 0.0,
+            promoted_false_pass_leaks: 0,
+            synthetic: true,
+            real_operator_study: false,
+        };
+    }
     let mut accepted = 0;
     let mut unstable = 0;
     let mut max_flip_rate = 0.0;
@@ -547,6 +605,15 @@ pub fn population_report(operator_count: usize, runs: u32) -> PopulationReport {
         synthetic: true,
         real_operator_study: false,
     }
+}
+
+pub fn population_report_checked(
+    operator_count: usize,
+    runs: u32,
+) -> Result<PopulationReport> {
+    validate_operator_count(operator_count)?;
+    validate_reruns(runs)?;
+    Ok(population_report(operator_count, runs))
 }
 
 fn reference_transform(input: u64) -> u64 {
@@ -848,6 +915,56 @@ mod tests {
             );
         let resolution = panel.resolve();
         assert_eq!(resolution.verdict, Verdict::Unverified);
+    }
+
+    #[test]
+    fn validators_reject_unsafe_cli_inputs() {
+        assert!(validate_reruns(0).is_err());
+        assert!(validate_reruns(MIN_RERUNS - 1).is_err());
+        assert!(validate_reruns(MAX_RERUNS + 1).is_err());
+        assert!(validate_reruns(MIN_RERUNS).is_ok());
+        assert!(validate_reruns(MAX_RERUNS).is_ok());
+        assert!(validate_operator_count(0).is_err());
+        assert!(validate_operator_count(MIN_OPERATORS - 1).is_err());
+        assert!(validate_operator_count(MAX_OPERATORS + 1).is_err());
+        assert!(validate_operator_count(MIN_OPERATORS).is_ok());
+        assert!(validate_differential_limit(0).is_err());
+        assert!(validate_differential_limit(MIN_DIFFERENTIAL_INPUTS - 1).is_err());
+        assert!(validate_differential_limit(MAX_DIFFERENTIAL_INPUTS + 1).is_err());
+        assert!(validate_differential_limit(MIN_DIFFERENTIAL_INPUTS).is_ok());
+    }
+
+    #[test]
+    fn checked_wrappers_reject_invalid_ranges() -> Result<()> {
+        let runner = ScriptedRunner::new()?;
+        let candidate = candidate(ActionOp::Echo {
+            text: "stable".to_string(),
+        });
+        let fixture = fixture("stable", Verdict::Pass);
+        assert!(false_pass_report_checked(&candidate, &fixture, &runner, 0).is_err());
+        assert!(
+            false_pass_report_checked(&candidate, &fixture, &runner, MAX_RERUNS + 1).is_err()
+        );
+        assert_eq!(
+            false_pass_report_checked(&candidate, &fixture, &runner, MIN_RERUNS)?,
+            (0.0, 0.0)
+        );
+        assert!(population_report_checked(MIN_OPERATORS - 1, MIN_RERUNS).is_err());
+        assert!(population_report_checked(MIN_OPERATORS, 0).is_err());
+        assert!(population_report_checked(MIN_OPERATORS, MIN_RERUNS).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn population_report_with_zero_runs_accepts_nothing() {
+        let report = population_report(10, 0);
+        assert_eq!(report.operators, 10);
+        assert_eq!(report.runs_per_operator, 0);
+        assert_eq!(report.total_runs, 0);
+        assert_eq!(report.accepted, 0);
+        assert_eq!(report.unstable, 0);
+        assert_eq!(report.max_flip_rate, 0.0);
+        assert_eq!(report.promoted_false_pass_leaks, 0);
     }
 
     #[test]

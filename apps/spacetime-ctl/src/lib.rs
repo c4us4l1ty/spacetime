@@ -9,9 +9,10 @@ use spacetime_types::{
     VerifierSource,
 };
 use spacetime_verifier::{
-    differential_score, false_pass_report, mutation_score_bps, population_report,
-    verifier_source_priority, Candidate, CrucibleVerifier, Fixture, FixtureVerifier,
-    PanelResolution, Verifier, VerifierPanel,
+    differential_score, false_pass_report_checked, mutation_score_bps,
+    population_report_checked, validate_differential_limit, validate_operator_count,
+    validate_reruns, verifier_source_priority, Candidate, CrucibleVerifier, Fixture,
+    FixtureVerifier, PanelResolution, Verifier, VerifierPanel,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -161,11 +162,7 @@ pub(crate) struct FixturePopulationReport {
 }
 
 pub(crate) fn fixture_population_report(runs: u32) -> Result<FixturePopulationReport> {
-    if runs < 50 {
-        return Err(SpacetimeError::new(
-            "fixture population study requires at least 50 reruns",
-        ));
-    }
+    validate_reruns(runs)?;
     let mut paths = Vec::new();
     for dir in [tasks_dir(), adversarial_dir()] {
         for entry in fs::read_dir(dir)? {
@@ -190,7 +187,8 @@ pub(crate) fn fixture_population_report(runs: u32) -> Result<FixturePopulationRe
         }
         let (candidate, fixture) = crucible_inputs(&path)?;
         let runner = ScriptedRunner::new()?;
-        let (flip_rate, leak_rate) = false_pass_report(&candidate, &fixture, &runner, runs);
+        let (flip_rate, leak_rate) =
+            false_pass_report_checked(&candidate, &fixture, &runner, runs)?;
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
         report.fixtures += 1;
         report.verifier_runs += u64::from(runs);
@@ -398,7 +396,7 @@ fn cmd_crucible_panel(args: &[String]) -> Result<()> {
 }
 
 fn cmd_crucible_adversarial(args: &[String]) -> Result<()> {
-    let dir = optional_flag(args, "--dir")
+    let dir = optional_flag(args, "--dir")?
         .map(PathBuf::from)
         .unwrap_or_else(adversarial_dir);
     let report = adversarial_report(&dir)?;
@@ -423,7 +421,9 @@ fn cmd_crucible_adversarial(args: &[String]) -> Result<()> {
 fn cmd_crucible_population(args: &[String]) -> Result<()> {
     let operators = flag(args, "--operators")?.parse::<usize>()?;
     let runs = flag(args, "--runs")?.parse::<u32>()?;
-    let report = population_report(operators, runs);
+    validate_operator_count(operators)?;
+    validate_reruns(runs)?;
+    let report = population_report_checked(operators, runs)?;
     println!(
         "operators={} runs_per_operator={} total_runs={} accepted={} unstable={} max_flip_rate={:.4} promoted_false_pass_leaks={} synthetic={} real_operator_study={}",
         report.operators,
@@ -436,16 +436,6 @@ fn cmd_crucible_population(args: &[String]) -> Result<()> {
         report.synthetic,
         report.real_operator_study,
     );
-    if runs < 50 {
-        return Err(SpacetimeError::new(
-            "population study requires at least 50 reruns",
-        ));
-    }
-    if operators < 5 {
-        return Err(SpacetimeError::new(
-            "population study requires at least five operators",
-        ));
-    }
     if report.unstable == 0 || report.accepted == 0 {
         return Err(SpacetimeError::new(
             "population study did not exercise stable and unstable operators",
@@ -461,6 +451,7 @@ fn cmd_crucible_population(args: &[String]) -> Result<()> {
 
 fn cmd_crucible_fixture_population(args: &[String]) -> Result<()> {
     let runs = flag(args, "--runs")?.parse::<u32>()?;
+    validate_reruns(runs)?;
     let report = fixture_population_report(runs)?;
     println!(
         "fixtures={} skipped_without_oracle={} runs_per_fixture={} verifier_runs={} planned_runner_executions={} stable={} unstable={} max_flip_rate={:.4} max_leak_rate={:.4} mismatches={} real_fixture_population={} real_operator_study={}",
@@ -520,10 +511,10 @@ fn cmd_crucible_verify(args: &[String]) -> Result<()> {
         "execution_profile_digest={}",
         proof.execution_profile_digest
     );
-    if proof.verdict != spacetime_types::Verdict::Pass {
+    if proof.verdict != Verdict::Pass || proof.verdict != fixture.expected_verdict {
         return Err(SpacetimeError::new(format!(
-            "crucible did not pass: {:?}",
-            proof.verdict
+            "crucible verdict {:?} did not match expected {:?}",
+            proof.verdict, fixture.expected_verdict
         )));
     }
     Ok(())
@@ -532,9 +523,10 @@ fn cmd_crucible_verify(args: &[String]) -> Result<()> {
 fn cmd_crucible_false_pass(args: &[String]) -> Result<()> {
     let task = flag(args, "--task")?;
     let runs = flag(args, "--runs")?.parse::<u32>()?;
+    validate_reruns(runs)?;
     let (candidate, fixture) = crucible_inputs(Path::new(task.as_str()))?;
     let runner = ScriptedRunner::new()?;
-    let (rate, leak_rate) = false_pass_report(&candidate, &fixture, &runner, runs);
+    let (rate, leak_rate) = false_pass_report_checked(&candidate, &fixture, &runner, runs)?;
     println!("false_pass_rate={rate:.4} false_pass_leaks={leak_rate:.4} runs={runs}");
     if rate > 0.01 || leak_rate > 0.01 {
         return Err(SpacetimeError::new(format!(
@@ -553,6 +545,7 @@ fn cmd_crucible_sources() -> Result<()> {
 
 fn cmd_crucible_differential(args: &[String]) -> Result<()> {
     let limit = flag(args, "--limit")?.parse::<u64>()?;
+    validate_differential_limit(limit)?;
     let (matched, inputs) = differential_score(limit);
     let score = mutation_score_bps(limit);
     println!("differential_matches={matched} inputs={inputs} mutation_score_bps={score}");
@@ -598,7 +591,7 @@ fn cmd_machine(args: &[String]) -> Result<()> {
 }
 
 fn cmd_machine_gate(args: &[String]) -> Result<()> {
-    let measurement = optional_flag(args, "--measurement");
+    let measurement = optional_flag(args, "--measurement")?;
     let path = measurement.as_deref().map(Path::new);
     let gate = resource_gate(path)?;
     println!(
@@ -623,9 +616,15 @@ fn cmd_digest(text: &str) -> Result<()> {
     Ok(())
 }
 
-fn optional_flag(args: &[String], name: &str) -> Option<String> {
-    let index = args.iter().position(|arg| arg.as_str() == name)?;
-    args.get(index + 1).cloned()
+fn optional_flag(args: &[String], name: &str) -> Result<Option<String>> {
+    match args.iter().position(|arg| arg.as_str() == name) {
+        Some(index) => args
+            .get(index + 1)
+            .cloned()
+            .map(Some)
+            .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}"))),
+        None => Ok(None),
+    }
 }
 
 fn flag(args: &[String], name: &str) -> Result<String> {
@@ -864,6 +863,71 @@ mod tests {
         assert!(report.max_leak_rate <= 0.01);
         assert!(report.real_fixture_population);
         assert!(!report.real_operator_study);
+        Ok(())
+    }
+
+    #[test]
+    fn cli_input_validation_rejects_unsafe_ranges() -> Result<()> {
+        assert!(validate_reruns(0).is_err());
+        assert!(validate_reruns(49).is_err());
+        assert!(validate_reruns(10_001).is_err());
+        assert!(validate_reruns(50).is_ok());
+        assert!(validate_operator_count(4).is_err());
+        assert!(validate_operator_count(10_001).is_err());
+        assert!(validate_differential_limit(1).is_err());
+        assert!(validate_differential_limit(10_000_001).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn optional_flag_rejects_missing_value() -> Result<()> {
+        assert!(optional_flag(&["--dir".to_string()], "--dir").is_err());
+        assert_eq!(optional_flag(&[], "--dir")?, None);
+        assert_eq!(
+            optional_flag(&["--dir".to_string(), "x".to_string()], "--dir")?,
+            Some("x".to_string())
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn cli_commands_reject_invalid_inputs() -> Result<()> {
+        let hello = fixture("block1_hello.task").display().to_string();
+        assert!(cmd_crucible_false_pass(&[
+            "--task".to_string(),
+            hello.clone(),
+            "--runs".to_string(),
+            "0".to_string(),
+        ])
+        .is_err());
+        assert!(cmd_crucible_differential(&["--limit".to_string(), "1".to_string()]).is_err());
+        assert!(cmd_crucible_population(&[
+            "--operators".to_string(),
+            "10".to_string(),
+            "--runs".to_string(),
+            "0".to_string(),
+        ])
+        .is_err());
+        assert!(
+            cmd_crucible_fixture_population(&["--runs".to_string(), "0".to_string()]).is_err()
+        );
+        assert!(cmd_crucible_adversarial(&["--dir".to_string()]).is_err());
+        assert!(cmd_machine_gate(&["--measurement".to_string()]).is_err());
+        assert!(cmd_crucible_verify(&["--task".to_string(), hello]).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn crucible_verify_rejects_expected_verdict_mismatch() -> Result<()> {
+        let paths = TempPaths::new("mismatch")?;
+        let task = paths.dir.join("mismatch.task");
+        fs::write(
+            &task,
+            "schema_version=1\nverifier_source=fixture_suite\nexpected_verdict=fail\nexpected_digest=sha256:stable\ndeterminism_runs=2\nmutation_threshold_bps=8000\ncandidate_mutation_score_bps=10000\nspace_id=space-mismatch\ngoal_id=goal-mismatch\nsurface_kind=terminal\npreview_mode=headless\nliveness=running\naction echo text=stable\n",
+        )?;
+        assert!(
+            cmd_crucible_verify(&["--task".to_string(), task.display().to_string()]).is_err()
+        );
         Ok(())
     }
 

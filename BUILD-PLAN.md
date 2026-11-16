@@ -1,6 +1,6 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 merged to `main`, Block 2 functional verification expanded with local shims/capability/fixture population; 4 GB resource gate unmeasured.
+**Status:** active roadmap; Block 1 merged to `main`, Block 2 bug-hunt fixes applied and functional verification expanded to 24 gates; 4 GB resource gate unmeasured.
 **Date:** 2026-11-15
 **Branch:** `arena/d7d47fd2-spacetime` (Block 1 merged to `main` via PR #7)
 

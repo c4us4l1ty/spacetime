@@ -4,8 +4,10 @@
 //! pipeline and labels the 4 GB potato-machine resource budget as unmeasured.
 
 use crate::{
-    adversarial_report, crucible_inputs, fixture_population_report, panel_resolution_for_task,
-    run_task, state_path,
+    adversarial_report, cmd_crucible_adversarial, cmd_crucible_differential,
+    cmd_crucible_false_pass, cmd_crucible_fixture_population, cmd_crucible_population,
+    cmd_crucible_verify, cmd_machine_gate, crucible_inputs, fixture_population_report,
+    panel_resolution_for_task, run_task, state_path,
 };
 use spacetime_bench::{baseline_toml, resource_gate, ResourceGateStatus};
 use spacetime_exec::{RunStatus, Runner, ScriptedRunner, FIXED_DETERMINISM_PROFILE};
@@ -15,9 +17,9 @@ use spacetime_types::{
     VerifierSource, SCHEMA_VERSION, VERIFIER_SOURCE_PRIORITY,
 };
 use spacetime_verifier::{
-    differential_score, false_pass_leak_rate, false_pass_report, mutation_score_bps,
-    population_report, verdict_flip_rate, verifier_source_priority, Candidate, CrucibleVerifier,
-    UnstableVerifier,
+    differential_score, false_pass_leak_rate, false_pass_report_checked, mutation_score_bps,
+    population_report_checked, validate_differential_limit, verdict_flip_rate,
+    verifier_source_priority, Candidate, CrucibleVerifier, UnstableVerifier,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -118,6 +120,9 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
         "capability_enforcement",
         check_capability_enforcement,
     ));
+    gates.push(capture("cli_input_validation", || {
+        check_cli_input_validation(&root)
+    }));
     gates.push(capture("verifier_panel", check_verifier_panel));
     gates.push(capture("adversarial_corpus", check_adversarial_corpus));
     gates.push(capture("operator_population", check_operator_population));
@@ -427,7 +432,8 @@ fn check_flaky_family(_root: &TempRoot) -> Result<String> {
             proof.verdict == Verdict::Error,
             format!("{name} was promoted instead of classified ERROR"),
         )?;
-        let (flip_rate, leak_rate) = false_pass_report(&candidate, &config, &runner, 50);
+        let (flip_rate, leak_rate) =
+            false_pass_report_checked(&candidate, &config, &runner, 50)?;
         ensure(
             flip_rate <= 0.01 && leak_rate <= 0.01,
             format!("{name} leaked false-PASS verdicts"),
@@ -440,7 +446,7 @@ fn check_false_pass(_root: &TempRoot) -> Result<String> {
     let path = fixture("block1_hello.task");
     let (candidate, config) = crucible_inputs(&path)?;
     let runner = ScriptedRunner::new()?;
-    let (flip_rate, leak_rate) = false_pass_report(&candidate, &config, &runner, 50);
+    let (flip_rate, leak_rate) = false_pass_report_checked(&candidate, &config, &runner, 50)?;
     ensure(
         flip_rate <= 0.01 && leak_rate <= 0.01,
         "deterministic candidate exceeded the 1% false-PASS gate",
@@ -483,6 +489,7 @@ fn check_trivial_mutation_gate(_root: &TempRoot) -> Result<String> {
 
 fn check_differential_mutation() -> Result<String> {
     let limit = 1_000_000;
+    validate_differential_limit(limit)?;
     let (matched, inputs) = differential_score(limit);
     let score = mutation_score_bps(limit);
     ensure(
@@ -752,7 +759,7 @@ fn check_adversarial_corpus() -> Result<String> {
 }
 
 fn check_operator_population() -> Result<String> {
-    let report = population_report(10, 50);
+    let report = population_report_checked(10, 50)?;
     ensure(
         report.operators == 10 && report.runs_per_operator == 50,
         "operator population dimensions changed",
@@ -779,6 +786,63 @@ fn check_operator_population() -> Result<String> {
     ))
 }
 
+fn ensure_rejected(result: Result<()>, label: &str) -> Result<()> {
+    ensure(result.is_err(), format!("{label} unexpectedly succeeded"))
+}
+
+fn check_cli_input_validation(root: &TempRoot) -> Result<String> {
+    let hello = fixture("block1_hello.task").display().to_string();
+    ensure_rejected(
+        cmd_crucible_false_pass(&[
+            "--task".to_string(),
+            hello.clone(),
+            "--runs".to_string(),
+            "0".to_string(),
+        ]),
+        "zero-rerun false-PASS",
+    )?;
+    ensure_rejected(
+        cmd_crucible_differential(&["--limit".to_string(), "1".to_string()]),
+        "tiny differential limit",
+    )?;
+    ensure_rejected(
+        cmd_crucible_population(&[
+            "--operators".to_string(),
+            "10".to_string(),
+            "--runs".to_string(),
+            "0".to_string(),
+        ]),
+        "zero-rerun population",
+    )?;
+    ensure_rejected(
+        cmd_crucible_fixture_population(&["--runs".to_string(), "0".to_string()]),
+        "zero-rerun fixture population",
+    )?;
+    ensure_rejected(
+        cmd_crucible_adversarial(&["--dir".to_string()]),
+        "missing adversarial dir value",
+    )?;
+    ensure_rejected(
+        cmd_machine_gate(&["--measurement".to_string()]),
+        "missing measurement value",
+    )?;
+
+    let mismatch = root.join("expected-verdict-mismatch.task");
+    fs::write(
+        &mismatch,
+        "schema_version=1\nverifier_source=fixture_suite\nexpected_verdict=fail\nexpected_digest=sha256:stable\ndeterminism_runs=2\nmutation_threshold_bps=8000\ncandidate_mutation_score_bps=10000\nspace_id=space-mismatch\ngoal_id=goal-mismatch\nsurface_kind=terminal\npreview_mode=headless\nliveness=running\naction echo text=stable\n",
+    )?;
+    ensure_rejected(
+        cmd_crucible_verify(&["--task".to_string(), mismatch.display().to_string()]),
+        "expected-verdict mismatch",
+    )?;
+    ensure(
+        cmd_crucible_verify(&["--task".to_string(), hello]).is_ok(),
+        "valid crucible verify was rejected",
+    )?;
+    Ok("rejected_cases=7 valid_verify=accepted".to_string())
+}
+
 fn check_resource_gate(root: &TempRoot) -> Result<String> {
     let unmeasured = resource_gate(None)?;
     ensure(
@@ -796,7 +860,7 @@ fn check_resource_gate(root: &TempRoot) -> Result<String> {
     let over = root.join("over-budget.measurement");
     fs::write(
         &over,
-        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-over-budget\npeak_rss_kb=99999999\nboot_ms=900\ntab_switch_ms=900\n",
+        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-over-budget\npeak_rss_kb=99999999\nboot_ms=900\ntab_switch_ms=900\n",
     )?;
     let over_gate = resource_gate(Some(over.as_path()))?;
     ensure(
@@ -807,14 +871,32 @@ fn check_resource_gate(root: &TempRoot) -> Result<String> {
     let within = root.join("within-budget.measurement");
     fs::write(
         &within,
-        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-within-budget\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-within-budget\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
     )?;
     let within_gate = resource_gate(Some(within.as_path()))?;
     ensure(
         within_gate.status == ResourceGateStatus::Pass,
-        "within-budget synthetic measurement did not pass the evaluator self-test",
+        "within-budget target-lab measurement did not pass the evaluator self-test",
     )?;
-    Ok("evaluator=unmeasured/fail/pass real_target_4gb=unmeasured".to_string())
+
+    let synthetic = root.join("synthetic-host.measurement");
+    fs::write(
+        &synthetic,
+        "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=synthetic-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+    )?;
+    let synthetic_gate = resource_gate(Some(synthetic.as_path()))?;
+    ensure(
+        synthetic_gate.status == ResourceGateStatus::Unmeasured,
+        "synthetic host label was treated as a real target measurement",
+    )?;
+    ensure(
+        synthetic_gate
+            .reasons
+            .iter()
+            .any(|reason| reason.contains("non-target host")),
+        "synthetic host rejection lost its reason",
+    )?;
+    Ok("evaluator=unmeasured/fail/pass/non_target_host real_target_4gb=unmeasured".to_string())
 }
 
 fn render_report(gates: &[Gate]) -> String {
@@ -844,6 +926,8 @@ fn render_report(gates: &[Gate]) -> String {
     out.push_str("synthetic_operator_population = true\n");
     out.push_str("real_operator_study = \"unmeasured\"\n");
     out.push_str("resource_gate_evaluator = \"unmeasured_fail_pass_self_test\"\n");
+    out.push_str("cli_input_validation = \"bounded\"\n");
+    out.push_str("resource_gate_host_validation = true\n");
     for gate in gates {
         let gate_status = if gate.ok { "pass" } else { "fail" };
         out.push_str("[[gate]]\n");

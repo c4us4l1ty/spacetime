@@ -37,7 +37,7 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
     so the multi-run rule classifies them as `ERROR`, never as a promotion.
 11. **False-PASS metrology.** `false_pass_report` records verdict flip rate and expected-verdict leak
     rate over 50 same-snapshot reruns. An unstable operator is proven detectable.
-12. **End-to-end verification.** `spacetime-ctl verify --out <file>` runs 23 offline gates covering
+12. **End-to-end verification.** `spacetime-ctl verify --out <file>` runs 24 offline gates covering
     ledger, replay, tamper, truncation, non-canonical, false-claim, timeout, incomplete-goal,
     Crucible, provenance, differential, mutation, control/shim probe, capability enforcement, panel,
     adversarial corpus, synthetic population, real fixture population, resource-gate evaluator, and
@@ -55,9 +55,13 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
     50 times each (1,300 verifier calls), checks declared verdicts, and enforces the 1% false-PASS
     kill gate. It is a real fixture study, not a real operator study.
 17. **Explicit resource gate.** `resource_gate` accepts an optional real measurement file, rejects
-    CI host labels and wrong target profiles, fails over-budget measurements, and otherwise remains
-    `unmeasured`. No measurement file is committed.
+    CI/synthetic host labels and wrong target profiles, fails over-budget measurements, and otherwise
+    remains `unmeasured`. It validates file shape and budget arithmetic, not physical provenance.
+    No measurement file is committed.
 18. **Locked CI.** `Cargo.lock` remains committed and every cargo invocation uses `--locked`.
+19. **Bounded CLI inputs.** Reruns are limited to 50–10,000, operator counts to 5–10,000,
+    differential limits to 1,000,000–10,000,000, and optional flags with missing values are errors.
+    `crucible verify` also rejects a verdict that disagrees with the fixture's declared oracle.
 
 ## Consequences
 
