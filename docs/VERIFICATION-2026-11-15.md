@@ -195,6 +195,8 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   active f3 branch; PR #8's 24-gate result above remains historical evidence, not evidence for
   this increment.
 - Submitted as a PR; not merged to `main` unless explicitly requested.
+- Documentation head: the commit containing this file. Docs-only changes after `d0d6ce6` do not
+  alter validated code and are covered by the PR-head strict CI run.
 - A temporary diagnostic workflow at `23db3ea` (run `43817571481`, job `133133013340`) used
   `continue-on-error` only to collect rustfmt/Clippy findings in one pass. Strict CI was restored
   at `d0d6ce6`; that diagnostic run is **not** authoritative.
