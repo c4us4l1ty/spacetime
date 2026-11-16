@@ -84,8 +84,8 @@ evidence until filled on the recorded target machine and kept out of band. No ta
 file, filled provenance record, or physical attestation is committed.
 `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain; a bounded
 file can only be `pass_shape_only` until physical provenance is accepted and a reviewed code path
-consumes it. Strict CI evidence for this increment is recorded in
-`docs/VERIFICATION-2026-11-15.md`.
+consumes it. Strict push run `43831944305` verified 25 gates and all 14 CI steps; the full
+evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions, and
 `docs/ADR-0002-block2.md` for the Block 2 boundary.

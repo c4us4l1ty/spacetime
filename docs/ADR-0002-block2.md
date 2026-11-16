@@ -113,4 +113,5 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
 - `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
   `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
   provenance before any measured gate can be reported.
-- Strict CI evidence for this branch is recorded in `docs/VERIFICATION-2026-11-15.md`.
+- Strict push run `43831944305` verified 25 gates, all 14 CI steps, and the new kit checks; full
+  evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.

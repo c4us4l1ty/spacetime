@@ -4,7 +4,7 @@
 
 - Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
 - Historical PR #9 branch: `arena/f3c65268-spacetime` (status `pr_open` at the time, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`); merged at `90ceeb20db603c52e313ef718b82710241ad6080`. The measurement-intake increment and PR #9 bug hunt below are verified by strict CI runs `43818080975` and `43829073730`, with strict `main` CI run `43829756506` after merge.
-- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Its measurement-provenance kit and branch hygiene are recorded in the final section below.
+- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its measurement-provenance kit and branch hygiene; details are in the final section below.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -240,7 +240,7 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 - Documentation head: the commit containing this file. Docs-only changes after `5a86bf8` do not
   alter validated code and are covered by the PR-head strict CI run.
 
-## Current increment — measurement provenance kit and branch hygiene
+## Current increment — measurement provenance kit and branch hygiene (strict CI verified)
 
 - Active branch: `arena/3782c8f5-spacetime` (status `active`, branched from
   `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). PR #9 is merged history; strict `main` CI
@@ -263,5 +263,17 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 - `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
   `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
   provenance before a measured gate can be reported.
-- Strict CI evidence for this branch will be appended in a docs-only commit after the push workflow
-  passes.
+- Strict push run `43831944305`, job `133179104418`, on code head
+  `9ab7c2a5f385a0b4887531bd1b086a548d1f4555`: all 14 numbered steps green — Set up job, Checkout,
+  Install Rust, Format, `clippy --workspace --all-targets --locked -- -D warnings`, Tests, Release
+  build, three CLI smokes, Crucible smoke, **End-to-end verification**, **Measurement intake smoke**
+  (including the new kit syntax/boundary checks), and Machine baseline. No `continue-on-error`
+  remains; committed `Cargo.lock` and `--locked` are authoritative.
+- `spacetime-ctl verify --out target/verify.toml` in that run reported `status = "pass"`,
+  `gates = 25`, `failed = 0`, `resource_gate = "unmeasured_target_4gb"`,
+  `performance_claims = "unmeasured"`, `measurement_intake = "none"`,
+  `measurement_evaluator = "none"`, and `measurement_digest = "none"`. Signed job logs also show
+  the CI-host, non-numeric, oversize, shape-only, over-budget, duplicate-host, `bash -n`, forbidden
+  collector argument, and provenance-template checks.
+- Documentation head: the commit containing this file. Docs-only evidence changes after `9ab7c2a`
+  do not alter validated code and are covered by the strict push workflow for this head.

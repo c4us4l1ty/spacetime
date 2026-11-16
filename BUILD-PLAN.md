@@ -1,6 +1,6 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake and bug hunt are merged at `90ceeb20db603c52e313ef718b82710241ad6080`, with strict `main` CI run `43829756506` green (25 gates, 14 steps). The 4 GB resource gate is unmeasured. Current branch prepares reproducible target-machine provenance intake and branch-doc hygiene; it claims no measured gate.
+**Status:** active roadmap; Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake and bug hunt are merged at `90ceeb20db603c52e313ef718b82710241ad6080`, with strict `main` CI run `43829756506` green (25 gates, 14 steps). The 4 GB resource gate is unmeasured. Current branch prepares reproducible target-machine provenance intake and branch-doc hygiene; strict push run `43831944305` is green and it claims no measured gate.
 **Date:** 2026-11-15 (roadmap origin; branch context updated after PR #9 merge)
 **Branch:** `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; PRs #7, #8, and #9 are merged history)
 
