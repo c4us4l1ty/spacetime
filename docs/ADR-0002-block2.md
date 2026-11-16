@@ -76,7 +76,7 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   measured 4 GB resource gate remains outstanding, so this is a functional merge, not a resource
   sign-off.
 
-## Addendum — bounded measurement intake (active branch `arena/f3c65268-spacetime`)
+## Addendum — bounded measurement intake (merged via PR #9)
 
 - `verify --out <file> [--measurement <file>]` accepts one bounded file path; missing values,
   duplicate/unknown flags, control characters, overlarge files, unsupported keys, duplicate keys,
@@ -97,3 +97,39 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
   PR #9 check run `43829086354` (job `133169767434`) verified 25 gates with no diagnostics.
 - Merged to `main` via PR #9 at explicit user request after strict CI passed. The measured 4 GB
   resource gate remains outstanding; this is a functional merge, not a resource sign-off.
+
+## Addendum — measurement provenance kit (active branch `arena/3782c8f5-spacetime`)
+
+- `bench/measurements/capture-host-facts.sh` collects host identity, OS/kernel, CPU, memory,
+  swap/zram, filesystem, KVM, and cgroup facts read-only. It writes no measurement file and makes no
+  performance claim; its output is out-of-band evidence only when captured on the exact target
+  machine.
+- `bench/measurements/PROVENANCE-TEMPLATE.md` is a human checklist for machine identity, raw
+  evidence hashes, measurement definitions, operator/reviewer sign-off, and a bounded-file recipe.
+  Filled copies and raw evidence stay out of band; no filled template is committed here.
+- Strict CI checks the collector's shell syntax and template presence; it does not run the collector
+  or treat CI runner host facts as target evidence. `verify --out` had 25 gates at that point and
+  `machine gate --measurement` remains shape-only at most.
+- `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
+  `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
+  provenance before any measured gate can be reported.
+- Strict push run `43831944305` verified 25 gates, all 14 CI steps, and the new kit checks; full
+  evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.
+
+## Addendum — explicit target profiles (active branch `arena/3782c8f5-spacetime`)
+
+- Public release does not mean every target is a 4 GB machine. `bench/targets/profiles.tsv`
+  declares `4gb_potato` as the mandatory `baseline_gate`, plus `8gb_reference` and
+  `16gb_developer` as `optional_profile` entries. A larger profile never satisfies or replaces the
+  baseline.
+- `capture-host-facts.sh` requires an explicit `--profile`; it never infers a profile from detected
+  RAM. `PROVENANCE-TEMPLATE.md` records selected profile, machine identity, separate baseline
+  evidence, and out-of-band sign-off.
+- The CLI exposes `machine profiles`; `verify --out` adds a 26th `target_profile_registry` gate and
+  report fields for selected profile, baseline profile, registry count, evaluated budget, and role.
+  `machine gate` prints `release_gate=unmeasured` and `baseline_target_profile=4gb_potato`.
+- `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
+  `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
+  provenance before any measured gate can be reported. See `docs/ADR-0003-target-profiles.md`.
+- Strict push run `43836410103` (job `133194022585`) verified 26 gates and all 14 CI steps at
+  `6f4745e`; full evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.

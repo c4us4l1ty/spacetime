@@ -1,8 +1,8 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 and Block 2 bug-hunt fixes merged to `main` via PR #8; 24 gates verified there; 4 GB resource gate unmeasured. Current branch adds measurement intake plus a bounded-CLI bug hunt (25 gates verified in strict CI run `43829073730`), merged to `main` via PR #9.
-**Date:** 2026-11-15
-**Branch:** `arena/f3c65268-spacetime` (status `pr_open`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`; PRs #7 and #8 are merged history)
+**Status:** active roadmap; Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake and bug hunt are merged at `90ceeb20db603c52e313ef718b82710241ad6080`, with strict `main` CI run `43829756506` green (25 gates, 14 steps). The 4 GB baseline resource gate is unmeasured. Current branch prepared reproducible provenance intake (strict run `43831944305`, 25 gates), added explicit public target profiles (strict run `43836410103`, 26 gates), and now starts an offline Block 3 prototype with 20 scripted fixtures, a static HTML console, a mock-economy ledger, and 28 gates. Strict CI run `43843891738` verified the 28-gate increment at `e455556` with 14/14 steps green; evidence is recorded in `docs/VERIFICATION-2026-11-15.md`. No measured gate is claimed and Block 3 is not `DONE`.
+**Date:** 2026-11-15 (roadmap origin; branch context updated after PR #9 merge)
+**Branch:** `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; PRs #7, #8, and #9 are merged history)
 
 **Confirmed product decisions (user, 2026-11-15):**
 
@@ -85,7 +85,7 @@ These are proposals, not unilateral product decisions. The rows marked **Confirm
 | Decision | Default | Consequence |
 |---|---|---|
 | Supreme constraint | **Confirmed: resource usage is the holy grail** | The 4 GB, weak-CPU, no-GPU machine outranks visual fidelity, convenience, and feature count |
-| Host target | **Linux first**, exact 4 GB laptop/CPU/arch recorded in `bench/machine.toml` | Windows/macOS parity is later; Windows needs ≥8 GB and nested virt/WHPX caveats |
+| Host target | **Linux first**, exact 4 GB baseline machine recorded in `bench/machine.toml`; additional public machines use explicit profiles in `bench/targets/profiles.tsv` | Windows/macOS parity is later; Windows needs ≥8 GB and nested virt/WHPX caveats |
 | First 90-day target | **Planted-invariant hunting on local fixtures** | Crisp verifier, no live targets, no KYC, no exploit of third-party systems |
 | Cortex | **Scripted adapter → API adapter → web-CDP adapter behind a canary** | Web chat is a degradable channel, not the foundation |
 | Browser | **One heavy browser surface awake at a time**: hardened gate-pass Chrome plus a live AI-driven browser tab when the task truly needs a page | No browser farm; no always-on browser as the default worker |
@@ -132,6 +132,7 @@ These are structural requirements. A block is not done because a warning was sho
 20. **Continuous live preview is optional.** On a constrained host, snapshot-on-action / snapshot-on-switch is a first-class mode, not a degraded error state.
 21. **Screenshots are ephemeral**: RAM/tmpfs only, no host thumbnailer, no disk cache, no recent-files entry, destroyed on tab close.
 22. **At most one heavy browser/GUI surface is awake at a time** on the recorded 4 GB machine; hidden AI work can continue headlessly and reattach on tab switch. No claim of many simultaneous Chromium tabs.
+23. **Target profiles are explicit, not inferred from RAM.** The 4 GB baseline is mandatory for release; additional public profiles are additive, require their own evidence, and never silently raise the hardware requirement.
 
 ---
 
@@ -271,7 +272,8 @@ guest/
   base-image/                      # reproducible EROFS/squashfs build
 bench/
   tasks/                           # 20 local tasks, fixtures, mock services
-  machine.toml                     # exact 4 GB host and measurement baseline
+  machine.toml                     # host facts; release baseline points to targets/profiles.tsv
+  targets/profiles.tsv             # explicit public target profiles and budgets
 docs/
   ADR-*.md                         # one decision record per architecture choice
 ```
@@ -296,7 +298,7 @@ docs/
 | 12 | Live mixed workspace shell: human apps + AI work side by side | XL | 9, 11 | Switch tabs without pausing AI; see changes via live or snapshot surface |
 | 13 | Optional polish and real-business pilot | continuous | 12 | Legal sign-off + 30-day metrics; many items may stay unbuilt |
 
-**Every block also has a resource gate:** it must pass the measured RAM/CPU/startup budget on `bench/machine.toml` before it can be marked `DONE`. If it fails, downgrade the surface or defer the feature; do not raise the hardware requirement silently.
+**Every block also has a resource gate:** it must pass the measured RAM/CPU/startup budget on the recorded 4 GB baseline before it can be marked `DONE`. Additional public profiles may add evidence, but they do not replace the baseline or raise the hardware requirement silently.
 
 After Block 4, a single contributor should still follow the order. With multiple contributors, Blocks 5–7 ("organism + policy") and 8–10 ("body") can proceed in parallel, but **no full UI block starts before the organism's policy/verifier gates pass**. The thin mixed-workspace slice in Block 5 is the deliberate exception: it proves the confirmed human+AI visibility requirement early with snapshots, without building the whole shell.
 
@@ -389,6 +391,13 @@ If false-PASS exceeds 1%, **stop feature work and fix determinism first**. All l
 ### Block 3 — EconBench fixtures and the static mixed-workspace console
 
 **Why now:** Build the measuring stick before the product. The console comes before the Rust UI because the organism needs situational awareness, not a window manager — but it also previews the confirmed mixed-tab requirement with snapshot tiles.
+
+**Current branch status:** an offline prototype now exists in `bench/econbench/`,
+`bench/economy/`, `apps/spacetime-console/`, and the `bench`/`console` CLI commands. It uses 20
+scripted fixtures, a verified hash-chained ledger, a static HTML console, and two new end-to-end
+gates. This is not Block 3 `DONE`: the real planted-invariant/transmutation/protocol-distillation
+code, full independent verifiers, measured 4 GB baseline resource gate, and accepted out-of-band
+provenance remain outstanding.
 
 ### Build
 
@@ -885,11 +894,11 @@ No number from `BRAINSTORM.md` or the LLM replies becomes a README claim until i
 4. **Accept the legal line?** Default: own identity, in-scope local forks, disclosure norms, no synthetic identities or live exploits.
 5. **How much wall-clock per decision?** Sets population size and concurrency budget.
 6. **Which workloads may share an Ark kernel?** Default: only ordinary compatible tools; unknown repos/build scripts go to quarantine.
-7. **Which exact 4 GB laptop defines the benchmark?** Needed before any performance claim.
+7. **Which exact machine defines the mandatory 4 GB baseline, and which additional public profiles are supported?** Needed before any performance claim; larger profiles are additive, not replacements.
 8. **When may real money/accounts be introduced?** Default: not before Block 13 and explicit sign-off.
 9. **Should hidden AI tabs keep rendering?** Default: **no**. The AI stays `RUNNING`; only the active tab is `RENDERING`. Switching back produces a fresh snapshot. If true background pixel streaming is required, it becomes a measured RAM/CPU decision.
 
-If these defaults are accepted, **the measured 4 GB resource gate is the next unblocked unit**. Block 1 and Block 2 functional increments are already merged to `main` via PRs #7 and #8; the current small increment on `arena/f3c65268-spacetime` adds bounded measurement intake and doc hygiene without claiming a measured gate. After the recorded target machine is identified and measured with out-of-band provenance, Block 3 becomes the next implementation unit. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
+If these defaults are accepted, **the measured 4 GB baseline resource gate remains the next unblocked unit**. Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake, CLI bug hunt, and doc hygiene are merged history at `90ceeb2`, with strict `main` CI run `43829756506` green. The current active branch adds a read-only host-fact collector, an out-of-band provenance template, an explicit public target-profile registry, and an offline Block 3 console/EconBench prototype; it commits no measurement file, no filled provenance record, and no code path that accepts physical provenance as a measured pass. The prototype is functional groundwork, not a resource sign-off. After the baseline and any selected public profiles are identified, measured with accepted out-of-band provenance, and a reviewed gate implementation consumes that provenance, the real Block 3 implementation can be completed. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
 
 
 ---

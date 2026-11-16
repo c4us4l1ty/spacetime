@@ -1,9 +1,10 @@
-# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake and PR #9 bug hunt — 2026-11-16
+# End-to-end verification — 2026-11-15 / bug-hunt merge — 2026-11-16 / measurement intake and PR #9 bug hunt — 2026-11-16 / measurement-provenance kit / explicit target profiles / Block 3 offline console
 
-## Authoritative result
+## Authoritative result and branch lineage
 
 - Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
-- Current active branch: `arena/f3c65268-spacetime` (status `pr_open`, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`). The measurement-intake increment and PR #9 bug hunt below are verified by strict CI runs `43818080975` and `43829073730`.
+- Historical PR #9 branch: `arena/f3c65268-spacetime` (status `pr_open` at the time, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`); merged at `90ceeb20db603c52e313ef718b82710241ad6080`. The measurement-intake increment and PR #9 bug hunt below are verified by strict CI runs `43818080975` and `43829073730`, with strict `main` CI run `43829756506` after merge.
+- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its 25-gate measurement-provenance kit; `43836410103` verified the 26-gate explicit-target-profile increment; the following 28-gate Block 3 offline prototype is recorded in the final section below.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -162,16 +163,17 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 
 1. Live separate-model adversarial tests that must survive the mutation gate and independence rules.
 2. Full 50-rerun operator-population studies on real operators, not synthetic kinds or fixtures.
-3. Measured 4 GB resource gate on the recorded target machine, including cold boot, tab switch,
-   peak RSS, and CPU/latency numbers.
+3. Measured 4 GB baseline resource gate on the recorded target machine, including cold boot, tab
+   switch, peak RSS, and CPU/latency numbers, plus separate evidence for any optional public
+   profiles.
 4. A complete execution boundary for real `net=none` and untrusted guest code, deferred to the later
    Ark/quarantine blocks; the local `LD_PRELOAD` shim is not that boundary.
 5. Block 2 was merged to `main` via PR #8 at the user's explicit request after strict CI passed.
    Under the First Law, Block 2 is still not `DONE` until the measured 4 GB target budget is proven.
 
-## Current increment — hygiene + measurement intake (strict CI verified)
+## Historical increment — hygiene + measurement intake (PR #9, strict CI verified)
 
-- Active branch: `arena/f3c65268-spacetime`, status `pr_open`, base `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70`.
+- Historical PR #9 branch: `arena/f3c65268-spacetime`, status `pr_open` at the time, base `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70`.
 - Strict code head: `d0d6ce662e3f2ed28bfdd20b9be0d8963dc58263`.
 - Strict GitHub Actions run `43818080975`, job `133134609083`: all 14 numbered steps succeeded —
   Set up job, Checkout, Install Rust, Format, `clippy --workspace --all-targets --locked --
@@ -191,8 +193,8 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   include `physical provenance out of band`.
 - No real target measurement file is committed. Physical provenance remains out of band; this is
   bounded measurement intake, **not** a measured 4 GB resource gate or a performance claim.
-- The stale branch/status, README, BUILD-PLAN, and plan next-step text are corrected for the
-  active f3 branch; PR #8's 24-gate result above remains historical evidence, not evidence for
+- The stale branch/status, README, BUILD-PLAN, and plan next-step text were corrected for the
+  f3 branch at that time; PR #8's 24-gate result above remains historical evidence, not evidence for
   this increment.
 - Merged to `main` via PR #9 at explicit user request after strict CI passed; functional
   correctness merge, not a resource sign-off.
@@ -238,3 +240,167 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   full bug-hunt assertions at `5a86bf8`; the diagnostic run is **not** authoritative.
 - Documentation head: the commit containing this file. Docs-only changes after `5a86bf8` do not
   alter validated code and are covered by the PR-head strict CI run.
+
+## Current increment — measurement provenance kit and branch hygiene (strict CI verified)
+
+- Active branch: `arena/3782c8f5-spacetime` (status `active`, branched from
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). PR #9 is merged history; strict `main` CI
+  run `43829756506` verified all 14 steps after merge.
+- Added `bench/measurements/capture-host-facts.sh`: a read-only, no-argument host-fact collector
+  with no network access, no measurement file output, and no performance values. It records
+  identity, OS/kernel, CPU, memory/swap/zram, filesystem, KVM, and cgroup facts for out-of-band
+  provenance only.
+- Added `bench/measurements/PROVENANCE-TEMPLATE.md`: a human checklist for exact machine identity,
+  raw evidence hashes, measurement definitions, operator/reviewer sign-off, and a bounded-file
+  recipe. Filled copies and raw evidence stay out of band.
+- Updated `bench/measurements/README.md`, `README.md`, `BUILD-PLAN.md`,
+  `docs/ADR-0002-block2.md`, and this document to use the current branch/status and to distinguish
+  merged PR #9 history from the current kit. No target measurement file or filled provenance record
+  is committed.
+- Strict CI's existing Measurement intake smoke step additionally runs `bash -n` on the collector,
+  rejects the collector invoked with a forbidden `--measurement` argument, and checks the provenance
+  template exists. It does not run the collector for host facts or treat CI host facts as target
+  evidence.
+- `resource_gate = "unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain.
+  `pass_shape_only` is not a measured gate; a later reviewed code path must consume accepted physical
+  provenance before a measured gate can be reported.
+- Strict push run `43831944305`, job `133179104418`, on code head
+  `9ab7c2a5f385a0b4887531bd1b086a548d1f4555`: all 14 numbered steps green — Set up job, Checkout,
+  Install Rust, Format, `clippy --workspace --all-targets --locked -- -D warnings`, Tests, Release
+  build, three CLI smokes, Crucible smoke, **End-to-end verification**, **Measurement intake smoke**
+  (including the new kit syntax/boundary checks), and Machine baseline. No `continue-on-error`
+  remains; committed `Cargo.lock` and `--locked` are authoritative.
+- `spacetime-ctl verify --out target/verify.toml` in that run reported `status = "pass"`,
+  `gates = 25`, `failed = 0`, `resource_gate = "unmeasured_target_4gb"`,
+  `performance_claims = "unmeasured"`, `measurement_intake = "none"`,
+  `measurement_evaluator = "none"`, and `measurement_digest = "none"`. Signed job logs also show
+  the CI-host, non-numeric, oversize, shape-only, over-budget, duplicate-host, `bash -n`, forbidden
+  collector argument, and provenance-template checks.
+- Documentation head: the commit containing this file. Docs-only evidence changes after `9ab7c2a`
+  do not alter validated code and are covered by the strict push workflow for this head.
+
+## Current increment — explicit target profiles for public release
+
+- Active branch: `arena/3782c8f5-spacetime` (status `active`, base
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). PR #9 and the 25-gate provenance kit are
+  merged/history increments described above; this increment adds a 26th gate.
+- User correction: public release must not assume every target is a 4 GB machine. `4gb_potato`
+  remains the mandatory First Law baseline; `8gb_reference` and `16gb_developer` are additive
+  optional profiles. Profiles are explicit registry entries, never inferred from detected RAM.
+- Added `bench/targets/profiles.tsv` as the single source of truth for profile IDs, memory labels,
+  memory/boot/tab-switch/CPU budgets, and roles. `spacetime-ctl machine profiles` and
+  `capture-host-facts.sh --list-profiles` expose the registry. The collector now requires
+  `--profile <registered-id>`, rejects missing/unknown/duplicate/flag-like values, and prints the
+  selected profile plus the unchanged baseline profile.
+- Generalized `resource_gate`, `bounded_resource_gate`, and `resource_gate_intake` to evaluate a
+  measurement file against the selected profile's budget. The report now prints `target_profile`,
+  `baseline_target_profile`, `target_profile_registry`, `evaluated_memory_budget_kb`, and
+  `profile_role`; `machine gate` prints `release_gate=unmeasured` and the baseline profile. A
+  shape-only 8 GB pass never promotes the 4 GB baseline gate.
+- Added a 26th `target_profile_registry` end-to-end gate and strict CI smokes for the 8 GB profile,
+  `machine profiles`, collector argument rejection/list modes, and generated baseline host facts.
+  Historical 25-gate strict runs remain distinct from this 26-gate increment.
+- No target measurement file, filled provenance record, or physical attestation is committed.
+  `resource_gate = "unmeasured_target_4gb"`, `release_gate=unmeasured`, and
+  `performance_claims = "unmeasured"` remain. `pass_shape_only` is not a measured gate; a later
+  reviewed code path must consume accepted physical provenance before any measured gate can be
+  reported.
+- Strict push run `43836410103` (job `133194022585`) at code head
+  `6f4745e97a463c995e1574069acb9657f7bbf098` verified this increment end to end: all 14 CI steps
+  succeeded with no `continue-on-error`, and `spacetime-ctl verify --out target/verify.toml`
+  reported `status = "pass"`, `gates = 26`, `failed = 0`,
+  `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`,
+  `target_profile = "4gb_potato"`, `baseline_target_profile = "4gb_potato"`,
+  `target_profile_registry = 3`, `evaluated_memory_budget_kb = 4194304`, and
+  `profile_role = "baseline_gate"`.
+- The same strict run verified the new `target_profile_registry` gate detail
+  `profiles=3 baseline=4gb_potato optional=8gb_reference,16gb_developer release_gate=unmeasured`,
+  plus an 8 GB shape-only measurement report with `target_profile = "8gb_reference"`,
+  `baseline_target_profile = "4gb_potato"`, `evaluated_memory_budget_kb = 8388608`,
+  `profile_role = "optional_profile"`, `measurement_evaluator = "pass_shape_only"`, and
+  `resource_gate = "unmeasured_target_4gb"`. `machine gate --measurement` printed
+  `resource_gate=unmeasured`, `release_gate=unmeasured`, and `baseline_target_profile=4gb_potato`;
+  it did not print `resource_gate=pass`.
+- Strict CI also verified `machine profiles`, generated `machine` host facts with
+  `host_profile = "unspecified"` and `profile_count = 3`, `bash -n` on the collector, rejection of
+  missing/forbidden/unknown/duplicate collector arguments, `--list-profiles`, registry file and
+  provenance-template presence, and the existing bounded negative intake smokes. Diagnostic push
+  run `43835942873` was used only to capture rustfmt and the stale baseline assertion; it is not
+  acceptance evidence.
+
+## Current increment — Block 3 offline console prototype
+
+- Active branch: `arena/3782c8f5-spacetime` (status `active`, base
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). This increment starts Block 3 as an
+  offline functional prototype only; it does not claim a measured resource gate, target
+  performance, model efficacy, real economy, or Block 3 `DONE`.
+- Added 20 scripted `.task` fixtures in `bench/econbench/` across planted-invariant,
+  transmutation, and protocol-distillation categories. Each declares an independent verifier
+  source, expected verdict, and digest oracle before the scripted agent starts. No fixture uses
+  the public internet, a real wallet, a real account, a live target, or a live model call.
+- Added `spacetime-ctl bench run --arm A|B|C --model <id> --budget <tokens> --out <file>`. It runs
+  the 20 fixtures offline, verifies each ledger, records completion, interventions, tokens, fake
+  cost, claims surviving re-verification, and false-PASS. Arms are harness metadata only; no arm
+  efficacy claim is made. `wall_clock_ms` is explicitly scoped to the CI/local host and is not
+  target-machine evidence.
+- Added a static HTML console in `apps/spacetime-console/` with a content security policy,
+  relative report loading, a file input for CLI exports, branch/goal tree, operator registry,
+  verifier rates, hash-chained ledger tail, blockers, resource/cost meters, execution tier, Ark
+  trust warning, and egress class. Mixed-workspace tiles expose `WorkspaceId`, `SurfaceId`,
+  trust tier, `LivenessState`, `PreviewMode`, and last action. Switching tiles changes
+  `RENDERING`, not `RUNNING`; the offline event-stream tick continues on both tiles.
+- The AI tile uses a ledger-driven snapshot strip with still placeholders after “typed title”,
+  “filled description”, and “selected thumbnail”. It is `SnapshotOnAction`, not continuous live
+  video. The console has no live backend, public internet dependency, real wallet, real account,
+  unsafe DOM injection, or dynamic code evaluation.
+- Added `bench/econbench/sample-ledger.jsonl` and `bench/economy/mock_wallet.jsonl` as checked-in
+  real append-only hash-chained ledgers, plus a mock bounty board. `spacetime-ctl ledger verify`
+  and `spacetime-ctl console --ledger ... --out ...` consume them. Credits and payments are fake.
+- Added `econbench_offline` and `static_console_report` as the 27th and 28th end-to-end gates,
+  plus strict CI smokes for both ledgers, offline bench reports, console exports, negative CLI
+  flags, static asset hygiene, and checked-in `report.json` consistency.
+- Preserved `resource_gate = "unmeasured_target_4gb"`, `release_gate=unmeasured`, and
+  `performance_claims = "unmeasured"`. `block3_done = false` is explicit. A later reviewed code
+  path must consume accepted physical provenance before any measured gate can be reported.
+### Strict CI evidence — 28 gates
+
+- Authoritative strict push run `43843891738` (job `133219100433`) verified commit
+  `e455556184fc8c8c5f8edb63cea12aa47f103152` on branch `arena/3782c8f5-spacetime`. All 14 job
+  steps passed: format check, Clippy, tests, release build, three CLI smokes, Crucible smoke,
+  end-to-end verification, measurement intake smoke, Block 3 offline console and EconBench, and
+  machine baseline. The committed workflow had zero `continue-on-error`, a committed `Cargo.lock`,
+  `--locked` commands, `clippy -D warnings`, three `gates = 28` assertions, and no diagnostic
+  capture steps. Only Node.js 20 deprecation and Ubuntu 26 migration warnings were reported.
+- `spacetime-ctl verify --out` produced `status = "pass"`, `gates = 28`, `failed = 0`,
+  `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`,
+  `measurement_intake = "none"`, `target_profile = "4gb_potato"`,
+  `baseline_target_profile = "4gb_potato"`, `target_profile_registry = 3`,
+  `evaluated_memory_budget_kb = 4194304`, `profile_role = "baseline_gate"`,
+  `econbench_fixtures = 20`, `static_console = "offline_prototype"`, and `block3_done = false`.
+- The two added gates passed with details `econbench_offline`:
+  `fixtures=20 completed=20 claims=20 false_pass_rate=0.0000 network=none` and
+  `static_console_report`: `static_html=offline ledger_verified=true snapshot_frames=3
+  workspaces=2`. All 26 earlier functional, intake, profile, and resource-boundary gates also
+  passed.
+- `ledger verify` accepted both checked-in offline fixtures with `ok 4 events` for
+  `bench/econbench/sample-ledger.jsonl` and `bench/economy/mock_wallet.jsonl`, proving Python-
+  generated canonical JSON and hash chaining are compatible with the Rust ledger verifier.
+  `bench run --arm A --model scripted-fixture --budget 1000` printed
+  `fixtures=20 completed=20 claims_surviving_reverification=20 false_pass_rate=0.0000`; bad arm,
+  zero budget, and duplicate `--out` were rejected. `console --ledger ... --out ...` printed
+  `ledger_events=4 wallet_ledger_verified=true`; missing flag values and unknown flags were
+  rejected. Static console checks verified report JSON, CSP, relative report loading, snapshot
+  preview mode, styles, and absence of external URLs or unsafe browser-runtime patterns.
+- Measurement intake stayed bounded: the CI-host sample was `measurement_evaluator =
+  "unmeasured"` with digest
+  `2f12654878cbb8986da14c6c7142f4fe49f2a7b11a9e547539f1987fdb4718b9`; malformed, oversized,
+  over-budget, duplicate-host, and unregistered-profile inputs remained unmeasured or were
+  rejected. A shape-only 4 GB file was `pass_shape_only`, not a pass; an 8 GB optional profile
+  was also `pass_shape_only` with `resource_gate = "unmeasured_target_4gb"` and
+  `release_gate=unmeasured`. `machine gate` without accepted provenance printed
+  `resource_gate=unmeasured` and `release_gate=unmeasured`.
+- Diagnostic runs `43841244588`, `43842052899`, and `43842803508` used `continue-on-error` or
+  diagnostic capture steps to locate rustfmt diffs, an `E0308` temp-path compile error, and
+  ignored checked-in `.jsonl` fixtures. They are not acceptance evidence. The strict run is
+  functional CI evidence only: it does not establish a measured 4 GB baseline gate, physical
+  provenance, release readiness, model efficacy, real-economy results, or Block 3 `DONE`.

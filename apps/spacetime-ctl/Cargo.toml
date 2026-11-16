@@ -12,8 +12,6 @@ spacetime-cortex.workspace = true
 spacetime-exec.workspace = true
 spacetime-verifier.workspace = true
 spacetime-bench.workspace = true
-
-[dev-dependencies]
 serde_json.workspace = true
 
 [lib]

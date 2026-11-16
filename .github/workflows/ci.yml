@@ -118,7 +118,7 @@ jobs:
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify.toml
           grep -q 'name = "block1_happy"' target/verify.toml
           grep -q 'name = "crucible_flaky_family"' target/verify.toml
-          grep -q '^gates = 25$' target/verify.toml
+          grep -q '^gates = 28$' target/verify.toml
           grep -q 'name = "determinism_controls"' target/verify.toml
           grep -q 'name = "capability_enforcement"' target/verify.toml
           grep -q 'name = "cli_input_validation"' target/verify.toml
@@ -127,6 +127,17 @@ jobs:
           grep -q 'name = "operator_population"' target/verify.toml
           grep -q 'name = "fixture_population"' target/verify.toml
           grep -q 'name = "resource_gate_unmeasured"' target/verify.toml
+          grep -q 'name = "target_profile_registry"' target/verify.toml
+          grep -q 'name = "econbench_offline"' target/verify.toml
+          grep -q 'name = "static_console_report"' target/verify.toml
+          grep -q '^econbench_fixtures = 20$' target/verify.toml
+          grep -q '^static_console = "offline_prototype"$' target/verify.toml
+          grep -q '^block3_done = false$' target/verify.toml
+          grep -q '^target_profile = "4gb_potato"$' target/verify.toml
+          grep -q '^baseline_target_profile = "4gb_potato"$' target/verify.toml
+          grep -q '^target_profile_registry = 3$' target/verify.toml
+          grep -q '^evaluated_memory_budget_kb = 4194304$' target/verify.toml
+          grep -q '^profile_role = "baseline_gate"$' target/verify.toml
           grep -q '^panel_sources = 5$' target/verify.toml
           grep -q '^adversarial_fixtures = 20$' target/verify.toml
           grep -q '^determinism_shim = "ld_preload_not_complete_boundary"$' target/verify.toml
@@ -151,7 +162,7 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-ci-host.toml --measurement target/ci-host.measurement > target/verify-ci-host.stdout
           cat target/verify-ci-host.toml
           grep -q '^status = "pass"$' target/verify-ci-host.toml
-          grep -q '^gates = 25$' target/verify-ci-host.toml
+          grep -q '^gates = 28$' target/verify-ci-host.toml
           grep -q '^measurement_intake = "evaluated"$' target/verify-ci-host.toml
           grep -q '^measurement_evaluator = "unmeasured"$' target/verify-ci-host.toml
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify-ci-host.toml
@@ -182,11 +193,104 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/over-budget.measurement
           printf 'schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\n' > target/duplicate-host.measurement
           ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/duplicate-host.measurement
+          printf 'schema_version=1\ntarget_profile=8gb_reference\nmeasurement_host=public-target-lab\npeak_rss_kb=6000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n' > target/public-profile.measurement
+          cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-public.toml --measurement target/public-profile.measurement > target/verify-public.stdout
+          grep -q '^gates = 28$' target/verify-public.toml
+          grep -q '^target_profile = "8gb_reference"$' target/verify-public.toml
+          grep -q '^baseline_target_profile = "4gb_potato"$' target/verify-public.toml
+          grep -q '^target_profile_registry = 3$' target/verify-public.toml
+          grep -q '^evaluated_memory_budget_kb = 8388608$' target/verify-public.toml
+          grep -q '^profile_role = "optional_profile"$' target/verify-public.toml
+          grep -q '^measurement_evaluator = "pass_shape_only"$' target/verify-public.toml
+          grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify-public.toml
+          cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/public-profile.measurement > target/machine-public.txt
+          cat target/machine-public.txt
+          grep -q 'resource_gate=unmeasured' target/machine-public.txt
+          grep -q 'release_gate=unmeasured' target/machine-public.txt
+          grep -q 'target_profile=8gb_reference' target/machine-public.txt
+          grep -q 'baseline_target_profile=4gb_potato' target/machine-public.txt
+          grep -q 'evaluator=pass_shape_only' target/machine-public.txt
+          ! grep -q 'resource_gate=pass' target/machine-public.txt
+          bash -n bench/measurements/capture-host-facts.sh
+          ! bash bench/measurements/capture-host-facts.sh
+          ! bash bench/measurements/capture-host-facts.sh --measurement target/forbidden.measurement
+          ! bash bench/measurements/capture-host-facts.sh --profile unregistered-profile
+          ! bash bench/measurements/capture-host-facts.sh --profile 4gb_potato --profile 8gb_reference
+          bash bench/measurements/capture-host-facts.sh --list-profiles > target/target-profiles.txt
+          cat target/target-profiles.txt
+          grep -q '^4gb_potato' target/target-profiles.txt
+          grep -q '^8gb_reference' target/target-profiles.txt
+          grep -q '^16gb_developer' target/target-profiles.txt
+          test -f bench/targets/profiles.tsv
+          test -f bench/measurements/PROVENANCE-TEMPLATE.md
+          grep -q 'out of band' bench/measurements/PROVENANCE-TEMPLATE.md
+
+      - name: Block 3 offline console and EconBench
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- ledger verify bench/econbench/sample-ledger.jsonl
+          cargo run --release --locked -p spacetime-ctl -- ledger verify bench/economy/mock_wallet.jsonl
+          cargo run --release --locked -p spacetime-ctl -- bench run --arm A --model scripted-fixture --budget 1000 --out target/econbench-A.json > target/econbench-A.stdout
+          cat target/econbench-A.stdout
+          python3 - <<'PY'
+          import json
+          report = json.load(open('target/econbench-A.json'))
+          assert report['fixtures'] == 20
+          assert report['completed'] == 20
+          assert report['claims_surviving_reverification'] == 20
+          assert report['false_pass_rate'] == 0.0
+          assert report['network'] == 'none'
+          assert report['model_adapter'] == 'offline_scripted'
+          assert report['arm_efficacy_claim'] is False
+          assert report['resource_gate'] == 'unmeasured_target_4gb'
+          assert report['performance_claims'] == 'unmeasured'
+          assert report['block3_done'] is False
+          PY
+          ! cargo run --release --locked -p spacetime-ctl -- bench run --arm D --model scripted-fixture --budget 1000 --out target/econbench-bad.json
+          ! cargo run --release --locked -p spacetime-ctl -- bench run --arm A --model scripted-fixture --budget 0 --out target/econbench-bad.json
+          ! cargo run --release --locked -p spacetime-ctl -- bench run --arm A --model scripted-fixture --budget 1000 --out target/econbench-A.json --out target/econbench-bad.json
+          cargo run --release --locked -p spacetime-ctl -- console --ledger bench/econbench/sample-ledger.jsonl --out target/console-report.json > target/console-report.stdout
+          cat target/console-report.stdout
+          python3 - <<'PY'
+          import json
+          exported = json.load(open('target/console-report.json'))
+          checked_in = json.load(open('apps/spacetime-console/report.json'))
+          assert exported['resource_gate'] == 'unmeasured_target_4gb'
+          assert exported['performance_claims'] == 'unmeasured'
+          assert exported['execution']['net'] == 'none'
+          assert exported['ledger']['event_count'] == 4
+          assert len(exported['snapshot_strip']) == 3
+          assert len(exported['workspaces']) == 2
+          assert exported['ledger']['last_hash'] == checked_in['ledger']['last_hash']
+          assert checked_in['mock_economy']['real_money'] is False
+          PY
+          ! cargo run --release --locked -p spacetime-ctl -- console --out target/console-bad.json --ledger
+          ! cargo run --release --locked -p spacetime-ctl -- console --ledger bench/econbench/sample-ledger.jsonl --out target/console-report.json --bogus x
+          python3 -m json.tool apps/spacetime-console/report.json > /dev/null
+          grep -q 'Content-Security-Policy' apps/spacetime-console/index.html
+          grep -q 'fetch("./report.json")' apps/spacetime-console/console.js
+          grep -q '"preview_mode": "snapshot_on_action"' apps/spacetime-console/report.json
+          test -f apps/spacetime-console/styles.css
+          ! grep -RInE 'https?://|Electron|WebView|innerHTML|eval\(' apps/spacetime-console
 
       - name: Machine baseline
         run: |
-          cargo run --release --locked -p spacetime-ctl -- machine
+          cargo run --release --locked -p spacetime-ctl -- machine > target/machine-baseline.toml
+          cat target/machine-baseline.toml
+          grep -q '^host_profile = "unspecified"$' target/machine-baseline.toml
+          grep -q '^release_baseline_profile = "4gb_potato"$' target/machine-baseline.toml
+          grep -q '^target_profile_registry = "bench/targets/profiles.tsv"$' target/machine-baseline.toml
+          grep -q '^profile_count = 3$' target/machine-baseline.toml
+          cargo run --release --locked -p spacetime-ctl -- machine profiles > target/machine-profiles.txt
+          cat target/machine-profiles.txt
+          grep -q 'id=4gb_potato' target/machine-profiles.txt
+          grep -q 'id=8gb_reference' target/machine-profiles.txt
+          grep -q 'id=16gb_developer' target/machine-profiles.txt
+          grep -q 'baseline_gate=4gb_potato measured=false' target/machine-profiles.txt
+          ! cargo run --release --locked -p spacetime-ctl -- machine profiles --bogus
           cargo run --release --locked -p spacetime-ctl -- machine gate > target/machine-gate.txt
           grep -q 'resource_gate=unmeasured' target/machine-gate.txt
+          grep -q 'release_gate=unmeasured' target/machine-gate.txt
           grep -q 'evaluator=unmeasured' target/machine-gate.txt
+          grep -q 'target_profile=4gb_potato' target/machine-gate.txt
+          grep -q 'baseline_target_profile=4gb_potato' target/machine-gate.txt
           cat target/machine-gate.txt

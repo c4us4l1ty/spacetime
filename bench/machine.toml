@@ -1,8 +1,10 @@
 schema_version = 1
 measurement_status = "unmeasured"
-target_profile = "4gb_potato"
+host_profile = "unspecified"
+release_baseline_profile = "4gb_potato"
+target_profile_registry = "bench/targets/profiles.tsv"
 resource_law = "holy_grail"
-notes = "Replace with output of spacetime-ctl machine on the exact target laptop. Boolean host facts below are placeholders; no RAM, CPU, boot, or latency claims are valid until measured there."
+notes = "Host facts only. No target profile is inferred from RAM size. The 4 GB potato profile is the mandatory release baseline; other registered profiles require separate evidence. No RAM, CPU, boot, or latency claim is valid until measured on a recorded machine."
 
 [host]
 os = "unmeasured"

@@ -1,6 +1,8 @@
 //! CLI supervisor for Spacetime Blocks 1-2.
 
-use spacetime_bench::{baseline_toml, bounded_resource_gate, ResourceGateStatus};
+use spacetime_bench::{
+    baseline_profile, baseline_toml, bounded_resource_gate, target_profiles, ResourceGateStatus,
+};
 use spacetime_cortex::{Cortex, ScriptedCortex};
 use spacetime_exec::{Runner, ScriptedRunner};
 use spacetime_ledger::{Ledger, LedgerState};
@@ -17,6 +19,8 @@ use spacetime_verifier::{
 use std::fs;
 use std::path::{Path, PathBuf};
 
+mod console;
+mod econbench;
 mod verify;
 
 const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
@@ -34,7 +38,10 @@ Commands:
   crucible population --operators <n> --runs <n>
   crucible fixture-population --runs <n>
   verify --out <file> [--measurement <file>]
+  bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
+  console --ledger <file> --out <file>
   machine
+  machine profiles
   machine gate [--measurement <file>]
   digest <text>
   help
@@ -75,6 +82,8 @@ pub fn run(args: &[String]) -> Result<()> {
         }
         "crucible" => cmd_crucible(&args[1..]),
         "verify" => verify::cmd_verify_all(&args[1..]),
+        "bench" => econbench::cmd_bench(&args[1..]),
+        "console" => console::cmd_console(&args[1..]),
         "machine" => cmd_machine(&args[1..]),
         "digest" => {
             let text = args
@@ -591,6 +600,9 @@ fn cmd_machine(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("gate") {
         return cmd_machine_gate(&args[1..]);
     }
+    if args.first().map(String::as_str) == Some("profiles") {
+        return cmd_machine_profiles(&args[1..]);
+    }
     if let Some(argument) = args.first() {
         return Err(SpacetimeError::new(format!(
             "unknown machine argument: {argument}"
@@ -607,10 +619,12 @@ fn cmd_machine_gate(args: &[String]) -> Result<()> {
     let gate = bounded_resource_gate(path)?;
     let (gate_label, evaluator_label) = machine_gate_labels(gate.status);
     println!(
-        "resource_gate={} evaluator={} target_profile={} memory_budget_kb={} measurement_count={}",
+        "resource_gate={} evaluator={} release_gate=unmeasured target_profile={} baseline_target_profile={} profile_role={} memory_budget_kb={} measurement_count={}",
         gate_label,
         evaluator_label,
         gate.target_profile,
+        gate.baseline_profile,
+        gate.profile_role.as_str(),
         gate.memory_budget_kb,
         gate.measurements.len(),
     );
@@ -622,6 +636,28 @@ fn cmd_machine_gate(args: &[String]) -> Result<()> {
             "bounded measurement shape exceeded a budget; no measured gate claimed",
         ));
     }
+    Ok(())
+}
+
+fn cmd_machine_profiles(args: &[String]) -> Result<()> {
+    if let Some(argument) = args.first() {
+        return Err(SpacetimeError::new(format!(
+            "unknown machine profiles argument: {argument}"
+        )));
+    }
+    for profile in target_profiles() {
+        println!(
+            "id={} memory_label=\"{}\" memory_budget_kb={} boot_budget_ms={} tab_switch_budget_ms={} cpu_budget_percent={} role={}",
+            profile.id,
+            profile.label,
+            profile.memory_budget_kb,
+            profile.boot_budget_ms,
+            profile.tab_switch_budget_ms,
+            profile.cpu_budget_percent,
+            profile.role.as_str(),
+        );
+    }
+    println!("baseline_gate={} measured=false", baseline_profile().id);
     Ok(())
 }
 
@@ -681,7 +717,7 @@ fn flag(args: &[String], name: &str) -> Result<String> {
     Ok(value.clone())
 }
 
-fn ensure_flag_value(name: &str, value: &str) -> Result<()> {
+pub(crate) fn ensure_flag_value(name: &str, value: &str) -> Result<()> {
     if value.starts_with('-') {
         return Err(SpacetimeError::new(format!("missing value for {name}")));
     }
@@ -1053,5 +1089,11 @@ mod tests {
             Some(VerifierSource::FixtureSuite)
         );
         Ok(())
+    }
+
+    #[test]
+    fn machine_profiles_lists_registry_and_rejects_arguments() {
+        assert!(cmd_machine_profiles(&[]).is_ok());
+        assert!(cmd_machine_profiles(&["--bogus".to_string()]).is_err());
     }
 }

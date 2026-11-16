@@ -1,0 +1,21 @@
+# Block 3 offline seed: protocol distillation.
+# Independent verifier is declared before the scripted agent starts; no public internet.
+schema_version=1
+verifier_source=mutation
+expected_verdict=pass
+expected_digest=sha256:econbench-protocol_distillation-18-proof
+determinism_runs=2
+mutation_threshold_bps=8000
+candidate_mutation_score_bps=10000
+space_id=space-econbench
+workspace_id=ws-econbench-18
+surface_id=surface-econbench-18
+goal_id=goal-econbench-18
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+category=protocol_distillation
+oracle=declared_before_agent
+network=none
+action produce_evidence evidence=econbench-protocol_distillation-18-proof
+action claim_done expected_digest=sha256:econbench-protocol_distillation-18-proof

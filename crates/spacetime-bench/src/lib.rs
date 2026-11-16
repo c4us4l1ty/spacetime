@@ -1,7 +1,9 @@
-//! Machine baseline and explicit resource gate for the First Law.
+//! Machine baseline, explicit target profiles, and resource gate for the First Law.
 //!
-//! Host facts are cheap and unmeasured; the resource gate stays unmeasured until a real
-//! target-machine measurement file is supplied. No RAM, CPU, boot-time, or latency claim is made.
+//! The 4 GB potato profile is the release baseline, not the identity of every machine. Public
+//! builds may record additional registered profiles, but a larger profile never replaces the
+//! baseline gate. Host facts and measurement-file shapes are unmeasured; physical provenance is
+//! out of band. No RAM, CPU, boot-time, or latency claim is made.
 
 use spacetime_types::{sha256_hex, Result, SpacetimeError};
 use std::collections::{BTreeMap, BTreeSet};
@@ -10,11 +12,97 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
-pub const TARGET_PROFILE: &str = "4gb_potato";
+pub const BASELINE_TARGET_PROFILE: &str = "4gb_potato";
+pub const TARGET_PROFILE: &str = BASELINE_TARGET_PROFILE;
 pub const TARGET_MEMORY_BUDGET_KB: u64 = 4 * 1024 * 1024;
 pub const BOOT_BUDGET_MILLIS: u64 = 1_000;
 pub const TAB_SWITCH_BUDGET_MILLIS: u64 = 1_000;
 pub const CPU_BUDGET_PERCENT: u64 = 100;
+pub const PROFILE_REGISTRY_TSV: &str = include_str!("../../../bench/targets/profiles.tsv");
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProfileRole {
+    BaselineGate,
+    OptionalProfile,
+}
+
+impl ProfileRole {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ProfileRole::BaselineGate => "baseline_gate",
+            ProfileRole::OptionalProfile => "optional_profile",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetProfile<'a> {
+    pub id: &'a str,
+    pub label: &'a str,
+    pub memory_budget_kb: u64,
+    pub boot_budget_ms: u64,
+    pub tab_switch_budget_ms: u64,
+    pub cpu_budget_percent: u64,
+    pub role: ProfileRole,
+}
+
+const FALLBACK_BASELINE_PROFILE: TargetProfile<'static> = TargetProfile {
+    id: BASELINE_TARGET_PROFILE,
+    label: "4 GB",
+    memory_budget_kb: TARGET_MEMORY_BUDGET_KB,
+    boot_budget_ms: BOOT_BUDGET_MILLIS,
+    tab_switch_budget_ms: TAB_SWITCH_BUDGET_MILLIS,
+    cpu_budget_percent: CPU_BUDGET_PERCENT,
+    role: ProfileRole::BaselineGate,
+};
+
+pub fn target_profiles() -> Vec<TargetProfile<'static>> {
+    PROFILE_REGISTRY_TSV
+        .lines()
+        .filter_map(parse_profile_line)
+        .collect()
+}
+
+fn parse_profile_line(line: &'static str) -> Option<TargetProfile<'static>> {
+    let line = line.strip_suffix('\u{000d}').unwrap_or(line);
+    if line.trim().is_empty() || line.starts_with('#') {
+        return None;
+    }
+    let mut parts = line.split('\t');
+    let id = parts.next()?.trim();
+    let label = parts.next()?.trim();
+    let memory_budget_kb = parts.next()?.trim().parse().ok()?;
+    let boot_budget_ms = parts.next()?.trim().parse().ok()?;
+    let tab_switch_budget_ms = parts.next()?.trim().parse().ok()?;
+    let cpu_budget_percent = parts.next()?.trim().parse().ok()?;
+    let role = match parts.next()?.trim() {
+        "baseline_gate" => ProfileRole::BaselineGate,
+        "optional_profile" => ProfileRole::OptionalProfile,
+        _ => return None,
+    };
+    if parts.next().is_some() {
+        return None;
+    }
+    Some(TargetProfile {
+        id,
+        label,
+        memory_budget_kb,
+        boot_budget_ms,
+        tab_switch_budget_ms,
+        cpu_budget_percent,
+        role,
+    })
+}
+
+pub fn profile_by_id(id: &str) -> Option<TargetProfile<'static>> {
+    target_profiles()
+        .into_iter()
+        .find(|profile| profile.id == id)
+}
+
+pub fn baseline_profile() -> TargetProfile<'static> {
+    profile_by_id(BASELINE_TARGET_PROFILE).unwrap_or(FALLBACK_BASELINE_PROFILE)
+}
 
 pub const MEASUREMENT_FILE_LIMIT_BYTES: u64 = 64 * 1024;
 pub const MEASUREMENT_LINE_LIMIT: usize = 64;
@@ -63,18 +151,25 @@ impl ResourceGateStatus {
 pub struct ResourceGate {
     pub status: ResourceGateStatus,
     pub target_profile: String,
+    pub baseline_profile: String,
+    pub profile_role: ProfileRole,
     pub memory_budget_kb: u64,
     pub measurements: BTreeMap<String, u64>,
     pub reasons: Vec<String>,
 }
 
 pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
+    let baseline = baseline_profile();
     let mut gate = ResourceGate {
         status: ResourceGateStatus::Unmeasured,
-        target_profile: TARGET_PROFILE.to_string(),
-        memory_budget_kb: TARGET_MEMORY_BUDGET_KB,
+        target_profile: baseline.id.to_string(),
+        baseline_profile: baseline.id.to_string(),
+        profile_role: baseline.role,
+        memory_budget_kb: baseline.memory_budget_kb,
         measurements: BTreeMap::new(),
-        reasons: vec!["no measurement file supplied; 4 GB potato machine unmeasured".to_string()],
+        reasons: vec![
+            "no measurement file supplied; baseline 4 GB potato machine unmeasured".to_string(),
+        ],
     };
     let Some(path) = measurement_path else {
         return Ok(gate);
@@ -110,10 +205,17 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
     if metadata.get("schema_version").map(String::as_str) != Some("1") {
         unmeasured_reasons.push("schema_version missing or unsupported".to_string());
     }
-    match metadata.get("target_profile").map(String::as_str) {
-        Some(profile) if profile == TARGET_PROFILE => {}
-        Some(other) => fail_reasons.push(format!("wrong target_profile: {other}")),
-        None => unmeasured_reasons.push("target_profile missing".to_string()),
+    let profile_id = metadata.get("target_profile").map(String::as_str);
+    let selected_profile = profile_id.and_then(profile_by_id);
+    let budget_profile = selected_profile.unwrap_or(baseline);
+    match (profile_id, selected_profile) {
+        (Some(_), Some(profile)) => {
+            gate.target_profile = profile.id.to_string();
+            gate.profile_role = profile.role;
+            gate.memory_budget_kb = profile.memory_budget_kb;
+        }
+        (Some(other), None) => fail_reasons.push(format!("wrong target_profile: {other}")),
+        (None, _) => unmeasured_reasons.push("target_profile missing".to_string()),
     }
     let host = metadata
         .get("measurement_host")
@@ -133,23 +235,35 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
         }
     }
     if let Some(&rss) = gate.measurements.get("peak_rss_kb") {
-        if rss > TARGET_MEMORY_BUDGET_KB {
-            fail_reasons.push(format!("peak_rss_kb {rss} exceeds 4 GB budget"));
+        if rss > budget_profile.memory_budget_kb {
+            fail_reasons.push(format!(
+                "peak_rss_kb {rss} exceeds {} budget",
+                budget_profile.label
+            ));
         }
     }
     if let Some(&boot) = gate.measurements.get("boot_ms") {
-        if boot > BOOT_BUDGET_MILLIS {
-            fail_reasons.push(format!("boot_ms {boot} exceeds 1 s budget"));
+        if boot > budget_profile.boot_budget_ms {
+            fail_reasons.push(format!(
+                "boot_ms {boot} exceeds {} ms budget",
+                budget_profile.boot_budget_ms
+            ));
         }
     }
     if let Some(&tab) = gate.measurements.get("tab_switch_ms") {
-        if tab > TAB_SWITCH_BUDGET_MILLIS {
-            fail_reasons.push(format!("tab_switch_ms {tab} exceeds 1 s budget"));
+        if tab > budget_profile.tab_switch_budget_ms {
+            fail_reasons.push(format!(
+                "tab_switch_ms {tab} exceeds {} ms budget",
+                budget_profile.tab_switch_budget_ms
+            ));
         }
     }
     if let Some(&cpu) = gate.measurements.get("cpu_percent") {
-        if cpu > CPU_BUDGET_PERCENT {
-            fail_reasons.push(format!("cpu_percent {cpu} exceeds 100"));
+        if cpu > budget_profile.cpu_budget_percent {
+            fail_reasons.push(format!(
+                "cpu_percent {cpu} exceeds {} percent budget",
+                budget_profile.cpu_budget_percent
+            ));
         }
     }
     gate.status = if !fail_reasons.is_empty() {
@@ -179,6 +293,10 @@ pub struct ResourceGateIntake {
     pub file_supplied: bool,
     pub status: ResourceGateStatus,
     pub digest: String,
+    pub target_profile: String,
+    pub baseline_profile: String,
+    pub profile_role: ProfileRole,
+    pub memory_budget_kb: u64,
     pub measurements: BTreeMap<String, u64>,
     pub reasons: Vec<String>,
 }
@@ -188,12 +306,19 @@ pub struct ResourceGateIntake {
 /// A file that passes the evaluator's shape and budget arithmetic is only a shape pass. Physical
 /// provenance must be recorded out of band, so this function never establishes a measured gate.
 pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateIntake {
+    let baseline = baseline_profile();
     let mut intake = ResourceGateIntake {
         file_supplied: measurement_path.is_some(),
         status: ResourceGateStatus::Unmeasured,
         digest: "none".to_string(),
+        target_profile: baseline.id.to_string(),
+        baseline_profile: baseline.id.to_string(),
+        profile_role: baseline.role,
+        memory_budget_kb: baseline.memory_budget_kb,
         measurements: BTreeMap::new(),
-        reasons: vec!["no measurement file supplied; 4 GB potato machine unmeasured".to_string()],
+        reasons: vec![
+            "no measurement file supplied; baseline 4 GB potato machine unmeasured".to_string(),
+        ],
     };
     let Some(path) = measurement_path else {
         return intake;
@@ -213,7 +338,11 @@ pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateInta
     }
     match resource_gate(Some(path)) {
         Ok(gate) => {
-            intake.measurements = gate.measurements;
+            intake.measurements = gate.measurements.clone();
+            intake.target_profile = gate.target_profile.clone();
+            intake.baseline_profile = gate.baseline_profile.clone();
+            intake.profile_role = gate.profile_role;
+            intake.memory_budget_kb = gate.memory_budget_kb;
             if gate.status == ResourceGateStatus::Pass {
                 intake.status = ResourceGateStatus::Pass;
                 let reason =
@@ -334,13 +463,18 @@ pub fn baseline_toml() -> Result<String> {
     } else {
         cow.join(",")
     };
+    let baseline = baseline_profile();
+    let profile_count = target_profiles().len();
 
     Ok(format!(
         r#"schema_version = 1
-measurement_status = "baseline_only_performance_claims_unmeasured"
-target_profile = "4gb_potato"
+measurement_status = "host_facts_only_performance_claims_unmeasured"
+host_profile = "unspecified"
+release_baseline_profile = "{}"
+target_profile_registry = "bench/targets/profiles.tsv"
+profile_count = {}
 resource_law = "holy_grail"
-notes = "Host facts only. No RAM, CPU, boot, or latency claims are valid until measured on this machine."
+notes = "Host facts only. No target profile is inferred from RAM size; no RAM, CPU, boot, or latency claim is valid until measured on a recorded machine."
 
 [host]
 os = "{}"
@@ -353,6 +487,8 @@ swap_present = {}
 zram_detected = {}
 cow_filesystems = "{}"
 "#,
+        quote(baseline.id),
+        profile_count,
         quote(std::env::consts::OS),
         quote(&kernel),
         quote(std::env::consts::ARCH),
@@ -468,7 +604,10 @@ mod tests {
     fn baseline_keeps_performance_claims_unmeasured() -> Result<()> {
         let toml = baseline_toml()?;
         assert!(toml.contains("resource_law = \"holy_grail\""));
-        assert!(toml.contains("baseline_only_performance_claims_unmeasured"));
+        assert!(toml.contains("host_facts_only_performance_claims_unmeasured"));
+        assert!(toml.contains("host_profile = \"unspecified\""));
+        assert!(toml.contains("release_baseline_profile = \"4gb_potato\""));
+        assert!(toml.contains("profile_count = 3"));
         assert!(!toml.contains("boot_ms"));
         Ok(())
     }
@@ -596,6 +735,47 @@ mod tests {
             .reasons
             .iter()
             .any(|reason| reason.contains("4 GB budget")));
+        Ok(())
+    }
+
+    #[test]
+    fn target_profile_registry_has_one_baseline_and_public_profiles() {
+        let profiles = target_profiles();
+        assert_eq!(profiles.len(), 3);
+        let baseline = baseline_profile();
+        assert_eq!(baseline.id, BASELINE_TARGET_PROFILE);
+        assert_eq!(baseline.role, ProfileRole::BaselineGate);
+        assert_eq!(
+            profiles
+                .iter()
+                .filter(|profile| profile.role == ProfileRole::BaselineGate)
+                .count(),
+            1
+        );
+        assert!(profiles
+            .iter()
+            .all(|profile| profile.memory_budget_kb >= baseline.memory_budget_kb));
+        assert!(profile_by_id("8gb_reference").is_some());
+        assert!(profile_by_id("16gb_developer").is_some());
+        let mut ids: Vec<&str> = profiles.iter().map(|profile| profile.id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), profiles.len());
+    }
+
+    #[test]
+    fn resource_gate_uses_selected_public_profile_budget() -> Result<()> {
+        let path = temp_measurement(
+            "public-profile",
+            "schema_version=1\ntarget_profile=8gb_reference\nmeasurement_host=public-target-lab\npeak_rss_kb=6000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n",
+        )?;
+        let gate = resource_gate(Some(path.as_path()))?;
+        let _ = fs::remove_file(&path);
+        assert_eq!(gate.status, ResourceGateStatus::Pass);
+        assert_eq!(gate.target_profile, "8gb_reference");
+        assert_eq!(gate.baseline_profile, BASELINE_TARGET_PROFILE);
+        assert_eq!(gate.profile_role, ProfileRole::OptionalProfile);
+        assert_eq!(gate.memory_budget_kb, 8 * 1024 * 1024);
         Ok(())
     }
 }
