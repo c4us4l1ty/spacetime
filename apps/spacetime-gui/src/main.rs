@@ -74,13 +74,18 @@ impl Session {
         })
     }
 
-    fn send(&mut self, text: &str) -> Result<(), String> {
+    fn send_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
         let stdin = self.child.stdin.as_mut().ok_or("Guest input is closed")?;
         stdin
-            .write_all(text.as_bytes())
-            .and_then(|()| stdin.write_all(b"\n"))
+            .write_all(bytes)
             .and_then(|()| stdin.flush())
             .map_err(|error| error.to_string())
+    }
+
+    fn send_line(&mut self, text: &str) -> Result<(), String> {
+        let mut bytes = text.as_bytes().to_vec();
+        bytes.push(b'\n');
+        self.send_bytes(&bytes)
     }
 }
 
@@ -221,11 +226,28 @@ impl eframe::App for WorkspaceApp {
                         && ui.input(|input| input.key_pressed(egui::Key::Enter)));
                 if send {
                     if let Some(session) = &mut self.session {
-                        if let Err(error) = session.send(&self.input) {
+                        if let Err(error) = session.send_line(&self.input) {
                             self.status = format!("Input failed: {error}");
                         }
                         self.input.clear();
                         response.request_focus();
+                    }
+                }
+            });
+            ui.horizontal(|ui| {
+                for (label, bytes) in [
+                    ("Interrupt (Ctrl+C)", &b"\x03"[..]),
+                    ("EOF (Ctrl+D)", &b"\x04"[..]),
+                ] {
+                    if ui
+                        .add_enabled(self.session.is_some(), egui::Button::new(label))
+                        .clicked()
+                    {
+                        if let Some(session) = &mut self.session {
+                            if let Err(error) = session.send_bytes(bytes) {
+                                self.status = format!("Input failed: {error}");
+                            }
+                        }
                     }
                 }
             });
