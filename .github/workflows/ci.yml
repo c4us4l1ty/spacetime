@@ -47,7 +47,11 @@ jobs:
           status=$?
           set -e
           cat target/native-window.log
-          test "$status" -eq 124
+          if [ "$status" -ne 124 ]; then
+            echo "::error::Native window exited with status $status (expected timeout)"
+            sed -n '1,30s/^/::error::/p' target/native-window.log
+            exit 1
+          fi
 
       - name: Rust workspace interface smoke
         run: |
