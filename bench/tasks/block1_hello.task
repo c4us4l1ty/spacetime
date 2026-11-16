@@ -1,5 +1,11 @@
 # Block 1 happy path: produce evidence, then prove the claim.
 schema_version=1
+verifier_source=fixture_suite
+expected_verdict=pass
+expected_digest=sha256:block1-evidence
+determinism_runs=2
+mutation_threshold_bps=8000
+candidate_mutation_score_bps=10000
 space_id=space-block1
 workspace_id=ws-block1
 surface_id=surface-block1

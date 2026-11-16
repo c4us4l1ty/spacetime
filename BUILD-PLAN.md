@@ -1,8 +1,8 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 is implemented and CI-green in the Rust workspace.
-**Date:** 2026-11-15  
-**Branch:** `arena/6100a825-spacetime` (plan merged to `main` via PR #6)
+**Status:** active roadmap; Block 1 and Block 2 bug-hunt fixes merged to `main` via PR #8; 24 gates verified; 4 GB resource gate unmeasured.
+**Date:** 2026-11-15
+**Branch:** `arena/d7d47fd2-spacetime` (Block 1 merged via PR #7; Block 2 merged via PR #8)
 
 **Confirmed product decisions (user, 2026-11-15):**
 
@@ -360,7 +360,8 @@ VMM, real GUI, web chat, CDP, real money, real credentials, Ark, CAS, live surfa
 - Add deterministic execution controls for the local runner:
   - fixed clock, fixed RNG seed, fixed temp paths, fixed environment, no network, fixed locale.
   - cheap 80% rule from the review: run every accepted candidate **twice** from the same snapshot; disagreement is `ERROR`, never `PASS`.
-  - later: clock/getrandom/socket shims only where measured to matter; `LD_PRELOAD` alone is never treated as a complete boundary.
+  - active-branch increment: a narrow `LD_PRELOAD` shim fixes `clock_gettime`, `getrandom`/`getentropy`, and denies `socket`/`socketpair`/`connect` for dynamically linked local probes; an action capability allow-list enforces `local_fixture`, time budget, args digest, taint, and expected verifier before execution.
+  - `LD_PRELOAD` alone is never treated as a complete boundary. Static binaries, direct syscalls, inherited descriptors, direct `/dev/urandom` reads, namespaces, cgroups, Ark cells, and quarantine microVMs remain later work.
 - Add verifier sources in priority order:
   1. fixture's existing test suite,
   2. published spec/oracle implementation,

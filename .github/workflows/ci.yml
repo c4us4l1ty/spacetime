@@ -14,7 +14,7 @@ env:
 
 jobs:
   build:
-    name: Compile and verify Block 1
+    name: Compile and verify Blocks 1-2
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -57,5 +57,81 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- ledger verify target/timeout.jsonl
           grep -q '"goal_status":"failed"' target/timeout.jsonl.state
 
+      - name: Crucible smoke - determinism and metrology
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- crucible verify --task bench/tasks/block1_hello.task > target/crucible-verify.txt
+          grep -q 'verdict=pass' target/crucible-verify.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible false-pass --task bench/tasks/block1_hello.task --runs 50 > target/crucible-false-pass.txt
+          grep -q 'false_pass_rate=0.0000' target/crucible-false-pass.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible differential --limit 1000000 > target/crucible-differential.txt
+          grep -q 'differential_matches=1000000' target/crucible-differential.txt
+          grep -q 'mutation_score_bps=10000' target/crucible-differential.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible sources > target/crucible-sources.txt
+          grep -q 'priority=1 source=FixtureSuite' target/crucible-sources.txt
+          grep -q 'priority=5 source=Mutation' target/crucible-sources.txt
+          for task in bench/tasks/block2_flaky*.task; do
+            ! cargo run --release --locked -p spacetime-ctl -- crucible verify --task "$task"
+          done
+          cargo run --release --locked -p spacetime-ctl -- crucible panel --task bench/tasks/block1_hello.task > target/crucible-panel.txt
+          grep -q 'panel_verdict=pass' target/crucible-panel.txt
+          grep -q 'sources=5' target/crucible-panel.txt
+          grep -q 'conflicts=0' target/crucible-panel.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible adversarial --dir bench/adversarial > target/crucible-adversarial.txt
+          grep -q 'adversarial_fixtures=20' target/crucible-adversarial.txt
+          grep -q 'mismatches=0' target/crucible-adversarial.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible population --operators 10 --runs 50 > target/crucible-population.txt
+          grep -q 'runs_per_operator=50' target/crucible-population.txt
+          grep -q 'promoted_false_pass_leaks=0' target/crucible-population.txt
+          grep -q 'real_operator_study=false' target/crucible-population.txt
+          cargo run --release --locked -p spacetime-ctl -- crucible fixture-population --runs 50 > target/crucible-fixture-population.txt
+          grep -q 'fixtures=26' target/crucible-fixture-population.txt
+          grep -q 'verifier_runs=1300' target/crucible-fixture-population.txt
+          grep -q 'max_flip_rate=0.0000' target/crucible-fixture-population.txt
+          grep -q 'max_leak_rate=0.0000' target/crucible-fixture-population.txt
+          grep -q 'mismatches=0' target/crucible-fixture-population.txt
+          grep -q 'real_fixture_population=true' target/crucible-fixture-population.txt
+          grep -q 'real_operator_study=false' target/crucible-fixture-population.txt
+          ! cargo run --release --locked -p spacetime-ctl -- crucible false-pass --task bench/tasks/block1_hello.task --runs 0
+          ! cargo run --release --locked -p spacetime-ctl -- crucible differential --limit 1
+          ! cargo run --release --locked -p spacetime-ctl -- crucible population --operators 10 --runs 0
+          ! cargo run --release --locked -p spacetime-ctl -- crucible fixture-population --runs 0
+          ! cargo run --release --locked -p spacetime-ctl -- crucible adversarial --dir
+          ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement
+
+      - name: End-to-end verification
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml > target/verify.stdout
+          cat target/verify.toml
+          grep -q '^status = "pass"$' target/verify.toml
+          grep -q '^failed = 0$' target/verify.toml
+          grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify.toml
+          grep -q 'name = "block1_happy"' target/verify.toml
+          grep -q 'name = "crucible_flaky_family"' target/verify.toml
+          grep -q '^gates = 24$' target/verify.toml
+          grep -q 'name = "determinism_controls"' target/verify.toml
+          grep -q 'name = "capability_enforcement"' target/verify.toml
+          grep -q 'name = "cli_input_validation"' target/verify.toml
+          grep -q 'name = "verifier_panel"' target/verify.toml
+          grep -q 'name = "adversarial_corpus"' target/verify.toml
+          grep -q 'name = "operator_population"' target/verify.toml
+          grep -q 'name = "fixture_population"' target/verify.toml
+          grep -q 'name = "resource_gate_unmeasured"' target/verify.toml
+          grep -q '^panel_sources = 5$' target/verify.toml
+          grep -q '^adversarial_fixtures = 20$' target/verify.toml
+          grep -q '^determinism_shim = "ld_preload_not_complete_boundary"$' target/verify.toml
+          grep -q '^capability_allow_list = "local_fixture_only"$' target/verify.toml
+          grep -q '^fixture_population_fixtures = 26$' target/verify.toml
+          grep -q '^fixture_population_runs = 50$' target/verify.toml
+          grep -q '^fixture_population_verifier_runs = 1300$' target/verify.toml
+          grep -q '^synthetic_operator_population = true$' target/verify.toml
+          grep -q '^real_operator_study = "unmeasured"$' target/verify.toml
+          grep -q '^resource_gate_evaluator = "unmeasured_fail_pass_self_test"$' target/verify.toml
+          grep -q '^cli_input_validation = "bounded"$' target/verify.toml
+          grep -q '^resource_gate_host_validation = true$' target/verify.toml
+
       - name: Machine baseline
-        run: cargo run --release --locked -p spacetime-ctl -- machine
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- machine
+          cargo run --release --locked -p spacetime-ctl -- machine gate > target/machine-gate.txt
+          grep -q 'resource_gate=unmeasured' target/machine-gate.txt
+          cat target/machine-gate.txt

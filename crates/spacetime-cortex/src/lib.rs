@@ -23,6 +23,7 @@ pub trait Cortex {
 pub struct ScriptedCortex {
     actions: Vec<Action>,
     cursor: usize,
+    metadata: BTreeMap<String, String>,
 }
 
 impl ScriptedCortex {
@@ -72,7 +73,56 @@ impl ScriptedCortex {
             )?);
         }
 
-        Ok(Self { actions, cursor: 0 })
+        Ok(Self {
+            actions,
+            cursor: 0,
+            metadata,
+        })
+    }
+
+    pub fn first_action(&self) -> Result<Action> {
+        self.actions
+            .first()
+            .cloned()
+            .ok_or_else(|| SpacetimeError::new("task has no actions"))
+    }
+
+    pub fn expected_digest(&self) -> Option<String> {
+        let raw = self.metadata.get("expected_digest")?;
+        if raw == "none" {
+            return None;
+        }
+        if let Some(preimage) = raw.strip_prefix("sha256:") {
+            Some(spacetime_types::sha256_hex(preimage.as_bytes()))
+        } else {
+            Some(raw.clone())
+        }
+    }
+
+    pub fn verifier_source(&self) -> Result<spacetime_types::VerifierSource> {
+        match self.metadata.get("verifier_source") {
+            Some(raw) => raw.parse::<spacetime_types::VerifierSource>(),
+            None => Ok(spacetime_types::VerifierSource::FixtureSuite),
+        }
+    }
+
+    pub fn expected_verdict(&self) -> Result<spacetime_types::Verdict> {
+        match self.metadata.get("expected_verdict") {
+            Some(raw) => raw.parse::<spacetime_types::Verdict>(),
+            None => Ok(spacetime_types::Verdict::Pass),
+        }
+    }
+
+    pub fn determinism_runs(&self) -> Result<u32> {
+        metadata_number(&self.metadata, "determinism_runs", 2)
+    }
+
+    pub fn mutation_threshold_bps(&self) -> Result<u16> {
+        metadata_number(&self.metadata, "mutation_threshold_bps", 8_000)
+    }
+
+    pub fn candidate_mutation_score_bps(&self) -> Result<u16> {
+        metadata_number(&self.metadata, "candidate_mutation_score_bps", 10_000)
     }
 }
 
@@ -95,6 +145,17 @@ fn value_or(metadata: &BTreeMap<String, String>, key: &str, default: &str) -> St
         .get(key)
         .cloned()
         .unwrap_or_else(|| default.to_string())
+}
+
+fn metadata_number<T>(metadata: &BTreeMap<String, String>, key: &str, default: T) -> Result<T>
+where
+    T: FromStr,
+    SpacetimeError: From<T::Err>,
+{
+    match metadata.get(key) {
+        Some(raw) => Ok(raw.parse::<T>()?),
+        None => Ok(default),
+    }
 }
 
 fn binding_from_metadata(metadata: &BTreeMap<String, String>) -> Result<WorkspaceBinding> {
@@ -152,6 +213,9 @@ fn parse_action_line(
         },
         "claim_done" => ActionOp::ClaimDone {
             expected_digest: parse_expected_digest(fields.get("expected_digest"))?,
+        },
+        "flaky" => ActionOp::Flaky {
+            token: required(&fields, "token")?.to_string(),
         },
         _ => return Err(SpacetimeError::new(format!("unknown action: {name}"))),
     };
@@ -223,6 +287,44 @@ mod tests {
         let result = ScriptedCortex::from_file(&path);
         let _ = fs::remove_file(&path);
         assert!(result.is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn parses_block2_expected_verdict() -> Result<()> {
+        let path =
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../bench/tasks/block2_flaky.task");
+        let cortex = ScriptedCortex::from_file(&path)?;
+        assert_eq!(cortex.expected_verdict()?, spacetime_types::Verdict::Error);
+        assert_eq!(
+            cortex.verifier_source()?,
+            spacetime_types::VerifierSource::FixtureSuite
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parses_block2_metadata_controls() -> Result<()> {
+        let pid = std::process::id();
+        let path = std::env::temp_dir().join(format!("spacetime-cortex-metadata-{pid}"));
+        fs::write(
+            &path,
+            "schema_version=1\ndeterminism_runs=3\nmutation_threshold_bps=9000\ncandidate_mutation_score_bps=7500\nexpected_verdict=fail\nverifier_source=adversarial_model\naction echo text=x\n",
+        )?;
+        let cortex = ScriptedCortex::from_file(&path)?;
+        let result = (
+            cortex.determinism_runs()?,
+            cortex.mutation_threshold_bps()?,
+            cortex.candidate_mutation_score_bps()?,
+            cortex.expected_verdict()?,
+            cortex.verifier_source()?,
+        );
+        let _ = fs::remove_file(&path);
+        assert_eq!(result.0, 3);
+        assert_eq!(result.1, 9_000);
+        assert_eq!(result.2, 7_500);
+        assert_eq!(result.3, spacetime_types::Verdict::Fail);
+        assert_eq!(result.4, spacetime_types::VerifierSource::AdversarialModel);
         Ok(())
     }
 }

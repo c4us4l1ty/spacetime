@@ -1,0 +1,16 @@
+# Offline model-authored adversarial fixture 20.
+schema_version=1
+verifier_source=adversarial_model
+expected_verdict=error
+expected_digest=sha256:adversarial-unused-02
+determinism_runs=2
+mutation_threshold_bps=10000
+candidate_mutation_score_bps=10000
+space_id=space-adversarial-20
+workspace_id=ws-adversarial-20
+surface_id=surface-adversarial-20
+goal_id=goal-adversarial-20
+preview_mode=headless
+liveness=running
+surface_kind=terminal
+action sleep ms=2000 budget_ms=30

@@ -222,6 +222,78 @@ pub enum Verdict {
     Unverified,
 }
 
+impl Verdict {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Verdict::Pass => "pass",
+            Verdict::Fail => "fail",
+            Verdict::Error => "error",
+            Verdict::Unverified => "unverified",
+        }
+    }
+}
+
+impl FromStr for Verdict {
+    type Err = SpacetimeError;
+
+    fn from_str(value: &str) -> Result<Self> {
+        match value {
+            "pass" => Ok(Self::Pass),
+            "fail" => Ok(Self::Fail),
+            "error" => Ok(Self::Error),
+            "unverified" => Ok(Self::Unverified),
+            _ => Err(SpacetimeError::new(format!("unknown verdict: {value}"))),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum VerifierSource {
+    FixtureSuite,
+    SpecOracle,
+    DifferentialReference,
+    AdversarialModel,
+    Mutation,
+}
+
+pub const VERIFIER_SOURCE_PRIORITY: [VerifierSource; 5] = [
+    VerifierSource::FixtureSuite,
+    VerifierSource::SpecOracle,
+    VerifierSource::DifferentialReference,
+    VerifierSource::AdversarialModel,
+    VerifierSource::Mutation,
+];
+
+impl VerifierSource {
+    pub fn priority(&self) -> u8 {
+        match self {
+            VerifierSource::FixtureSuite => 1,
+            VerifierSource::SpecOracle => 2,
+            VerifierSource::DifferentialReference => 3,
+            VerifierSource::AdversarialModel => 4,
+            VerifierSource::Mutation => 5,
+        }
+    }
+}
+
+impl FromStr for VerifierSource {
+    type Err = SpacetimeError;
+
+    fn from_str(value: &str) -> Result<Self> {
+        match value {
+            "fixture_suite" => Ok(Self::FixtureSuite),
+            "spec_oracle" => Ok(Self::SpecOracle),
+            "differential_reference" => Ok(Self::DifferentialReference),
+            "adversarial_model" => Ok(Self::AdversarialModel),
+            "mutation" => Ok(Self::Mutation),
+            _ => Err(SpacetimeError::new(format!(
+                "unknown verifier_source: {value}"
+            ))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DecisionKind {
@@ -254,6 +326,7 @@ pub enum ActionOp {
     Echo { text: String },
     Sleep { milliseconds: u64 },
     ClaimDone { expected_digest: Option<String> },
+    Flaky { token: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -309,6 +382,7 @@ pub struct Observation {
     pub action_id: ActionId,
     pub bytes: String,
     pub digest: String,
+    pub determinism_profile_digest: String,
     pub provenance: Taint,
     pub redactions: Vec<String>,
 }
@@ -318,7 +392,10 @@ pub struct Observation {
 pub struct VerifierProof {
     pub verifier_id: String,
     pub verdict: Verdict,
+    pub source: VerifierSource,
+    pub source_priority: u8,
     pub evidence_digest: String,
+    pub execution_profile_digest: String,
     pub determinism_runs: u32,
     pub mutation_score_bps: u16,
     pub reason: String,
@@ -448,5 +525,23 @@ mod tests {
         let text = String::from_utf8(bytes).expect("canonical JSON is UTF-8");
         assert_eq!(text, r#"{"alpha":2,"zebra":1}"#);
         Ok(())
+    }
+
+    #[test]
+    fn verdict_round_trips_through_strings() -> Result<()> {
+        assert_eq!(Verdict::from_str("pass")?, Verdict::Pass);
+        assert_eq!(Verdict::from_str("error")?, Verdict::Error);
+        assert!(Verdict::from_str("maybe").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn verifier_source_priority_is_stable() {
+        assert_eq!(VERIFIER_SOURCE_PRIORITY.len(), 5);
+        assert_eq!(VERIFIER_SOURCE_PRIORITY[0], VerifierSource::FixtureSuite);
+        assert_eq!(VERIFIER_SOURCE_PRIORITY[4], VerifierSource::Mutation);
+        for (index, source) in VERIFIER_SOURCE_PRIORITY.iter().enumerate() {
+            assert_eq!(source.priority(), (index + 1) as u8);
+        }
     }
 }
