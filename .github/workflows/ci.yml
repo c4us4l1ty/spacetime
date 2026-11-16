@@ -14,7 +14,7 @@ env:
 
 jobs:
   build:
-    name: Compile and verify Blocks 1-2
+    name: Compile and verify Blocks 1-3 offline prototype
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -271,6 +271,11 @@ jobs:
           grep -q '"preview_mode": "snapshot_on_action"' apps/spacetime-console/report.json
           test -f apps/spacetime-console/styles.css
           ! grep -RInE 'https?://|Electron|WebView|innerHTML|eval\(' apps/spacetime-console
+
+      - name: Exploratory CLI profiler tests
+        run: |
+          python3 -m py_compile bench/measurements/profile_cli.py bench/measurements/test_profile_cli.py
+          python3 -m unittest discover -s bench/measurements -p 'test_*.py' -v
 
       - name: Machine baseline
         run: |

@@ -1,8 +1,8 @@
 # Spacetime — Build Plan (blocked roadmap)
 
-**Status:** active roadmap; Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake and bug hunt are merged at `90ceeb20db603c52e313ef718b82710241ad6080`, with strict `main` CI run `43829756506` green (25 gates, 14 steps). The 4 GB baseline resource gate is unmeasured. Current branch prepared reproducible provenance intake (strict run `43831944305`, 25 gates), added explicit public target profiles (strict run `43836410103`, 26 gates), and now starts an offline Block 3 prototype with 20 scripted fixtures, a static HTML console, a mock-economy ledger, and 28 gates. Strict CI run `43843891738` verified the 28-gate increment at `e455556` with 14/14 steps green; evidence is recorded in `docs/VERIFICATION-2026-11-15.md`. No measured gate is claimed and Block 3 is not `DONE`.
-**Date:** 2026-11-15 (roadmap origin; branch context updated after PR #9 merge)
-**Branch:** `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; PRs #7, #8, and #9 are merged history)
+**Status:** active roadmap. PR #10 merged the 28-gate offline Block 3 prototype to `main` at `33149fe9ecac077bd1d37468c96197fefe94bca2`. That prototype includes 20 scripted fixtures, a static HTML review artifact, a mock-economy ledger, and the `bench`/`console` CLI commands; it is not Block 3 `DONE`. The 4 GB baseline resource gate remains unmeasured. The current branch adds an exploratory profiler for existing headless CLI workloads only; it cannot measure the native workspace, cold product startup, tab switching, snapshots, or physical provenance, and it is not a gate evaluator. No performance claim is made.
+**Date:** 2026-11-16 (current branch context; roadmap originated 2026-11-15)
+**Branch:** `arena/faa483b2-spacetime` (status `active`, branched from `33149fe9ecac077bd1d37468c96197fefe94bca2` of `main`; PR #10 is merged history)
 
 **Confirmed product decisions (user, 2026-11-15):**
 
@@ -55,12 +55,12 @@ A Linux-only, 4 GB-friendly, local-only system that can run an overnight verifia
 
 | File | Role | How to treat it |
 |---|---|---|
-| `README.md` | Name, proprietary notice, ASCII logo | Keep; add links to specs later |
+| `README.md` | Name, proprietary notice, development commands, prototype scope, and roadmap links | Keep current and honest; no performance claims without target measurements |
 | `BRAINSTORM.md` | Original user brief + long LLM replies | **Vision and feature backlog**, not a spec |
 | `DESIGN-REVIEW.md` | First correction: security, policy, 4 GB budget, revised phases | **Security/product baseline** |
 | `DESIGN-REVIEW-2.md` | Latest critique: metrology, population sampling, tiered execution, console-first | **Override where it conflicts** |
 
-There is no prototype to recover in this checkout: the only commit is a grafted `Delete prototype directory` commit with no parent tree. Work starts from an empty codebase.
+This section began as an empty-checkout inventory and is now historical: the Rust core for Blocks 1-2 and the offline Block 3 prototype are present in the repository and were merged to `main` via PRs #7-#10. The current tree is the baseline for continued work; there is still no native workspace shell, durable supervisor, Ark cell manager, or measured 4 GB release baseline.
 
 I also checked `c4us4l1ty/holonomy`. Its `.wavefunction` is a fixed-size encrypted document container with a USB-pad threat model. **Spacetime should reuse the vocabulary, not that implementation or cryptography.** Here, `.wavefunction` means an immutable, signed, content-addressed store of shared dependency layers.
 
@@ -392,12 +392,13 @@ If false-PASS exceeds 1%, **stop feature work and fix determinism first**. All l
 
 **Why now:** Build the measuring stick before the product. The console comes before the Rust UI because the organism needs situational awareness, not a window manager — but it also previews the confirmed mixed-tab requirement with snapshot tiles.
 
-**Current branch status:** an offline prototype now exists in `bench/econbench/`,
-`bench/economy/`, `apps/spacetime-console/`, and the `bench`/`console` CLI commands. It uses 20
-scripted fixtures, a verified hash-chained ledger, a static HTML console, and two new end-to-end
-gates. This is not Block 3 `DONE`: the real planted-invariant/transmutation/protocol-distillation
-code, full independent verifiers, measured 4 GB baseline resource gate, and accepted out-of-band
-provenance remain outstanding.
+**Current implementation status (merged via PR #10):** an offline prototype exists in
+`bench/econbench/`, `bench/economy/`, `apps/spacetime-console/`, and the `bench`/`console` CLI
+commands. It uses 20 scripted fixtures, a verified hash-chained ledger, a static HTML review
+artifact, and two new end-to-end gates. This is not Block 3 `DONE`: the real
+planted-invariant/transmutation/protocol-distillation code, full independent verifiers, measured
+4 GB baseline resource gate, and accepted out-of-band provenance remain outstanding. The HTML
+artifact is not the product UI or a web application.
 
 ### Build
 
@@ -898,7 +899,7 @@ No number from `BRAINSTORM.md` or the LLM replies becomes a README claim until i
 8. **When may real money/accounts be introduced?** Default: not before Block 13 and explicit sign-off.
 9. **Should hidden AI tabs keep rendering?** Default: **no**. The AI stays `RUNNING`; only the active tab is `RENDERING`. Switching back produces a fresh snapshot. If true background pixel streaming is required, it becomes a measured RAM/CPU decision.
 
-If these defaults are accepted, **the measured 4 GB baseline resource gate remains the next unblocked unit**. Block 1 and Block 2 functional increments are merged to `main` via PRs #7 and #8; PR #9's bounded measurement intake, CLI bug hunt, and doc hygiene are merged history at `90ceeb2`, with strict `main` CI run `43829756506` green. The current active branch adds a read-only host-fact collector, an out-of-band provenance template, an explicit public target-profile registry, and an offline Block 3 console/EconBench prototype; it commits no measurement file, no filled provenance record, and no code path that accepts physical provenance as a measured pass. The prototype is functional groundwork, not a resource sign-off. After the baseline and any selected public profiles are identified, measured with accepted out-of-band provenance, and a reviewed gate implementation consumes that provenance, the real Block 3 implementation can be completed. The thin mixed-workspace slice in Block 5 is the earliest visible proof of the confirmed requirement, using snapshots rather than expensive live video. If you want the full shell pulled forward, we can swap Block 12 earlier, but keep Block 5 as the minimum honest integration test.
+The next roadmap gate remains the measured 4 GB baseline; it is not safe to advance to Block 4 or mark Block 3 `DONE` without it. PR #10 merged the offline Block 3 prototype to `main` at `33149fe9ecac077bd1d37468c96197fefe94bca2`. The user has now reported a candidate target as a 2017-era dual-core Celeron machine with 4 GB RAM running Lubuntu, but the make/model, exact CPU SKU, OS/kernel release, storage, and physical provenance are not yet recorded; no measurement file or filled provenance record is present. See `docs/TARGET-MEASUREMENT-READINESS.md`. The coding sandbox and GitHub CI are not substitutes for the target machine, and no profile may be inferred from detected RAM. This branch adds an exploratory profiler for three existing headless CLI workloads; it is diagnostic only and cannot measure the native workspace, cold startup, tab switching, snapshots, or accepted physical provenance. It never produces a gate-eligible report. The next external prerequisite is to collect exact host facts on the reported machine. Separately, the real Block 3 workloads and reviewed provenance-consuming gate still need implementation before target measurements can establish the release gate. Until those exist, `resource_gate = "unmeasured_target_4gb"`, `performance_claims = "unmeasured"`, and `block3_done = false` remain. The thin mixed-workspace slice in Block 5 is still the earliest product-level proof of the confirmed requirement; the static HTML console remains a review artifact, not a web application.
 
 
 ---

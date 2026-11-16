@@ -98,7 +98,7 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
 - Merged to `main` via PR #9 at explicit user request after strict CI passed. The measured 4 GB
   resource gate remains outstanding; this is a functional merge, not a resource sign-off.
 
-## Addendum — measurement provenance kit (active branch `arena/3782c8f5-spacetime`)
+## Addendum — measurement provenance kit (merged via PR #10)
 
 - `bench/measurements/capture-host-facts.sh` collects host identity, OS/kernel, CPU, memory,
   swap/zram, filesystem, KVM, and cgroup facts read-only. It writes no measurement file and makes no
@@ -116,7 +116,7 @@ performance numbers stay unmeasured until the 4 GB target machine is recorded.
 - Strict push run `43831944305` verified 25 gates, all 14 CI steps, and the new kit checks; full
   evidence is recorded in `docs/VERIFICATION-2026-11-15.md`.
 
-## Addendum — explicit target profiles (active branch `arena/3782c8f5-spacetime`)
+## Addendum — explicit target profiles (merged via PR #10)
 
 - Public release does not mean every target is a 4 GB machine. `bench/targets/profiles.tsv`
   declares `4gb_potato` as the mandatory `baseline_gate`, plus `8gb_reference` and

@@ -75,10 +75,47 @@ optionally accepts `--host-label <safe-label>`, and never invents a default targ
 recorded machine and retain its output out of band with `PROVENANCE-TEMPLATE.md`, a human checklist
 covering machine identity, profile selection, raw evidence hashes, measurement definitions, and
 sign-off. The script does not write a measurement file; the template is not evidence until filled
-on the target machine. No filled template, raw evidence, or target measurement file is committed
-here.
+on the target machine. It reports firmware model/vendor/version where exposed (without serial
+numbers), CPU topology, OS/kernel, RAM/swap, storage/filesystem, and virtualization/cgroup facts.
+See `docs/TARGET-MEASUREMENT-READINESS.md` for the current user-reported candidate machine and
+remaining intake. No filled template, raw evidence, or target measurement file is committed here.
 
 The current code can only label a bounded file `pass_shape_only`; `resource_gate` and
 `performance_claims` remain unmeasured until physical provenance is accepted out of band and a
 reviewed code path consumes it. Strict CI checks the collector's shell syntax, argument rejection,
 and registry listing only; CI host facts are never target evidence.
+
+## Exploratory headless CLI profiler
+
+`profile_cli.py` is a small Linux-only helper for gathering repeatable, **exploratory** process
+samples from the existing `spacetime-ctl` CLI. It is not a web application, does not start a server,
+and does not profile a native workspace or GUI. It launches only one of three fixed, local
+workloads (`verify`, `econbench`, or `console-export`) without a shell, samples the workload's Linux
+process group, hashes the binary, and writes a JSON report outside the repository. The target
+profile is required explicitly; detected RAM is recorded as a host fact but never used to select a
+profile. Existing reports are not overwritten; the final report is published with an atomic
+create-if-absent operation to preserve evidence if another process races to create the same path.
+
+Example on the **actual machine being studied** (after building the release executable):
+
+```sh
+cargo build --release --locked -p spacetime-ctl
+python3 bench/measurements/profile_cli.py \\
+  --binary target/release/spacetime-ctl \\
+  --profile 4gb_potato \\
+  --host-label potato-lab \\
+  --workload verify \\
+  --runs 5 \\
+  --out "$HOME/spacetime-evidence/cli-verify.json"
+```
+
+The report is deliberately marked `gate_eligible = false` and keeps `resource_gate` and
+`performance_claims` unmeasured. Sampled process-group RSS can miss short-lived peaks and double
+count shared pages; CPU sampling can miss brief children. The Python sampler runs concurrently and
+may affect wall time/host load. Wall time is for the named headless CLI command, not application
+startup. It cannot measure cold product boot, whole-workspace/concurrent RSS, a tab switch,
+fresh-snapshot latency, or snapshot CPU/memory, and the caller-supplied label is not physical
+attestation. It does not emit the
+bounded `*.measurement` format or feed any measured-gate code path. Use it as diagnostic input only;
+retain its output out of band with the completed provenance checklist and raw evidence. CI runs
+unit tests with a temporary fake executable, never as target-machine evidence.

@@ -4,7 +4,7 @@
 
 - Historical validation branch: `arena/d7d47fd2-spacetime` (status `active`, branched from `d30a31508aecc675be6661d85e38c1b95c12bb06` of `main`); merged via PR #8.
 - Historical PR #9 branch: `arena/f3c65268-spacetime` (status `pr_open` at the time, branched from `4b048bf638ca6ea6d67d6db2c6586ecd615e4a70` of `main`); merged at `90ceeb20db603c52e313ef718b82710241ad6080`. The measurement-intake increment and PR #9 bug hunt below are verified by strict CI runs `43818080975` and `43829073730`, with strict `main` CI run `43829756506` after merge.
-- Current active branch: `arena/3782c8f5-spacetime` (status `active`, branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). Strict push run `43831944305` verified its 25-gate measurement-provenance kit; `43836410103` verified the 26-gate explicit-target-profile increment; the following 28-gate Block 3 offline prototype is recorded in the final section below.
+- Branch on which the validated increment was developed: `arena/3782c8f5-spacetime` (branched from `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; active during validation, later merged via PR #10 at `33149fe9ecac077bd1d37468c96197fefe94bca2`). Strict push run `43831944305` verified its 25-gate measurement-provenance kit; `43836410103` verified the 26-gate explicit-target-profile increment; the following 28-gate Block 3 offline prototype is recorded in the final section below. This file is historical evidence and does not describe the current working branch.
 - Validated strict code head: `969d5cf414d25fbdd882aaec1932c2ec017f8502`.
 - Strict GitHub Actions run for that code head: `43813696825`, job `133120813158`.
 - All 12 job steps succeeded: Format, `clippy -D warnings`, Tests, Release build, three CLI smokes,
@@ -241,11 +241,11 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 - Documentation head: the commit containing this file. Docs-only changes after `5a86bf8` do not
   alter validated code and are covered by the PR-head strict CI run.
 
-## Current increment — measurement provenance kit and branch hygiene (strict CI verified)
+## Historical increment — measurement provenance kit and branch hygiene (strict CI verified)
 
-- Active branch: `arena/3782c8f5-spacetime` (status `active`, branched from
-  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). PR #9 is merged history; strict `main` CI
-  run `43829756506` verified all 14 steps after merge.
+- Branch at the time: `arena/3782c8f5-spacetime` (branched from
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`); this increment was later merged via PR #10.
+  PR #9 was already merged history; strict `main` CI run `43829756506` verified all 14 steps after merge.
 - Added `bench/measurements/capture-host-facts.sh`: a read-only, no-argument host-fact collector
   with no network access, no measurement file output, and no performance values. It records
   identity, OS/kernel, CPU, memory/swap/zram, filesystem, KVM, and cgroup facts for out-of-band
@@ -279,11 +279,11 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
 - Documentation head: the commit containing this file. Docs-only evidence changes after `9ab7c2a`
   do not alter validated code and are covered by the strict push workflow for this head.
 
-## Current increment — explicit target profiles for public release
+## Historical increment — explicit target profiles for public release
 
-- Active branch: `arena/3782c8f5-spacetime` (status `active`, base
-  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). PR #9 and the 25-gate provenance kit are
-  merged/history increments described above; this increment adds a 26th gate.
+- Branch at the time: `arena/3782c8f5-spacetime`, based on
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; this increment was later merged via PR #10.
+  PR #9 and the 25-gate provenance kit were already merged/history increments described above; this increment added a 26th gate.
 - User correction: public release must not assume every target is a 4 GB machine. `4gb_potato`
   remains the mandatory First Law baseline; `8gb_reference` and `16gb_developer` are additive
   optional profiles. Profiles are explicit registry entries, never inferred from detected RAM.
@@ -328,12 +328,12 @@ build the local shim and probe; it adds no crates.io dependency and no Rust `uns
   run `43835942873` was used only to capture rustfmt and the stale baseline assertion; it is not
   acceptance evidence.
 
-## Current increment — Block 3 offline console prototype
+## Historical increment — Block 3 offline console prototype
 
-- Active branch: `arena/3782c8f5-spacetime` (status `active`, base
-  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`). This increment starts Block 3 as an
-  offline functional prototype only; it does not claim a measured resource gate, target
-  performance, model efficacy, real economy, or Block 3 `DONE`.
+- Branch at the time: `arena/3782c8f5-spacetime`, based on
+  `90ceeb20db603c52e313ef718b82710241ad6080` of `main`; this increment was later merged via PR #10.
+  It started Block 3 as an offline functional prototype only; it did not claim a measured resource
+  gate, target performance, model efficacy, real economy, or Block 3 `DONE`.
 - Added 20 scripted `.task` fixtures in `bench/econbench/` across planted-invariant,
   transmutation, and protocol-distillation categories. Each declares an independent verifier
   source, expected verdict, and digest oracle before the scripted agent starts. No fixture uses
