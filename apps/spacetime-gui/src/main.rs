@@ -54,7 +54,7 @@ impl Session {
         let image = prepare_guest(busybox, (!app.is_empty()).then_some(app))
             .map_err(|error| error.to_string())?;
         let image_path = image.path();
-        let mut child = Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
+        let child = Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
             .arg("--worker")
             .args([
                 "space",
@@ -70,6 +70,10 @@ impl Session {
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|error| format!("Could not start workspace: {error}"))?;
+        Ok(Self::from_child(child, image))
+    }
+
+    fn from_child(mut child: Child, image: PreparedGuest) -> Self {
         let (input, input_rx) = mpsc::sync_channel::<Vec<u8>>(16);
         if let Some(mut stdin) = child.stdin.take() {
             thread::spawn(move || {
@@ -93,13 +97,13 @@ impl Session {
         if let Some(stderr) = child.stderr.take() {
             forward_output(stderr, sender);
         }
-        Ok(Self {
+        Self {
             child,
             output,
             input,
             _image: image,
             exited: None,
-        })
+        }
     }
 
     fn send_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
@@ -326,6 +330,38 @@ mod tests {
             b"hello"
         );
         assert!(receiver.recv_timeout(Duration::from_secs(2)).is_err());
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn session_exchanges_input_and_cleans_its_guest_image() {
+        let dir = std::env::temp_dir().join(format!("spacetime-gui-test-{}", std::process::id()));
+        std::fs::create_dir(&dir).unwrap();
+        let source = dir.join("static-elf");
+        let mut elf = vec![0u8; 120];
+        elf[..6].copy_from_slice(b"\x7fELF\x02\x01");
+        elf[18..20].copy_from_slice(&62u16.to_le_bytes());
+        elf[32..40].copy_from_slice(&64u64.to_le_bytes());
+        elf[54..56].copy_from_slice(&56u16.to_le_bytes());
+        elf[56..58].copy_from_slice(&1u16.to_le_bytes());
+        elf[64..68].copy_from_slice(&1u32.to_le_bytes());
+        std::fs::write(&source, elf).unwrap();
+        let image = prepare_guest(source.to_str().unwrap(), None).unwrap();
+        let image_path = image.path();
+        let child = Command::new("/bin/sh")
+            .args(["-c", "IFS= read -r text; printf 'REPLY:%s\\n' \"$text\""])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut session = Session::from_child(child, image);
+        session.send_line("hello").unwrap();
+        let output = session.output.recv_timeout(Duration::from_secs(5)).unwrap();
+        assert_eq!(output, b"REPLY:hello\n");
+        drop(session);
+        assert!(!image_path.exists());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
