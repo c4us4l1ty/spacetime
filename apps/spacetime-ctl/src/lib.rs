@@ -950,17 +950,18 @@ mod tests {
         let a = "a".to_string();
         let b = "b".to_string();
         assert!(optional_flag(
-            &["--dir".to_string(), a.clone(), "--dir".to_string(), b.clone()],
+            &[
+                "--dir".to_string(),
+                a.clone(),
+                "--dir".to_string(),
+                b.clone()
+            ],
             "--dir"
         )
         .is_err());
         assert!(optional_flag(&["--bogus".to_string(), a.clone()], "--dir").is_err());
         assert!(optional_flag(&["--dir".to_string(), "--bogus".to_string()], "--dir").is_err());
-        assert!(optional_flag(
-            &["--dir".to_string(), "a\u{1}b".to_string()],
-            "--dir"
-        )
-        .is_err());
+        assert!(optional_flag(&["--dir".to_string(), "a\u{1}b".to_string()], "--dir").is_err());
         assert!(optional_flag(&["--dir".to_string(), "x".repeat(513)], "--dir").is_err());
         Ok(())
     }
