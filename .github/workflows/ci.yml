@@ -318,7 +318,7 @@ jobs:
       - name: Install guest test dependencies
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-x86 busybox-static linux-image-virtual
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends qemu-system-x86 busybox-static linux-image-virtual bubblewrap
       - name: Build the disposable guest image
         run: |
           cargo build --release --locked -p spacetime-ctl
@@ -340,3 +340,17 @@ jobs:
           tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_APP_OK'
           tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_SHELL_OK'
           tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_OFFLINE_OK'
+
+      - name: Boot guest inside monitor sandbox (software emulation)
+        run: |
+          # Some Ubuntu runner images restrict unprivileged user namespaces through AppArmor.
+          # The test itself remains mandatory and fails if the sandbox cannot be created.
+          if [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+          kernel=$(find /boot -maxdepth 1 -name 'vmlinuz-*' -type f | sort -V | tail -1)
+          test -n "$kernel"
+          sudo chmod a+r "$kernel"
+          export SPACETIME_GUEST_KERNEL="$kernel"
+          export SPACETIME_GUEST_INITRAMFS="$PWD/target/guest.cpio"
+          timeout 120 cargo test --locked -p spacetime-ctl sandboxed_guest_boots_without_network -- --ignored --nocapture

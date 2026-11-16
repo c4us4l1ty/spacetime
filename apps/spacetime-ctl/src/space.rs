@@ -67,7 +67,7 @@ fn regular_file(path: &Path, name: &str) -> Result<PathBuf> {
     Ok(canonical)
 }
 
-fn qemu_command(kernel: &Path, initramfs: &Path) -> Command {
+fn qemu_command(kernel: &Path, initramfs: &Path, kvm: bool) -> Command {
     let mut command = Command::new("qemu-system-x86_64");
     // No disk, host shares, NIC, graphical display, monitor, or QEMU config files.
     // The guest is provided entirely by the supplied kernel and initramfs.
@@ -77,9 +77,13 @@ fn qemu_command(kernel: &Path, initramfs: &Path) -> Command {
             "-no-user-config",
             "-nodefaults",
             "-machine",
-            "microvm,accel=kvm",
+            if kvm {
+                "microvm,accel=kvm"
+            } else {
+                "microvm,accel=tcg"
+            },
             "-cpu",
-            "host",
+            if kvm { "host" } else { "max" },
             "-m",
             "512",
             "-smp",
@@ -106,49 +110,44 @@ fn qemu_command(kernel: &Path, initramfs: &Path) -> Command {
 
 // The VM monitor itself runs with a private network and mount namespace. We deliberately do
 // not fall back to an unconfined QEMU if bubblewrap or user namespaces are unavailable.
-fn sandbox_command(kernel: &Path, initramfs: &Path) -> Command {
+fn sandbox_command(kernel: &Path, initramfs: &Path, kvm: bool) -> Command {
     let mut command = Command::new("/usr/bin/prlimit");
+    command.env_clear().args([
+        "--core=0:0",
+        "--",
+        "/usr/bin/bwrap",
+        "--die-with-parent",
+        "--new-session",
+        "--unshare-all",
+        "--clearenv",
+        "--setenv",
+        "PATH",
+        "/usr/bin:/bin",
+        "--setenv",
+        "HOME",
+        "/nonexistent",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind-try",
+        "/bin",
+        "/bin",
+        "--ro-bind-try",
+        "/lib",
+        "/lib",
+        "--ro-bind-try",
+        "/lib64",
+        "/lib64",
+        "--proc",
+        "/proc",
+        "--dev",
+        "/dev",
+    ]);
+    if kvm {
+        command.args(["--dev-bind", "/dev/kvm", "/dev/kvm"]);
+    }
     command
-        .env_clear()
-        .args([
-            "--core=0:0",
-            "--",
-            "/usr/bin/bwrap",
-            "--die-with-parent",
-            "--new-session",
-            "--unshare-all",
-            "--clearenv",
-            "--setenv",
-            "PATH",
-            "/usr/bin:/bin",
-            "--setenv",
-            "HOME",
-            "/nonexistent",
-            "--ro-bind",
-            "/usr",
-            "/usr",
-            "--ro-bind-try",
-            "/bin",
-            "/bin",
-            "--ro-bind-try",
-            "/lib",
-            "/lib",
-            "--ro-bind-try",
-            "/lib64",
-            "/lib64",
-            "--proc",
-            "/proc",
-            "--dev",
-            "/dev",
-            "--dev-bind",
-            "/dev/kvm",
-            "/dev/kvm",
-            "--tmpfs",
-            "/tmp",
-            "--dir",
-            "/inputs",
-            "--ro-bind",
-        ])
+        .args(["--tmpfs", "/tmp", "--dir", "/inputs", "--ro-bind"])
         .arg(kernel)
         .arg("/inputs/kernel")
         .arg("--ro-bind")
@@ -160,7 +159,11 @@ fn sandbox_command(kernel: &Path, initramfs: &Path) -> Command {
             "--",
             "/usr/bin/qemu-system-x86_64",
         ]);
-    let qemu = qemu_command(Path::new("/inputs/kernel"), Path::new("/inputs/initramfs"));
+    let qemu = qemu_command(
+        Path::new("/inputs/kernel"),
+        Path::new("/inputs/initramfs"),
+        kvm,
+    );
     command.args(qemu.get_args());
     command
 }
@@ -203,7 +206,7 @@ pub fn cmd_space(args: &[String]) -> Result<()> {
          No guest NIC, disk, or host file share is configured. Guest RAM and terminal output\n\
          can still leave traces on the host. Exit from the guest to stop QEMU."
     );
-    let status = sandbox_command(&kernel, &initramfs)
+    let status = sandbox_command(&kernel, &initramfs, true)
         .status()
         .map_err(|error| SpacetimeError::new(format!("could not start the VM sandbox: {error}")))?;
     if !status.success() {
@@ -258,7 +261,7 @@ mod tests {
 
     #[test]
     fn qemu_configuration_is_offline_and_has_no_host_share() {
-        let command = qemu_command(Path::new("kernel"), Path::new("initramfs"));
+        let command = qemu_command(Path::new("kernel"), Path::new("initramfs"), true);
         let args: Vec<_> = command
             .get_args()
             .map(|arg| arg.to_string_lossy())
@@ -276,7 +279,7 @@ mod tests {
 
     #[test]
     fn monitor_sandbox_is_mandatory_and_offline() {
-        let command = sandbox_command(Path::new("/host/kernel"), Path::new("/host/guest"));
+        let command = sandbox_command(Path::new("/host/kernel"), Path::new("/host/guest"), true);
         assert_eq!(command.get_program(), "/usr/bin/prlimit");
         let args: Vec<_> = command
             .get_args()
@@ -297,6 +300,47 @@ mod tests {
             .any(|a| a == ["--ro-bind", "/host/guest", "/inputs/initramfs"]));
         assert!(args.windows(2).any(|a| a == ["-nic", "none"]));
         assert!(!args.iter().any(|arg| arg == "/home"));
+    }
+
+    // The production command always requires KVM. This opt-in CI test uses software emulation
+    // solely to exercise the *same* bubblewrap and guest boot path on a runner without /dev/kvm.
+    #[test]
+    #[ignore = "requires QEMU, bubblewrap, user namespaces and CI-supplied guest images"]
+    fn sandboxed_guest_boots_without_network() {
+        use std::io::Write;
+        use std::process::Stdio;
+        use std::thread;
+        use std::time::Duration;
+
+        let kernel = std::env::var("SPACETIME_GUEST_KERNEL").unwrap();
+        let initramfs = std::env::var("SPACETIME_GUEST_INITRAMFS").unwrap();
+        let mut child = sandbox_command(Path::new(&kernel), Path::new(&initramfs), false)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .unwrap();
+        let mut stdin = child.stdin.take().unwrap();
+        let writer = thread::spawn(move || {
+            thread::sleep(Duration::from_secs(25));
+            stdin.write_all(b"app\nif [ -z \"$(ls /sys/class/net | grep -v '^lo$')\" ]; then echo SPACETIME_OFFLINE_OK; fi\nexit\n")
+        });
+        let output = child.wait_with_output().unwrap();
+        let _ = writer.join();
+        let stdout = String::from_utf8_lossy(&output.stdout).replace('\r', "");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            output.status.success(),
+            "stdout: {stdout}\nstderr: {stderr}"
+        );
+        assert!(
+            stdout.lines().any(|line| line == "SPACETIME_APP_OK"),
+            "{stdout}"
+        );
+        assert!(
+            stdout.lines().any(|line| line == "SPACETIME_OFFLINE_OK"),
+            "{stdout}"
+        );
     }
 
     #[test]
