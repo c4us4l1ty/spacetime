@@ -1,7 +1,7 @@
 # ADR-0007 — Add an atomic, idempotent mock-economy core
 
 Date: 2026-11-16
-Status: implemented on `arena/3f609a12-spacetime`; validation is pending the current strict CI run.
+Status: implemented on `arena/3f609a12-spacetime`; strict CI passed at code head `3f99d91f6936895525dfa9a002b16a7cc53e2704` (run `43855570315`).
 
 ## Context
 
@@ -41,5 +41,7 @@ ledger verify`.
 The library tests cover successful exact-balance transfers, overdraft rejection, destination
 overflow, duplicate replay, ID reuse, malformed inputs, and event-chain tampering/reordering. The
 end-to-end `mock_economy_invariants` gate checks applied and duplicate transfers, rejects an
-overspend without state change, and verifies the resulting event chain. Strict CI is the acceptance
-check because the local environment does not have the Rust toolchain.
+overspend without state change, and verifies the resulting event chain. Strict push run `43855570315`
+passed all 14 CI steps on code head `3f99d91f6936895525dfa9a002b16a7cc53e2704`, including format,
+Clippy, workspace tests, release build, and end-to-end verification. The local environment does not
+have the Rust toolchain.
