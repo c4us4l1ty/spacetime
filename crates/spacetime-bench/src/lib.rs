@@ -198,7 +198,8 @@ pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateInta
             intake.measurements = gate.measurements;
             if gate.status == ResourceGateStatus::Pass {
                 intake.status = ResourceGateStatus::Pass;
-                let reason = "shape passed budgets; physical provenance out of band; no measured gate";
+                let reason =
+                    "shape passed budgets; physical provenance out of band; no measured gate";
                 intake.reasons = vec![reason.to_string()];
             } else {
                 let mut reasons = gate.reasons;
@@ -265,9 +266,10 @@ fn validate_measurement_shape(text: &str) -> std::result::Result<(), String> {
         if value.is_empty() || value.len() > MEASUREMENT_VALUE_LIMIT_BYTES {
             return Err("measurement value is empty or too long".to_string());
         }
-        if !value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.')
-        }) {
+        if !value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.'))
+        {
             return Err("measurement value contains unsupported characters".to_string());
         }
         if key == "measurement_host" && value.len() > MEASUREMENT_HOST_LIMIT_BYTES {
@@ -424,7 +426,10 @@ mod tests {
         let ci_gate = resource_gate_intake(Some(ci.as_path()));
         let _ = fs::remove_file(&ci);
         assert_eq!(ci_gate.status, ResourceGateStatus::Unmeasured);
-        assert!(ci_gate.reasons.iter().any(|r| r.contains("non-target host")));
+        assert!(ci_gate
+            .reasons
+            .iter()
+            .any(|r| r.contains("non-target host")));
 
         let shape = temp_measurement(
             "intake-shape",

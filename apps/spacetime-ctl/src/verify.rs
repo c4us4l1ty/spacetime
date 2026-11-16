@@ -191,15 +191,6 @@ fn ensure(condition: bool, message: impl Into<String>) -> Result<()> {
     }
 }
 
-fn flag(args: &[String], name: &str) -> Result<String> {
-    let Some(index) = args.iter().position(|arg| arg.as_str() == name) else {
-        return Err(SpacetimeError::new(format!("missing flag {name}")));
-    };
-    args.get(index + 1)
-        .cloned()
-        .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))
-}
-
 fn parse_verify_args(args: &[String]) -> Result<VerifyArgs> {
     let mut out = None;
     let mut measurement = None;
@@ -1076,20 +1067,14 @@ fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {
     };
     out.push_str(&format!("measurement_intake = \"{intake_label}\"\n"));
     out.push_str(&format!("measurement_evaluator = \"{evaluator_label}\"\n"));
-    out.push_str(&format!(
-        "measurement_digest = {}\n",
-        quote(&intake.digest)
-    ));
+    out.push_str(&format!("measurement_digest = {}\n", quote(&intake.digest)));
     let reasons: Vec<String> = intake
         .reasons
         .iter()
         .take(16)
         .map(|reason| quote(reason))
         .collect();
-    out.push_str(&format!(
-        "measurement_reasons = [{}]\n",
-        reasons.join(", ")
-    ));
+    out.push_str(&format!("measurement_reasons = [{}]\n", reasons.join(", ")));
     out.push_str("target_profile = \"4gb_potato\"\n");
     out.push_str("resource_law = \"holy_grail\"\n");
     out.push_str("ci_host = \"github_actions_not_target\"\n");
