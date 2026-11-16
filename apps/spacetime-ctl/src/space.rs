@@ -104,6 +104,77 @@ fn qemu_command(kernel: &Path, initramfs: &Path) -> Command {
     command
 }
 
+// The VM monitor itself runs with a private network and mount namespace. We deliberately do
+// not fall back to an unconfined QEMU if bubblewrap or user namespaces are unavailable.
+fn sandbox_command(kernel: &Path, initramfs: &Path) -> Command {
+    let mut command = Command::new("/usr/bin/prlimit");
+    command
+        .env_clear()
+        .args([
+            "--core=0:0",
+            "--",
+            "/usr/bin/bwrap",
+            "--die-with-parent",
+            "--new-session",
+            "--unshare-all",
+            "--clearenv",
+            "--setenv",
+            "PATH",
+            "/usr/bin:/bin",
+            "--setenv",
+            "HOME",
+            "/nonexistent",
+            "--ro-bind",
+            "/usr",
+            "/usr",
+            "--ro-bind-try",
+            "/bin",
+            "/bin",
+            "--ro-bind-try",
+            "/lib",
+            "/lib",
+            "--ro-bind-try",
+            "/lib64",
+            "/lib64",
+            "--proc",
+            "/proc",
+            "--dev",
+            "/dev",
+            "--dev-bind",
+            "/dev/kvm",
+            "/dev/kvm",
+            "--tmpfs",
+            "/tmp",
+            "--dir",
+            "/inputs",
+            "--ro-bind",
+        ])
+        .arg(kernel)
+        .arg("/inputs/kernel")
+        .arg("--ro-bind")
+        .arg(initramfs)
+        .args([
+            "/inputs/initramfs",
+            "--chdir",
+            "/",
+            "--",
+            "/usr/bin/qemu-system-x86_64",
+        ]);
+    let qemu = qemu_command(Path::new("/inputs/kernel"), Path::new("/inputs/initramfs"));
+    command.args(qemu.get_args());
+    command
+}
+
+fn require_program(path: &str, package: &str) -> Result<()> {
+    let metadata = fs::metadata(path).map_err(|error| {
+        SpacetimeError::new(format!("{package} is required at {path}: {error}"))
+    })?;
+    if !metadata.is_file() {
+        return Err(SpacetimeError::new(format!("{path} is not a regular file")));
+    }
+    Ok(())
+}
+
 pub fn cmd_space(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("run") {
         return crate::workspace::cmd_run(&args[1..]);
@@ -124,16 +195,19 @@ pub fn cmd_space(args: &[String]) -> Result<()> {
         .write(true)
         .open("/dev/kvm")
         .map_err(|error| SpacetimeError::new(format!("KVM is unavailable: {error}")))?;
+    require_program("/usr/bin/prlimit", "util-linux prlimit")?;
+    require_program("/usr/bin/bwrap", "bubblewrap")?;
+    require_program("/usr/bin/qemu-system-x86_64", "QEMU")?;
     eprintln!(
         "Experimental offline VM: trusted images only. This is not a hardened sandbox.\n\
          No guest NIC, disk, or host file share is configured. Guest RAM and terminal output\n\
          can still leave traces on the host. Exit from the guest to stop QEMU."
     );
-    let status = qemu_command(&kernel, &initramfs)
+    let status = sandbox_command(&kernel, &initramfs)
         .status()
-        .map_err(|error| SpacetimeError::new(format!("could not start QEMU: {error}")))?;
+        .map_err(|error| SpacetimeError::new(format!("could not start the VM sandbox: {error}")))?;
     if !status.success() {
-        return Err(SpacetimeError::new(format!("QEMU exited with {status}")));
+        return Err(SpacetimeError::new(format!("VM sandbox or QEMU exited with {status}; check bubblewrap, user namespaces and KVM permissions")));
     }
     Ok(())
 }
@@ -198,6 +272,31 @@ mod tests {
         for flag in ["-drive", "-blockdev", "-netdev", "-virtfs", "-fsdev"] {
             assert!(!args.iter().any(|arg| arg == flag));
         }
+    }
+
+    #[test]
+    fn monitor_sandbox_is_mandatory_and_offline() {
+        let command = sandbox_command(Path::new("/host/kernel"), Path::new("/host/guest"));
+        assert_eq!(command.get_program(), "/usr/bin/prlimit");
+        let args: Vec<_> = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy())
+            .collect();
+        assert!(args.contains(&"--core=0:0".into()));
+        assert!(args.contains(&"/usr/bin/bwrap".into()));
+        assert!(args.contains(&"--unshare-all".into()));
+        assert!(args.contains(&"--die-with-parent".into()));
+        assert!(args
+            .windows(3)
+            .any(|a| a == ["--dev-bind", "/dev/kvm", "/dev/kvm"]));
+        assert!(args
+            .windows(3)
+            .any(|a| a == ["--ro-bind", "/host/kernel", "/inputs/kernel"]));
+        assert!(args
+            .windows(3)
+            .any(|a| a == ["--ro-bind", "/host/guest", "/inputs/initramfs"]));
+        assert!(args.windows(2).any(|a| a == ["-nic", "none"]));
+        assert!(!args.iter().any(|arg| arg == "/home"));
     }
 
     #[test]

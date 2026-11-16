@@ -157,11 +157,15 @@ real AI, or a secure sandbox. Do not run untrusted software with this prototype.
 
 This is a first step toward the Linux workspace, **not the MVP or a malware sandbox**. It launches
 QEMU as a separate process with KVM, an offline microVM, 512 MiB of guest memory, one virtual CPU,
-and a serial terminal. It configures no guest network card, disk, or host file share. The VM is
-not yet enclosed in a hardened host sandbox; do not use it for untrusted apps or malware.
+and a serial terminal. It configures no guest network card, disk, or host file share. The VM monitor runs in a bubblewrap namespace with a private network and limited host mounts,
+and core dumps are disabled. This is not yet a fully hardened or verified sandbox; do not use it
+for untrusted apps or malware.
 
 Requirements: Linux x86-64, accessible `/dev/kvm`, `qemu-system-x86_64` built with microvm and
-seccomp sandbox support, and a **trusted** compatible Linux kernel and initramfs supplied by you.
+seccomp sandbox support, bubblewrap, util-linux `prlimit`, working unprivileged user namespaces,
+and a **trusted** compatible Linux kernel and initramfs supplied by you. QEMU, bubblewrap and
+prlimit must be installed in `/usr/bin`. Failure to start the sandbox does not fall back to an
+unconfined VM.
 The initramfs must contain a working `/init` and support a serial console; Spacetime does not yet
 supply or build guest images. Start it from a terminal:
 
