@@ -1,7 +1,7 @@
 # Block 3 offline seed: protocol distillation.
 # Independent verifier is declared before the scripted agent starts; no public internet.
 schema_version=1
-verifier_source=mutation
+verifier_source=spec_oracle
 expected_verdict=pass
 expected_digest=sha256:econbench-protocol_distillation-16-proof
 determinism_runs=2
@@ -16,6 +16,7 @@ liveness=running
 surface_kind=terminal
 category=protocol_distillation
 oracle=declared_before_agent
+case_id=protocol_two_records
 network=none
 action produce_evidence evidence=econbench-protocol_distillation-16-proof
 action claim_done expected_digest=sha256:econbench-protocol_distillation-16-proof

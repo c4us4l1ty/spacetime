@@ -116,9 +116,11 @@ jobs:
           grep -q '^status = "pass"$' target/verify.toml
           grep -q '^failed = 0$' target/verify.toml
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify.toml
+          grep -q 'name = "mock_economy_invariants"' target/verify.toml
+          grep -q 'atomic=true overdraft_rejected=true idempotent=true hash_chain=verified' target/verify.toml
           grep -q 'name = "block1_happy"' target/verify.toml
           grep -q 'name = "crucible_flaky_family"' target/verify.toml
-          grep -q '^gates = 28$' target/verify.toml
+          grep -q '^gates = 29$' target/verify.toml
           grep -q 'name = "determinism_controls"' target/verify.toml
           grep -q 'name = "capability_enforcement"' target/verify.toml
           grep -q 'name = "cli_input_validation"' target/verify.toml
@@ -162,7 +164,7 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-ci-host.toml --measurement target/ci-host.measurement > target/verify-ci-host.stdout
           cat target/verify-ci-host.toml
           grep -q '^status = "pass"$' target/verify-ci-host.toml
-          grep -q '^gates = 28$' target/verify-ci-host.toml
+          grep -q '^gates = 29$' target/verify-ci-host.toml
           grep -q '^measurement_intake = "evaluated"$' target/verify-ci-host.toml
           grep -q '^measurement_evaluator = "unmeasured"$' target/verify-ci-host.toml
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify-ci-host.toml
@@ -195,7 +197,7 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/duplicate-host.measurement
           printf 'schema_version=1\ntarget_profile=8gb_reference\nmeasurement_host=public-target-lab\npeak_rss_kb=6000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n' > target/public-profile.measurement
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-public.toml --measurement target/public-profile.measurement > target/verify-public.stdout
-          grep -q '^gates = 28$' target/verify-public.toml
+          grep -q '^gates = 29$' target/verify-public.toml
           grep -q '^target_profile = "8gb_reference"$' target/verify-public.toml
           grep -q '^baseline_target_profile = "4gb_potato"$' target/verify-public.toml
           grep -q '^target_profile_registry = 3$' target/verify-public.toml

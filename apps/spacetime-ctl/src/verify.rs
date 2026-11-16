@@ -12,6 +12,7 @@ use crate::{
     panel_resolution_for_task, run_task, state_path,
 };
 use serde_json::Value;
+use spacetime_bench::economy::{MockEconomy, TransferOutcome};
 use spacetime_bench::{
     baseline_profile, baseline_toml, profile_by_id, resource_gate, resource_gate_intake,
     target_profiles, ProfileRole, ResourceGateIntake, ResourceGateStatus, BASELINE_TARGET_PROFILE,
@@ -151,6 +152,10 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
         check_target_profile_registry(&root)
     }));
     gates.push(capture("econbench_offline", check_econbench_offline));
+    gates.push(capture(
+        "mock_economy_invariants",
+        check_mock_economy_invariants,
+    ));
     gates.push(capture("static_console_report", || {
         check_static_console_report(&root)
     }));
@@ -1201,6 +1206,36 @@ fn json_str<'a>(value: &'a Value, key: &str) -> Result<&'a str> {
         .get(key)
         .and_then(|field| field.as_str())
         .ok_or_else(|| SpacetimeError::new(format!("missing string field {key}")))
+}
+
+fn check_mock_economy_invariants() -> Result<String> {
+    let mut economy =
+        MockEconomy::with_accounts([("alice".to_string(), 100), ("bounty-board".to_string(), 10)])?;
+    ensure(
+        economy.transfer("payout-001", "alice", "bounty-board", 25)? == TransferOutcome::Applied,
+        "first mock-economy payout was not applied",
+    )?;
+    ensure(
+        economy.transfer("payout-001", "alice", "bounty-board", 25)? == TransferOutcome::Duplicate,
+        "replayed mock-economy payout was not idempotent",
+    )?;
+    ensure(
+        economy
+            .transfer("overdraft", "alice", "bounty-board", 76)
+            .is_err(),
+        "mock economy accepted an overdraft",
+    )?;
+    ensure(
+        economy.balance("alice") == Some(75)
+            && economy.balance("bounty-board") == Some(35)
+            && economy.events().len() == 1,
+        "failed or duplicate mock-economy payout changed wallet state",
+    )?;
+    ensure(
+        MockEconomy::verify_events(economy.events())?,
+        "mock-economy transfer hash chain did not verify",
+    )?;
+    Ok("atomic=true overdraft_rejected=true idempotent=true hash_chain=verified".to_string())
 }
 
 fn check_econbench_offline() -> Result<String> {

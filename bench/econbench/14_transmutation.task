@@ -16,6 +16,7 @@ liveness=running
 surface_kind=terminal
 category=transmutation
 oracle=declared_before_agent
+case_id=transform_parity
 network=none
 action produce_evidence evidence=econbench-transmutation-14-proof
 action claim_done expected_digest=sha256:econbench-transmutation-14-proof

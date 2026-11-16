@@ -617,8 +617,33 @@ fn reference_transform(input: u64) -> u64 {
     input.wrapping_mul(3).wrapping_add(7)
 }
 
+// Keep the candidate implementation structurally independent from the reference oracle.
+// Calling reference_transform here made the old differential gate tautological.
 fn candidate_transform(input: u64) -> u64 {
-    reference_transform(input)
+    input.wrapping_add(input.wrapping_shl(1)).wrapping_add(7)
+}
+
+fn differential_input(index: u64) -> u64 {
+    const EDGE_INPUTS: [u64; 8] = [
+        0,
+        1,
+        2,
+        u64::MAX,
+        u64::MAX - 1,
+        u64::MAX - 2,
+        1_u64 << 63,
+        (1_u64 << 63) - 1,
+    ];
+    if let Ok(edge_index) = usize::try_from(index) {
+        if let Some(input) = EDGE_INPUTS.get(edge_index) {
+            return *input;
+        }
+    }
+
+    // Odd-multiplier LCG traverses a deterministic, wraparound-sensitive input stream.
+    index
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1_442_695_040_888_963_407)
 }
 
 fn mutant_transforms() -> [fn(u64) -> u64; 8] {
@@ -628,19 +653,23 @@ fn mutant_transforms() -> [fn(u64) -> u64; 8] {
         |input| input.wrapping_mul(4).wrapping_add(7),
         |input| input.wrapping_mul(2).wrapping_add(7),
         |input| input.wrapping_mul(3).wrapping_sub(7),
-        |input| input.wrapping_mul(3).wrapping_add(7).wrapping_add(1),
+        |input| input.wrapping_mul(3).wrapping_add(9),
         |input| input.wrapping_add(7),
         |input| input.wrapping_mul(3),
     ]
 }
 
 fn differential_matches(limit: u64, transform: fn(u64) -> u64) -> bool {
-    (0..limit).all(|input| reference_transform(input) == transform(input))
+    (0..limit).all(|index| {
+        let input = differential_input(index);
+        reference_transform(input) == transform(input)
+    })
 }
 
 pub fn differential_score(limit: u64) -> (u64, u64) {
     let mut matched = 0_u64;
-    for input in 0..limit {
+    for index in 0..limit {
+        let input = differential_input(index);
         if reference_transform(input) == candidate_transform(input) {
             matched += 1;
         }
@@ -813,6 +842,33 @@ mod tests {
         assert_eq!(sources.len(), 5);
         for (index, source) in sources.iter().enumerate() {
             assert_eq!(source.priority(), (index + 1) as u8);
+        }
+    }
+
+    #[test]
+    fn differential_oracle_covers_wraparound_edges_and_mutations() {
+        let edge_inputs = [
+            0,
+            1,
+            2,
+            u64::MAX,
+            u64::MAX - 1,
+            u64::MAX - 2,
+            1_u64 << 63,
+            (1_u64 << 63) - 1,
+        ];
+        for input in edge_inputs {
+            assert_eq!(
+                reference_transform(input),
+                candidate_transform(input),
+                "independent implementations differ for input {input}"
+            );
+        }
+        for mutant in mutant_transforms() {
+            assert!(
+                !differential_matches(64, mutant),
+                "mutation survived the deterministic edge-and-LCG corpus"
+            );
         }
     }
 

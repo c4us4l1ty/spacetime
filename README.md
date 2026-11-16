@@ -95,16 +95,18 @@ optional and cannot satisfy it. No target measurement file, filled provenance re
 attestation is committed. `resource_gate = "unmeasured_target_4gb"` and
 `performance_claims = "unmeasured"` remain.
 
-The current active branch is `arena/faa483b2-spacetime` (status `active`, based on
-`33149fe9ecac077bd1d37468c96197fefe94bca2` of `main`). It adds an exploratory profiler for the
-existing headless CLI commands only. The profiler does not measure the native workspace, cold
-product startup, tab switching, snapshots, or physical provenance, and cannot mark any resource
-gate as passed. Strict CI evidence for the merged prototype is recorded in
-`docs/VERIFICATION-2026-11-15.md`.
+PR #11 merged the exploratory profiler and target-intake preparation to `main` at
+`a6a722efb1068ef04861035c0e89657c49e37f41`. The active branch `arena/3f609a12-spacetime` (based
+on that commit) is hardening differential verification and adding a process-local mock-economy
+primitive with atomic, idempotent fake-credit transfers. These are verification and library slices;
+they do not implement the full EconBench task pack or measure the native workspace, cold startup,
+tab switching, snapshots, or physical provenance, and cannot mark any resource gate as passed. PR
+#11's strict CI evidence is recorded in the pull request checks.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,
 `docs/ADR-0002-block2.md` for the Block 2 boundary, `docs/ADR-0003-target-profiles.md` for the
 public target-profile decision, `docs/ADR-0004-block3-offline-console.md` for the offline Block 3
-prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the current diagnostic profiler, and
-`docs/TARGET-MEASUREMENT-READINESS.md` for the partially identified 4 GB candidate and target-side
-host-facts collection steps.
+prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profiler,
+`docs/TARGET-MEASUREMENT-READINESS.md` for target-side host-facts collection,
+`docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction, and
+`docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules.
