@@ -127,13 +127,17 @@ impl Drop for TemporaryImage {
     }
 }
 
-pub fn cmd_run(args: &[String]) -> Result<()> {
-    let parsed = parse_args(args)?;
-    if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        return Err(SpacetimeError::new(
-            "the experimental VM requires Linux x86-64",
-        ));
+/// Owns a temporary guest image. Dropping it removes its private tmpfs directory.
+pub struct PreparedGuest(TemporaryImage);
+
+impl PreparedGuest {
+    pub fn path(&self) -> PathBuf {
+        self.0.image_path()
     }
+}
+
+/// Prepare a trusted offline guest for a front end. This does not start or validate a VM.
+pub fn prepare_guest(busybox: &str, app: Option<&str>) -> Result<PreparedGuest> {
     let temporary = TemporaryImage::create()?;
     let image = temporary.image_path();
     let image_text = image
@@ -141,14 +145,29 @@ pub fn cmd_run(args: &[String]) -> Result<()> {
         .ok_or_else(|| SpacetimeError::new("temporary path is not UTF-8"))?;
     let mut image_args = vec![
         "--busybox".to_string(),
-        parsed.busybox,
+        busybox.to_string(),
         "--out".to_string(),
         image_text.to_string(),
     ];
-    if let Some(app) = parsed.app {
-        image_args.extend(["--app".to_string(), app]);
+    if let Some(app) = app {
+        image_args.extend(["--app".to_string(), app.to_string()]);
     }
     crate::initramfs::cmd_initramfs(&image_args)?;
+    Ok(PreparedGuest(temporary))
+}
+
+pub fn cmd_run(args: &[String]) -> Result<()> {
+    let parsed = parse_args(args)?;
+    if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        return Err(SpacetimeError::new(
+            "the experimental VM requires Linux x86-64",
+        ));
+    }
+    let temporary = prepare_guest(&parsed.busybox, parsed.app.as_deref())?;
+    let image = temporary.path();
+    let image_text = image
+        .to_str()
+        .ok_or_else(|| SpacetimeError::new("temporary path is not UTF-8"))?;
     let boot_args = vec![
         "boot".to_string(),
         "--experimental".to_string(),

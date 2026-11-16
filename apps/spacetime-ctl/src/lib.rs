@@ -25,7 +25,7 @@ mod econbench;
 mod initramfs;
 mod space;
 mod verify;
-mod workspace;
+pub mod workspace;
 
 const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
 
