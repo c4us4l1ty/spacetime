@@ -175,10 +175,12 @@ For an early Rust graphical front end on Linux with an X11-compatible desktop an
 newer, run:
 
 ```sh
-cargo run --release --locked -p spacetime-gui
+CARGO_BUILD_JOBS=1 cargo run --locked -p spacetime-gui
 ```
 
-It starts the same experimental offline VM described above, showing a line-oriented console in a
+The first build downloads Rust dependencies and may take time and disk space. Limiting build jobs
+reduces concurrent compiler work but is not a measured 4 GB guarantee. It starts the same
+experimental offline VM described above, showing a line-oriented console in a
 native window. It is not a full terminal emulator: full-screen or interactive terminal programs,
 multiple tabs, graphical guest apps, and AI are not supported. Use only trusted software. The VM
 still requires KVM, bubblewrap, a compatible Linux kernel, and static BusyBox. Stopping the window
