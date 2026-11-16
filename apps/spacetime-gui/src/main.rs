@@ -12,6 +12,7 @@ use std::time::Duration;
 struct Session {
     child: Child,
     output: Receiver<Vec<u8>>,
+    input: SyncSender<Vec<u8>>,
     // The image remains available until the VM exits or is stopped.
     _image: PreparedGuest,
     exited: Option<std::process::ExitStatus>,
@@ -57,6 +58,20 @@ impl Session {
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|error| format!("Could not start workspace: {error}"))?;
+        let (input, input_rx) = mpsc::sync_channel::<Vec<u8>>(16);
+        if let Some(mut stdin) = child.stdin.take() {
+            thread::spawn(move || {
+                while let Ok(bytes) = input_rx.recv() {
+                    if stdin
+                        .write_all(&bytes)
+                        .and_then(|()| stdin.flush())
+                        .is_err()
+                    {
+                        break;
+                    }
+                }
+            });
+        }
         let (sender, output) = mpsc::sync_channel(64);
         // Both streams are piped by construction. Reader threads never touch the UI or execute
         // terminal escape sequences; bytes are parsed into text by vt100 in the UI thread.
@@ -69,17 +84,22 @@ impl Session {
         Ok(Self {
             child,
             output,
+            input,
             _image: image,
             exited: None,
         })
     }
 
     fn send_bytes(&mut self, bytes: &[u8]) -> Result<(), String> {
-        let stdin = self.child.stdin.as_mut().ok_or("Guest input is closed")?;
-        stdin
-            .write_all(bytes)
-            .and_then(|()| stdin.flush())
-            .map_err(|error| error.to_string())
+        if bytes.len() > 4096 {
+            return Err("Input is limited to 4096 bytes at a time".into());
+        }
+        self.input
+            .try_send(bytes.to_vec())
+            .map_err(|error| match error {
+                mpsc::TrySendError::Full(_) => "Guest input queue is full".to_string(),
+                mpsc::TrySendError::Disconnected(_) => "Guest input is closed".to_string(),
+            })
     }
 
     fn send_line(&mut self, text: &str) -> Result<(), String> {
