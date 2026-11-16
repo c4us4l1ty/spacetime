@@ -40,6 +40,8 @@ jobs:
 
       - name: Native window startup smoke
         run: |
+          target/release/spacetime-gui --worker help | grep -q 'space boot'
+          ! target/release/spacetime-gui --worker space boot --experimental
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb xauth libgl1 libgl1-mesa-dri libxkbcommon-x11-0
           set +e
