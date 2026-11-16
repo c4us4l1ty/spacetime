@@ -473,9 +473,10 @@ mod tests {
         );
 
         let first = run_guest(&kernel, &initramfs,
-            b"app\nif [ -z \"$(ls /sys/class/net | grep -v '^lo$')\" ]; then echo SPACETIME_OFFLINE_OK; fi\ntouch /tmp/spacetime-canary; test -f /tmp/spacetime-canary && echo SPACETIME_WRITE_OK\nexit\n");
+            b"app\ncat /workspace/input\nif [ -z \"$(ls /sys/class/net | grep -v '^lo$')\" ]; then echo SPACETIME_OFFLINE_OK; fi\ntouch /tmp/spacetime-canary; test -f /tmp/spacetime-canary && echo SPACETIME_WRITE_OK\nexit\n");
         for marker in [
             "SPACETIME_APP_OK",
+            "SPACETIME_INPUT_OK",
             "SPACETIME_OFFLINE_OK",
             "SPACETIME_WRITE_OK",
         ] {

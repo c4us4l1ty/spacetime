@@ -169,6 +169,22 @@ prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profil
 `docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction, and
 `docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules.
 
+### Copy a file into a disposable guest
+
+You can optionally select one file when starting a workspace in the window or terminal interface.
+A **copy** (up to 32 MiB) appears in the guest as `/workspace/input`; the host file is not mounted
+or changed. The guest can read and edit its copy, but changes are lost when it stops: exporting
+files back to the host is not implemented. Only choose files you are comfortable giving to the
+guest. The copied content is included in the temporary guest image and can leave traces in swap or
+after an abnormal shutdown. The image plus BusyBox and optional app must fit in `/dev/shm`.
+
+From the command line:
+
+```sh
+cargo run --locked -p spacetime-ctl -- space run --experimental \
+  --kernel /path/to/kernel --busybox /bin/busybox --input /path/to/input-file
+```
+
 ## Experimental native window
 
 For an early Rust graphical front end on Linux with an X11-compatible desktop and Rust 1.88 or

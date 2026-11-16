@@ -25,20 +25,23 @@ struct ImageArgs {
     busybox: PathBuf,
     output: PathBuf,
     app: Option<PathBuf>,
+    input: Option<PathBuf>,
 }
 
 fn parse_args(args: &[String]) -> Result<ImageArgs> {
     let usage =
-        "usage: space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>";
+        "usage: space initramfs --busybox <static-binary> [--app <static-binary>] [--input <file>] --out <new-file>";
     let mut busybox = None;
     let mut out = None;
     let mut app = None;
+    let mut input = None;
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
         let slot = match arg.as_str() {
             "--busybox" => &mut busybox,
             "--out" => &mut out,
             "--app" => &mut app,
+            "--input" => &mut input,
             _ => {
                 return Err(SpacetimeError::new(format!(
                     "unexpected argument: {arg}\n{usage}"
@@ -58,6 +61,7 @@ fn parse_args(args: &[String]) -> Result<ImageArgs> {
             .ok_or_else(|| SpacetimeError::new(format!("missing --busybox\n{usage}")))?,
         output: out.ok_or_else(|| SpacetimeError::new(format!("missing --out\n{usage}")))?,
         app,
+        input,
     })
 }
 
@@ -131,13 +135,13 @@ fn entry(archive: &mut Vec<u8>, name: &str, mode: u32, contents: &[u8], rdev: (u
     }
 }
 
-fn build_archive(busybox: &[u8], app: Option<&[u8]>) -> Result<Vec<u8>> {
+fn build_archive(busybox: &[u8], app: Option<&[u8]>, input: Option<&[u8]>) -> Result<Vec<u8>> {
     validate_elf(busybox, "BusyBox")?;
     if let Some(app) = app {
         validate_elf(app, "app")?;
     }
     let mut archive = Vec::new();
-    for dir in ["bin", "dev", "proc", "sys", "tmp"] {
+    for dir in ["bin", "dev", "proc", "sys", "tmp", "workspace"] {
         entry(&mut archive, dir, 0o040755, &[], (0, 0));
     }
     entry(&mut archive, "dev/console", 0o020600, &[], (5, 1));
@@ -145,6 +149,9 @@ fn build_archive(busybox: &[u8], app: Option<&[u8]>) -> Result<Vec<u8>> {
     entry(&mut archive, "bin/busybox", 0o100755, busybox, (0, 0));
     if let Some(app) = app {
         entry(&mut archive, "bin/app", 0o100755, app, (0, 0));
+    }
+    if let Some(input) = input {
+        entry(&mut archive, "workspace/input", 0o100644, input, (0, 0));
     }
     for applet in APPLETS {
         entry(
@@ -184,7 +191,12 @@ pub fn cmd_initramfs(args: &[String]) -> Result<()> {
         .as_deref()
         .map(|path| read_binary(path, "app"))
         .transpose()?;
-    let archive = build_archive(&busybox, app.as_deref())?;
+    let input = parsed
+        .input
+        .as_deref()
+        .map(|path| read_binary(path, "input"))
+        .transpose()?;
+    let archive = build_archive(&busybox, app.as_deref(), input.as_deref())?;
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -230,8 +242,8 @@ mod tests {
 
     #[test]
     fn archive_contains_boot_files_and_is_deterministic() {
-        let archive = build_archive(&elf(), None).unwrap();
-        assert_eq!(archive, build_archive(&elf(), None).unwrap());
+        let archive = build_archive(&elf(), None, None).unwrap();
+        assert_eq!(archive, build_archive(&elf(), None, None).unwrap());
         assert_eq!(&archive[..6], b"070701");
         for expected in [
             "bin/busybox\0",
@@ -249,7 +261,7 @@ mod tests {
     #[test]
     fn archive_headers_describe_bootable_entries() {
         use std::collections::BTreeMap;
-        let archive = build_archive(&elf(), None).unwrap();
+        let archive = build_archive(&elf(), None, None).unwrap();
         let mut entries = BTreeMap::new();
         let mut pos = 0;
         loop {
@@ -283,6 +295,34 @@ mod tests {
     }
 
     #[test]
+    fn includes_only_the_explicit_input_in_workspace() {
+        let archive = build_archive(&elf(), None, Some(b"example input")).unwrap();
+        assert!(archive
+            .windows(b"workspace/input\0".len())
+            .any(|item| item == b"workspace/input\0"));
+        assert!(archive
+            .windows(b"example input".len())
+            .any(|item| item == b"example input"));
+        let args = ["--busybox", "b", "--input", "data", "--out", "o"].map(str::to_string);
+        assert_eq!(
+            parse_args(&args).unwrap().input,
+            Some(PathBuf::from("data"))
+        );
+        let duplicate = [
+            "--busybox",
+            "b",
+            "--input",
+            "a",
+            "--input",
+            "b",
+            "--out",
+            "o",
+        ]
+        .map(str::to_string);
+        assert!(parse_args(&duplicate).is_err());
+    }
+
+    #[test]
     fn refuses_to_overwrite_output() {
         let dir =
             std::env::temp_dir().join(format!("spacetime-initramfs-test-{}", std::process::id()));
@@ -304,13 +344,13 @@ mod tests {
 
     #[test]
     fn optional_app_is_included_and_dynamic_apps_are_rejected() {
-        let archive = build_archive(&elf(), Some(&elf())).unwrap();
+        let archive = build_archive(&elf(), Some(&elf()), None).unwrap();
         assert!(archive
             .windows(b"bin/app\0".len())
             .any(|w| w == b"bin/app\0"));
         let mut dynamic = elf();
         dynamic[64] = 3;
-        assert!(build_archive(&elf(), Some(&dynamic)).is_err());
+        assert!(build_archive(&elf(), Some(&dynamic), None).is_err());
         let args = ["--busybox", "b", "--app", "a", "--out", "o"].map(str::to_string);
         assert_eq!(parse_args(&args).unwrap().app, Some(PathBuf::from("a")));
     }

@@ -354,8 +354,9 @@ jobs:
         run: |
           cargo build --release --locked -p spacetime-ctl
           printf 'fn main() { println!("SPACETIME_APP_OK"); }\n' > target/guest-app.rs
+          printf 'SPACETIME_INPUT_OK\n' > target/guest-input.txt
           rustc -C target-feature=+crt-static target/guest-app.rs -o target/guest-app
-          target/release/spacetime-ctl space initramfs --busybox /bin/busybox --app target/guest-app --out target/guest.cpio
+          target/release/spacetime-ctl space initramfs --busybox /bin/busybox --app target/guest-app --input target/guest-input.txt --out target/guest.cpio
           ! target/release/spacetime-ctl space initramfs --busybox /bin/busybox --out target/guest.cpio
       - name: Boot and exercise the guest shell using TCG
         run: |
@@ -365,10 +366,11 @@ jobs:
           sudo chmod a+r "$kernel"
           # CI has no KVM. This tests the guest and QEMU device setup using software emulation,
           # not the KVM launch path, security boundary, or target-machine performance.
-          { sleep 25; printf 'app\ntouch /tmp/check; test -f /tmp/check && echo SPACETIME_$(echo SHELL_OK)\nif [ -z "$(ls /sys/class/net | grep -v "^lo$")" ]; then echo SPACETIME_$(echo OFFLINE_OK); fi\nexit\n'; } |
+          { sleep 25; printf 'app\ncat /workspace/input\ntouch /tmp/check; test -f /tmp/check && echo SPACETIME_$(echo SHELL_OK)\nif [ -z "$(ls /sys/class/net | grep -v "^lo$")" ]; then echo SPACETIME_$(echo OFFLINE_OK); fi\nexit\n'; } |
             timeout 100 qemu-system-x86_64 -no-user-config -nodefaults -machine microvm,accel=tcg -cpu max -m 512 -smp 1 -display none -monitor none -serial stdio -nic none -no-reboot -sandbox on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny -kernel "$kernel" -initrd target/guest.cpio -append 'console=ttyS0 panic=-1' > target/guest-boot.log 2>&1
           cat target/guest-boot.log
           tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_APP_OK'
+          tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_INPUT_OK'
           tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_SHELL_OK'
           tr -d '\r' < target/guest-boot.log | grep -x 'SPACETIME_OFFLINE_OK'
 

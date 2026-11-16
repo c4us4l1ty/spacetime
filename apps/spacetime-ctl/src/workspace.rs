@@ -11,19 +11,21 @@ use std::os::unix::fs::DirBuilderExt;
 
 static NEXT_DIR: AtomicUsize = AtomicUsize::new(0);
 const USAGE: &str =
-    "usage: space run --experimental --kernel <file> --busybox <file> [--app <file>]";
+    "usage: space run --experimental --kernel <file> --busybox <file> [--app <file>] [--input <file>]";
 
 #[derive(Debug, PartialEq, Eq)]
 struct RunArgs {
     kernel: String,
     busybox: String,
     app: Option<String>,
+    input: Option<String>,
 }
 
 fn parse_args(args: &[String]) -> Result<RunArgs> {
     let mut kernel = None;
     let mut busybox = None;
     let mut app = None;
+    let mut input = None;
     let mut experimental = false;
     let mut iter = args.iter();
     while let Some(arg) = iter.next() {
@@ -35,6 +37,7 @@ fn parse_args(args: &[String]) -> Result<RunArgs> {
             "--kernel" => &mut kernel,
             "--busybox" => &mut busybox,
             "--app" => &mut app,
+            "--input" => &mut input,
             _ => {
                 return Err(SpacetimeError::new(format!(
                     "unexpected argument: {arg}\n{USAGE}"
@@ -59,6 +62,7 @@ fn parse_args(args: &[String]) -> Result<RunArgs> {
         busybox: busybox
             .ok_or_else(|| SpacetimeError::new(format!("missing --busybox\n{USAGE}")))?,
         app,
+        input,
     })
 }
 
@@ -137,7 +141,11 @@ impl PreparedGuest {
 }
 
 /// Prepare a trusted offline guest for a front end. This does not start or validate a VM.
-pub fn prepare_guest(busybox: &str, app: Option<&str>) -> Result<PreparedGuest> {
+pub fn prepare_guest(
+    busybox: &str,
+    app: Option<&str>,
+    input: Option<&str>,
+) -> Result<PreparedGuest> {
     let temporary = TemporaryImage::create()?;
     let image = temporary.image_path();
     let image_text = image
@@ -152,6 +160,9 @@ pub fn prepare_guest(busybox: &str, app: Option<&str>) -> Result<PreparedGuest> 
     if let Some(app) = app {
         image_args.extend(["--app".to_string(), app.to_string()]);
     }
+    if let Some(input) = input {
+        image_args.extend(["--input".to_string(), input.to_string()]);
+    }
     crate::initramfs::cmd_initramfs(&image_args)?;
     Ok(PreparedGuest(temporary))
 }
@@ -163,7 +174,11 @@ pub fn cmd_run(args: &[String]) -> Result<()> {
             "the experimental VM requires Linux x86-64",
         ));
     }
-    let temporary = prepare_guest(&parsed.busybox, parsed.app.as_deref())?;
+    let temporary = prepare_guest(
+        &parsed.busybox,
+        parsed.app.as_deref(),
+        parsed.input.as_deref(),
+    )?;
     let image = temporary.path();
     let image_text = image
         .to_str()
@@ -257,6 +272,11 @@ pub fn cmd_ui(args: &[String]) -> Result<()> {
                 let Some(app) = prompt("Static terminal app path (blank for shell): ")? else {
                     return Ok(());
                 };
+                let Some(input) =
+                    prompt("Optional input file copied to /workspace/input (blank for none): ")?
+                else {
+                    return Ok(());
+                };
                 let mut arguments = vec![
                     "--experimental".to_string(),
                     "--kernel".to_string(),
@@ -266,6 +286,9 @@ pub fn cmd_ui(args: &[String]) -> Result<()> {
                 ];
                 if !app.is_empty() {
                     arguments.extend(["--app".to_string(), app]);
+                }
+                if !input.is_empty() {
+                    arguments.extend(["--input".to_string(), input]);
                 }
                 if let Err(error) = cmd_run(&arguments) {
                     eprintln!("Could not run workspace: {error}");

@@ -47,12 +47,16 @@ fn queue_input(sender: &SyncSender<Vec<u8>>, bytes: &[u8]) -> Result<(), String>
 }
 
 impl Session {
-    fn start(kernel: &str, busybox: &str, app: &str) -> Result<Self, String> {
+    fn start(kernel: &str, busybox: &str, app: &str, input: &str) -> Result<Self, String> {
         if kernel.is_empty() || busybox.is_empty() {
             return Err("Choose a Linux kernel and static BusyBox first.".into());
         }
-        let image = prepare_guest(busybox, (!app.is_empty()).then_some(app))
-            .map_err(|error| error.to_string())?;
+        let image = prepare_guest(
+            busybox,
+            (!app.is_empty()).then_some(app),
+            (!input.is_empty()).then_some(input),
+        )
+        .map_err(|error| error.to_string())?;
         let image_path = image.path();
         let child = Command::new(std::env::current_exe().map_err(|e| e.to_string())?)
             .arg("--worker")
@@ -132,6 +136,7 @@ struct WorkspaceApp {
     kernel: String,
     busybox: String,
     app: String,
+    import_file: String,
     input: String,
     status: String,
     terminal: vt100::Parser,
@@ -144,6 +149,7 @@ impl Default for WorkspaceApp {
             kernel: default_kernel().unwrap_or_default(),
             busybox: default_busybox().unwrap_or_default(),
             app: String::new(),
+            import_file: String::new(),
             input: String::new(),
             status: "Not running".into(),
             terminal: vt100::Parser::new(30, 100, 0),
@@ -209,6 +215,9 @@ impl eframe::App for WorkspaceApp {
                     ui.label("Static terminal app (optional)");
                     ui.text_edit_singleline(&mut self.app);
                     ui.end_row();
+                    ui.label("File to copy into guest (optional)");
+                    ui.text_edit_singleline(&mut self.import_file);
+                    ui.end_row();
                 });
             });
             ui.horizontal(|ui| {
@@ -217,7 +226,7 @@ impl eframe::App for WorkspaceApp {
                     .clicked()
                 {
                     self.terminal = vt100::Parser::new(30, 100, 0);
-                    match Session::start(self.kernel.trim(), self.busybox.trim(), self.app.trim()) {
+                    match Session::start(self.kernel.trim(), self.busybox.trim(), self.app.trim(), self.import_file.trim()) {
                         Ok(session) => {
                             self.status = "Starting offline workspace…".into();
                             self.session = Some(session);
@@ -279,7 +288,7 @@ impl eframe::App for WorkspaceApp {
                     }
                 }
             });
-            ui.small("Use 'app' to run the supplied program, or 'exit' to shut down the guest.");
+            ui.small("Use 'app' to run the program. A copied file is at /workspace/input; changes are not saved. Type 'exit' to shut down.");
         });
     }
 }
@@ -306,8 +315,8 @@ mod tests {
 
     #[test]
     fn requires_guest_inputs_before_starting() {
-        assert!(Session::start("", "busybox", "").is_err());
-        assert!(Session::start("kernel", "", "").is_err());
+        assert!(Session::start("", "busybox", "", "").is_err());
+        assert!(Session::start("kernel", "", "", "").is_err());
     }
 
     #[test]
@@ -346,7 +355,7 @@ mod tests {
         elf[56..58].copy_from_slice(&1u16.to_le_bytes());
         elf[64..68].copy_from_slice(&1u32.to_le_bytes());
         std::fs::write(&source, elf).unwrap();
-        let image = prepare_guest(source.to_str().unwrap(), None).unwrap();
+        let image = prepare_guest(source.to_str().unwrap(), None, None).unwrap();
         let image_path = image.path();
         let child = Command::new("/bin/sh")
             .args(["-c", "IFS= read -r text; printf 'REPLY:%s\\n' \"$text\""])

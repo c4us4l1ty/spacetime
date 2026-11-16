@@ -47,9 +47,9 @@ Commands:
   dashboard [ledger-file]
   workspace
   space doctor
-  space run --experimental --kernel <file> --busybox <file> [--app <file>]
+  space run --experimental --kernel <file> --busybox <file> [--app <file>] [--input <file>]
   space boot --experimental --kernel <file> --initramfs <file>
-  space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>
+  space initramfs --busybox <static-binary> [--app <static-binary>] [--input <file>] --out <new-file>
   machine
   machine profiles
   machine gate [--measurement <file>]
