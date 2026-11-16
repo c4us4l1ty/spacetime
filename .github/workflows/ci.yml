@@ -41,7 +41,7 @@ jobs:
       - name: Native window startup smoke
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb xauth libgl1-mesa-dri
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends xvfb xauth libgl1 libgl1-mesa-dri libxkbcommon-x11-0
           set +e
           timeout 10 xvfb-run -a target/release/spacetime-gui > target/native-window.log 2>&1
           status=$?

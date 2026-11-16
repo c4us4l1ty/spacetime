@@ -56,7 +56,7 @@ On an x86-64 Linux computer, install Rust 1.75 or newer, QEMU, bubblewrap, and u
 Debian or Ubuntu, the system packages can be installed with:
 
 ```sh
-sudo apt install qemu-system-x86 bubblewrap busybox-static util-linux
+sudo apt install qemu-system-x86 bubblewrap busybox-static util-linux libgl1 libxkbcommon-x11-0
 cargo run --locked -p spacetime-ctl -- space doctor
 cargo run --locked -p spacetime-ctl -- workspace
 ```
