@@ -4,7 +4,7 @@
 use spacetime_types::{Result, SpacetimeError};
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 const MAX_BUSYBOX: u64 = 32 * 1024 * 1024;
 const INIT: &str = "#!/bin/sh\n\
@@ -246,6 +246,26 @@ mod tests {
         assert_eq!(entries["dev/console"].1, (5, 1));
         assert_eq!(entries["bin/busybox"].2, elf());
         assert_eq!(entries["init"].2, INIT.as_bytes());
+    }
+
+    #[test]
+    fn refuses_to_overwrite_output() {
+        let dir =
+            std::env::temp_dir().join(format!("spacetime-initramfs-test-{}", std::process::id()));
+        fs::create_dir(&dir).unwrap();
+        let input = dir.join("input");
+        let output = dir.join("output");
+        fs::write(&input, elf()).unwrap();
+        fs::write(&output, b"keep me").unwrap();
+        let args = vec![
+            "--busybox".to_string(),
+            input.to_string_lossy().into_owned(),
+            "--out".to_string(),
+            output.to_string_lossy().into_owned(),
+        ];
+        assert!(cmd_initramfs(&args).is_err());
+        assert_eq!(fs::read(&output).unwrap(), b"keep me");
+        fs::remove_dir_all(dir).unwrap();
     }
 
     #[test]
