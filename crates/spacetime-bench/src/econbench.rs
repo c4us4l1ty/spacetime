@@ -210,18 +210,24 @@ fn reference_byte_swap(value: u64) -> u64 {
     swapped
 }
 
-fn reference_rotate_left(mut value: u64, amount: u64) -> u64 {
-    for _ in 0..(amount % u64::from(u64::BITS)) {
-        value = (value << 1) | (value >> (u64::BITS - 1));
+fn reference_rotate_left(value: u64, amount: u64) -> u64 {
+    let shift = u32::try_from(amount % u64::from(u64::BITS)).unwrap_or(0);
+    let mut rotated = 0_u64;
+    for destination in 0..u64::BITS {
+        let source = (destination + u64::BITS - shift) % u64::BITS;
+        rotated |= ((value >> source) & 1) << destination;
     }
-    value
+    rotated
 }
 
-fn reference_rotate_right(mut value: u64, amount: u64) -> u64 {
-    for _ in 0..(amount % u64::from(u64::BITS)) {
-        value = (value >> 1) | (value << (u64::BITS - 1));
+fn reference_rotate_right(value: u64, amount: u64) -> u64 {
+    let shift = u32::try_from(amount % u64::from(u64::BITS)).unwrap_or(0);
+    let mut rotated = 0_u64;
+    for destination in 0..u64::BITS {
+        let source = (destination + shift) % u64::BITS;
+        rotated |= ((value >> source) & 1) << destination;
     }
-    value
+    rotated
 }
 
 fn reference_saturating_add(left: u64, right: u64) -> u64 {
