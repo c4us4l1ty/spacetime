@@ -124,3 +124,25 @@ recent activity. To inspect another ledger, provide its path after `dashboard`; 
 file alongside it. This is a view of recorded fixture activity, **not** a graphical application,
 real AI, or a secure sandbox. Do not run untrusted software with this prototype. The intended
 4 GB resource budget has not yet been measured.
+
+## Experimental offline VM boot spike
+
+This is a first step toward the Linux workspace, **not the MVP or a malware sandbox**. It launches
+QEMU as a separate process with KVM, an offline microVM, 512 MiB of guest memory, one virtual CPU,
+and a serial terminal. It configures no guest network card, disk, or host file share. The VM is
+not yet enclosed in a hardened host sandbox; do not use it for untrusted apps or malware.
+
+Requirements: Linux x86-64, accessible `/dev/kvm`, `qemu-system-x86_64` built with microvm and
+seccomp sandbox support, and a **trusted** compatible Linux kernel and initramfs supplied by you.
+The initramfs must contain a working `/init` and support a serial console; Spacetime does not yet
+supply or build guest images. Start it from a terminal:
+
+```sh
+cargo run --locked -p spacetime-ctl -- space boot --experimental \
+  --kernel /path/to/kernel --initramfs /path/to/initramfs
+```
+
+Exit or shut down from the guest to stop QEMU. There is no persistent guest disk, but guest RAM,
+terminal output and crash data can still leave host traces (for example in swap or logs). No
+performance, security, cleanup, or 4 GB compatibility claim has been verified. This spike is not
+the final VMM choice; isolation, resource limits, recovery and hostile-guest tests remain to be done.
