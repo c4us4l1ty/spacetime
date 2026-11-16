@@ -620,9 +620,7 @@ fn reference_transform(input: u64) -> u64 {
 // Keep the candidate implementation structurally independent from the reference oracle.
 // Calling reference_transform here made the old differential gate tautological.
 fn candidate_transform(input: u64) -> u64 {
-    input
-        .wrapping_add(input.wrapping_shl(1))
-        .wrapping_add(7)
+    input.wrapping_add(input.wrapping_shl(1)).wrapping_add(7)
 }
 
 fn differential_input(index: u64) -> u64 {
