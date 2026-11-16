@@ -170,6 +170,45 @@ fn prompt(label: &str) -> Result<Option<String>> {
     Ok(Some(line.trim().to_string()))
 }
 
+fn default_kernel() -> Option<String> {
+    let release = fs::read_to_string("/proc/sys/kernel/osrelease").ok()?;
+    let release = release.trim();
+    if release.is_empty()
+        || !release
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b"._+-".contains(&byte))
+    {
+        return None;
+    }
+    let path = PathBuf::from("/boot").join(format!("vmlinuz-{release}"));
+    if path.is_file() && fs::File::open(&path).is_ok() {
+        Some(path.to_string_lossy().into_owned())
+    } else {
+        None
+    }
+}
+
+fn default_busybox() -> Option<String> {
+    ["/bin/busybox", "/usr/bin/busybox"]
+        .iter()
+        .find(|path| std::path::Path::new(path).is_file() && fs::File::open(path).is_ok())
+        .map(|path| (*path).to_string())
+}
+
+fn prompt_path(label: &str, default: Option<String>) -> Result<Option<String>> {
+    let message = match &default {
+        Some(value) => format!("{label} [{value}]: "),
+        None => format!("{label}: "),
+    };
+    Ok(prompt(&message)?.map(|value| {
+        if value.is_empty() {
+            default.unwrap_or_default()
+        } else {
+            value
+        }
+    }))
+}
+
 pub fn cmd_ui(args: &[String]) -> Result<()> {
     if !args.is_empty() {
         return Err(SpacetimeError::new("usage: workspace"));
@@ -188,10 +227,10 @@ pub fn cmd_ui(args: &[String]) -> Result<()> {
         match choice.as_str() {
             "2" | "q" | "quit" => return Ok(()),
             "1" => {
-                let Some(kernel) = prompt("Linux kernel path: ")? else {
+                let Some(kernel) = prompt_path("Linux kernel path", default_kernel())? else {
                     return Ok(());
                 };
-                let Some(busybox) = prompt("Static BusyBox path: ")? else {
+                let Some(busybox) = prompt_path("Static BusyBox path", default_busybox())? else {
                     return Ok(());
                 };
                 let Some(app) = prompt("Static terminal app path (blank for shell): ")? else {

@@ -62,7 +62,8 @@ cargo run --locked -p spacetime-ctl -- workspace
 ```
 
 The workspace asks for a readable, compatible Linux kernel, a static BusyBox binary (typically
-`/bin/busybox` on Debian/Ubuntu), and optionally a trusted static terminal program. In the guest,
+`/bin/busybox` on Debian/Ubuntu), and optionally a trusted static terminal program. When it finds
+the current kernel or BusyBox, press Enter to accept the suggested path. In the guest,
 type `app` to start the supplied program and `exit` to shut down the guest. Do **not** run
 Spacetime with `sudo`: your normal user needs access to `/dev/kvm`. Some systems restrict
 unprivileged user namespaces or access to `/boot`; `space doctor` checks the basic host
