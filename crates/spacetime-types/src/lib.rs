@@ -83,6 +83,16 @@ pub fn from_json_str<T: serde::de::DeserializeOwned>(text: &str) -> Result<T> {
     Ok(serde_json::from_str(text)?)
 }
 
+pub fn load_json_file_or_default<T: serde::de::DeserializeOwned + Default>(
+    path: &std::path::Path,
+) -> Result<T> {
+    if !path.is_file() {
+        return Ok(T::default());
+    }
+    let text = std::fs::read_to_string(path)?;
+    from_json_str(&text)
+}
+
 macro_rules! string_id {
     ($name:ident) => {
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]

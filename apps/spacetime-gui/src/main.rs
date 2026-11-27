@@ -603,10 +603,10 @@ impl eframe::App for WorkspaceApp {
                 });
                 ui.separator();
                 if let Some(texture) = &self.snapshot_texture {
-                    ui.image(egui::load::SizedTexture::new(
-                        texture.id(),
-                        texture.size_vec2(),
-                    ));
+                    ui.image(egui::load::SizedTexture {
+                        id: texture.id(),
+                        size: texture.size_vec2(),
+                    });
                 } else {
                     ui.label("No RAM snapshot captured yet.");
                 }

@@ -440,7 +440,9 @@ pub fn evaluate_provenance_gate(
             measurement_digest: intake.digest,
             provenance_digest: "none".to_string(),
             target_profile: intake.target_profile,
-            reasons: vec!["no provenance bundle supplied; resource_gate stays unmeasured".to_string()],
+            reasons: vec![
+                "no provenance bundle supplied; resource_gate stays unmeasured".to_string(),
+            ],
         };
     };
 
@@ -998,20 +1000,41 @@ mod tests {
         assert_eq!(unmeasured.status, ProvenanceGateStatus::Unmeasured);
 
         // Wrong measurement sha rejects.
-        let bad_prov_path = temp_measurement(
-            "prov-bad",
-            &format!("schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\nmeasurement_sha256={}\nhost_facts_sha256={facts_sha}\nhardware_model=Acer-Aspire-ES1\ninstalled_ram_mb=4096\ncapture_utc=2026-11-27T10:00:00Z\noperator=alice\nreviewer=bob\nworkload_protocol=mixed-workspace-v1\n", "f".repeat(64)),
-        )?;
+        let bad_sha = "f".repeat(64);
+        let bad_prov_text = format!(
+            "schema_version=1\n\
+             target_profile=4gb_potato\n\
+             measurement_host=potato-target-lab\n\
+             measurement_sha256={bad_sha}\n\
+             host_facts_sha256={facts_sha}\n\
+             hardware_model=Acer-Aspire-ES1\n\
+             installed_ram_mb=4096\n\
+             capture_utc=2026-11-27T10:00:00Z\n\
+             operator=alice\n\
+             reviewer=bob\n\
+             workload_protocol=mixed-workspace-v1\n"
+        );
+        let bad_prov_path = temp_measurement("prov-bad", &bad_prov_text)?;
         let rejected =
             evaluate_provenance_gate(Some(meas_path.as_path()), Some(bad_prov_path.as_path()));
         let _ = fs::remove_file(&bad_prov_path);
         assert_eq!(rejected.status, ProvenanceGateStatus::Rejected);
 
         // Matching provenance verifies.
-        let ok_prov_path = temp_measurement(
-            "prov-ok",
-            &format!("schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\nmeasurement_sha256={meas_sha}\nhost_facts_sha256={facts_sha}\nhardware_model=Acer-Aspire-ES1\ninstalled_ram_mb=4096\ncapture_utc=2026-11-27T10:00:00Z\noperator=alice\nreviewer=bob\nworkload_protocol=mixed-workspace-v1\n"),
-        )?;
+        let ok_prov_text = format!(
+            "schema_version=1\n\
+             target_profile=4gb_potato\n\
+             measurement_host=potato-target-lab\n\
+             measurement_sha256={meas_sha}\n\
+             host_facts_sha256={facts_sha}\n\
+             hardware_model=Acer-Aspire-ES1\n\
+             installed_ram_mb=4096\n\
+             capture_utc=2026-11-27T10:00:00Z\n\
+             operator=alice\n\
+             reviewer=bob\n\
+             workload_protocol=mixed-workspace-v1\n"
+        );
+        let ok_prov_path = temp_measurement("prov-ok", &ok_prov_text)?;
         let verified =
             evaluate_provenance_gate(Some(meas_path.as_path()), Some(ok_prov_path.as_path()));
         let _ = fs::remove_file(&ok_prov_path);

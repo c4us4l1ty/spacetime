@@ -9,9 +9,7 @@
 //! - `WebChatTab`: isolated browser tab adapter whose outputs always carry `Taint::UntrustedWeb`.
 
 use spacetime_types::surface::SemanticView;
-use spacetime_types::{
-    canonical_json_string, sha256_hex, Action, Result, SpacetimeError, Taint,
-};
+use spacetime_types::{canonical_json_string, sha256_hex, Action, Result, SpacetimeError, Taint};
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -232,10 +232,12 @@ fn is_forbidden_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_forbidden_ipv6(ip: Ipv6Addr) -> bool {
-    if let Some(mapped) = ip.to_ipv4_mapped() {
+    let segments = ip.segments();
+    // IPv4-mapped (::ffff:a.b.c.d) or IPv4-compatible (::a.b.c.d) addresses
+    if segments[..5] == [0, 0, 0, 0, 0] && (segments[5] == 0xffff || segments[5] == 0) {
+        let mapped = Ipv4Addr::from((u32::from(segments[6]) << 16) | u32::from(segments[7]));
         return is_forbidden_ipv4(mapped);
     }
-    let segments = ip.segments();
     ip.is_loopback()
         || ip.is_unspecified()
         || ip.is_multicast()

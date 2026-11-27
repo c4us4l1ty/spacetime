@@ -1116,7 +1116,10 @@ fn check_measurement_intake(root: &TempRoot) -> Result<String> {
             && !shape_report.contains("resource_gate = \"measured"),
         "shape pass was promoted to a measured resource gate",
     )?;
-    Ok("bounded=none/unreadable/malformed/duplicate/ci/synthetic/incomplete/wrong-profile/oversize shape_pass_only".to_string())
+    Ok(
+        "bounded=none/unreadable/malformed/duplicate/ci/synthetic/incomplete/wrong-profile/oversize shape_pass_only"
+            .to_string(),
+    )
 }
 
 fn check_resource_gate(root: &TempRoot) -> Result<String> {
@@ -1448,7 +1451,8 @@ fn check_econbench_planted_bugs_and_bounties() -> Result<String> {
         )?;
     }
 
-    let bounties: Value = serde_json::from_str(include_str!("../../../bench/economy/bounties.json"))?;
+    let bounties: Value =
+        serde_json::from_str(include_str!("../../../bench/economy/bounties.json"))?;
     let list = bounties
         .get("bounties")
         .and_then(|v| v.as_array())
@@ -1480,10 +1484,20 @@ fn check_provenance_gate_contract(root: &TempRoot) -> Result<String> {
     )?;
 
     let bad_prov = root.join("prov-bad.kv");
-    fs::write(
-        &bad_prov,
-        format!("schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=github_actions\nmeasurement_sha256={meas_sha}\nhost_facts_sha256={facts_sha}\nhardware_model=CI\ninstalled_ram_mb=4096\ncapture_utc=2026-11-27T10:00:00Z\noperator=alice\nreviewer=bob\nworkload_protocol=v1\n"),
-    )?;
+    let bad_prov_text = format!(
+        "schema_version=1\n\
+         target_profile=4gb_potato\n\
+         measurement_host=github_actions\n\
+         measurement_sha256={meas_sha}\n\
+         host_facts_sha256={facts_sha}\n\
+         hardware_model=CI\n\
+         installed_ram_mb=4096\n\
+         capture_utc=2026-11-27T10:00:00Z\n\
+         operator=alice\n\
+         reviewer=bob\n\
+         workload_protocol=v1\n"
+    );
+    fs::write(&bad_prov, bad_prov_text)?;
     let rejected = evaluate_provenance_gate(Some(&meas_path), Some(&bad_prov));
     ensure(
         rejected.status == ProvenanceGateStatus::Rejected,
@@ -1491,10 +1505,20 @@ fn check_provenance_gate_contract(root: &TempRoot) -> Result<String> {
     )?;
 
     let ok_prov = root.join("prov-ok.kv");
-    fs::write(
-        &ok_prov,
-        format!("schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\nmeasurement_sha256={meas_sha}\nhost_facts_sha256={facts_sha}\nhardware_model=Celeron-N3060\ninstalled_ram_mb=4096\ncapture_utc=2026-11-27T10:00:00Z\noperator=alice\nreviewer=bob\nworkload_protocol=mixed-workspace-v1\n"),
-    )?;
+    let ok_prov_text = format!(
+        "schema_version=1\n\
+         target_profile=4gb_potato\n\
+         measurement_host=potato-target-lab\n\
+         measurement_sha256={meas_sha}\n\
+         host_facts_sha256={facts_sha}\n\
+         hardware_model=Celeron-N3060\n\
+         installed_ram_mb=4096\n\
+         capture_utc=2026-11-27T10:00:00Z\n\
+         operator=alice\n\
+         reviewer=bob\n\
+         workload_protocol=mixed-workspace-v1\n"
+    );
+    fs::write(&ok_prov, ok_prov_text)?;
     let ok = evaluate_provenance_gate(Some(&meas_path), Some(&ok_prov));
     ensure(
         ok.status == ProvenanceGateStatus::VerifiedTarget4Gb,

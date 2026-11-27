@@ -27,13 +27,28 @@ jobs:
           components: rustfmt, clippy
 
       - name: Format check
-        run: cargo fmt --all -- --check
+        run: |
+          if ! cargo fmt --all -- --check > fmt.log 2>&1; then
+            cat fmt.log
+            grep -E '^Diff in ' fmt.log | head -n 9 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: |
+          if ! cargo clippy --workspace --all-targets --locked -- -D warnings > clippy.log 2>&1; then
+            cat clippy.log
+            grep -E -A 2 '^error' clippy.log | head -n 9 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: Tests
-        run: cargo test --workspace --all-targets --locked
+        run: |
+          if ! cargo test --workspace --all-targets --locked > test.log 2>&1; then
+            cat test.log
+            grep -E '^error|FAILED|panicked at' test.log | head -n 9 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: Release build
         run: cargo build --workspace --release --locked
@@ -367,7 +382,8 @@ jobs:
       - name: Check minimum supported Rust
         run: |
           if ! cargo check --locked -p spacetime-gui > gui-msrv.log 2>&1; then
-            tail -40 gui-msrv.log | sed 's/^/::error::/'
+            cat gui-msrv.log
+            grep -E -A 2 '^error' gui-msrv.log | head -n 9 | sed 's/^/::error::/'
             exit 1
           fi
 

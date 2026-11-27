@@ -195,7 +195,8 @@ mod tests {
         assert!(clip.paste_once("ws-other").is_err());
 
         // File airlock copies regular files and rejects symlinks / traversal.
-        let root = std::env::temp_dir().join(format!("spacetime-airlock-test-{}", std::process::id()));
+        let root =
+            std::env::temp_dir().join(format!("spacetime-airlock-test-{}", std::process::id()));
         let src_dir = root.join("src");
         let dst_dir = root.join("dst");
         fs::create_dir_all(&src_dir)?;

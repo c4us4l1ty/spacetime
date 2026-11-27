@@ -9,7 +9,9 @@
 use spacetime_types::supervisor::{
     BlockerItem, BlockerStatus, FactKind, FactRecord, GoalLifecycle, GoalNode, SteeringMessage,
 };
-use spacetime_types::{from_json_str, sha256_hex, to_json_pretty, Result, SpacetimeError, Taint};
+use spacetime_types::{
+    load_json_file_or_default, sha256_hex, to_json_pretty, Result, SpacetimeError, Taint,
+};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -179,10 +181,10 @@ impl SpaceSupervisor {
         } else {
             0
         };
-        let goals = read_json_vec_or_default(&space_dir.join("goals.json"))?;
-        let steering = read_json_vec_or_default(&space_dir.join("steering.json"))?;
-        let facts = read_json_vec_or_default(&space_dir.join("facts.json"))?;
-        let blockers = read_json_vec_or_default(&space_dir.join("blockers.json"))?;
+        let goals = load_json_file_or_default(&space_dir.join("goals.json"))?;
+        let steering = load_json_file_or_default(&space_dir.join("steering.json"))?;
+        let facts = load_json_file_or_default(&space_dir.join("facts.json"))?;
+        let blockers = load_json_file_or_default(&space_dir.join("blockers.json"))?;
 
         let mut supervisor = Self {
             root: space_dir.to_path_buf(),
@@ -455,14 +457,6 @@ impl SpaceSupervisor {
         )?;
         Ok(())
     }
-}
-
-fn read_json_vec_or_default<T: serde::de::DeserializeOwned>(path: &Path) -> Result<Vec<T>> {
-    if !path.is_file() {
-        return Ok(Vec::new());
-    }
-    let text = fs::read_to_string(path)?;
-    from_json_str(&text)
 }
 
 pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
