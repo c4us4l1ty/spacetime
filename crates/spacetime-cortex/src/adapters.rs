@@ -228,7 +228,8 @@ mod tests {
         assert!(!env.semantic_views[0].raw_screenshot_allowed_for_cortex);
         assert!(env.semantic_views[0].contains_secret_fields);
         assert_eq!(env.semantic_views[0].fields[1].value, "[MASKED]");
-        assert_eq!(CortexAdapterKind::WebChatTab.output_taint(), Taint::UntrustedWeb);
+        let web_taint = CortexAdapterKind::WebChatTab.output_taint();
+        assert_eq!(web_taint, Taint::UntrustedWeb);
         Ok(())
     }
 }

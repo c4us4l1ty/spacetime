@@ -180,7 +180,8 @@ mod tests {
         assert_eq!(autopsy.added_files, vec!["payload.bin".to_string()]);
         assert_eq!(autopsy.modified_files, vec!["keep.txt".to_string()]);
         assert_eq!(autopsy.deleted_files, vec!["removed.txt".to_string()]);
-        assert_eq!(autopsy.whiteouts, vec![".wh.etc-crontab->etc-crontab".to_string()]);
+        let expected_wh = vec![".wh.etc-crontab->etc-crontab".to_string()];
+        assert_eq!(autopsy.whiteouts, expected_wh);
         assert_eq!(autopsy.canary_reads, 1);
         assert!(tombstone.upperdir_removed);
         assert!(!upper_dir.exists());

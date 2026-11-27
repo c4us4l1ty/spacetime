@@ -29,7 +29,9 @@ use spacetime_cortex::population::{
     evaluate_abc_harness, CandidateEvaluation, CandidateProposal, HarnessTaskCase,
     PopulationCycler, PopulationSelection,
 };
-use spacetime_exec::ark::{probe_net_none_denial, select_domain, ArkBroker, ArkCellSpec, ArkDomain};
+use spacetime_exec::ark::{
+    probe_net_none_denial, select_domain, ArkBroker, ArkCellSpec, ArkDomain,
+};
 use spacetime_exec::autopsy::{close_and_tombstone, snapshot_dir_manifest};
 use spacetime_exec::egress::EgressBroker;
 use spacetime_exec::governor::{GovernorPolicy, GovernorSample, ResourceGovernor};
@@ -1884,25 +1886,21 @@ fn check_egress_airlock_and_distillation(root: &TempRoot) -> Result<String> {
         None,
         Some("tunnel://dns-pin:53".to_string()),
     )?;
+    let ws = Some("ws-net");
+    let blocked_loop = !egress.evaluate_connect(cred, ws, "127.0.0.1", 8080).allowed;
+    let blocked_meta = !egress.evaluate_connect(cred, ws, "169.254.169.254", 80).allowed;
+    let blocked_dns = egress.validate_guest_resolver(cred, "/etc/resolv.conf").is_err();
     ensure(
-        !egress
-            .evaluate_connect(cred, Some("ws-net"), "127.0.0.1", 8080)
-            .allowed
-            && !egress
-                .evaluate_connect(cred, Some("ws-net"), "169.254.169.254", 80)
-                .allowed
-            && egress.validate_guest_resolver(cred, "/etc/resolv.conf").is_err(),
+        blocked_loop && blocked_meta && blocked_dns,
         "EgressBroker failed to deny localhost/metadata/host-resolv.conf",
     )?;
 
     let mut vault = HostVault::new();
     vault.plant_canary("can", "CANARY_AIRLOCK_GATE")?;
     let mut clip = ClipboardAirlock::new();
-    ensure(
-        clip.stage_copy("ws-a", Taint::TrustedUser, "CANARY_AIRLOCK_GATE", &mut vault)
-            .is_err(),
-        "ClipboardAirlock allowed canary leak",
-    )?;
+    let canary_txt = "CANARY_AIRLOCK_GATE";
+    let canary_res = clip.stage_copy("ws-a", Taint::TrustedUser, canary_txt, &mut vault);
+    ensure(canary_res.is_err(), "ClipboardAirlock allowed canary leak")?;
     clip.stage_copy("ws-a", Taint::TrustedUser, "safe snippet", &mut vault)?;
     ensure(
         clip.paste_once("ws-b")?.payload == "safe snippet" && clip.paste_once("ws-c").is_err(),

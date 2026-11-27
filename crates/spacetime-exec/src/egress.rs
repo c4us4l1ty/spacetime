@@ -38,20 +38,17 @@ impl EgressBroker {
         pinned_dns: Option<String>,
     ) -> Result<()> {
         if channel_credential.len() < 16 {
-            return Err(SpacetimeError::new(
-                "egress channel credential is too short",
-            ));
+            return Err(SpacetimeError::new("egress channel credential is too short"));
         }
-        if matches!(egress_class, EgressClass::Proxy | EgressClass::Tor) && pinned_proxy.is_none()
-        {
+        let needs_proxy = matches!(egress_class, EgressClass::Proxy | EgressClass::Tor);
+        if needs_proxy && pinned_proxy.is_none() {
             return Err(SpacetimeError::new(
                 "proxy and tor egress classes require a pinned proxy endpoint",
             ));
         }
         if egress_class != EgressClass::None && pinned_dns.is_none() {
-            return Err(SpacetimeError::new(
-                "networked cell requires a pinned tunnel DNS resolver",
-            ));
+            let msg = "networked cell requires a pinned tunnel DNS resolver";
+            return Err(SpacetimeError::new(msg));
         }
         self.grants.insert(
             channel_credential.to_string(),
@@ -307,7 +304,8 @@ mod tests {
         let mut broker = EgressBroker::new();
         let cred = "cred-ws-offline-0000001";
         broker.register_cell(cred, "ws-offline", EgressClass::None, None, None)?;
-        assert!(!broker.evaluate_connect(cred, None, "93.184.216.34", 443).allowed);
+        let denied = broker.evaluate_connect(cred, None, "93.184.216.34", 443);
+        assert!(!denied.allowed);
         assert!(broker.validate_guest_resolver(cred, "8.8.8.8").is_err());
         broker.validate_guest_resolver(cred, "none")?;
         Ok(())

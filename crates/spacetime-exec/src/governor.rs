@@ -156,8 +156,8 @@ impl ResourceGovernor {
             };
         }
 
-        if self.policy.prefer_snapshot_first && descriptor.preview_mode == PreviewMode::LiveDamage
-        {
+        let is_live = descriptor.preview_mode == PreviewMode::LiveDamage;
+        if self.policy.prefer_snapshot_first && is_live {
             return GovernorEvaluation {
                 action: GovernorAction::DowngradePreview(PreviewMode::SnapshotOnAction),
                 chosen_preview_mode: PreviewMode::SnapshotOnAction,

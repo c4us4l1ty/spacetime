@@ -45,21 +45,21 @@ impl<'a> SurfaceReader<'a> {
             .collect()
     }
 
-    pub fn descriptor(&self, workspace_id: &str) -> Option<&WorkspaceSurfaceDescriptor> {
+    pub fn descriptor(&self, workspace_id: &str) -> Option<&'a WorkspaceSurfaceDescriptor> {
         self.broker
             .surfaces
             .get(workspace_id)
             .map(|state| &state.descriptor)
     }
 
-    pub fn active_frame(&self, workspace_id: &str) -> Option<&SnapshotFrame> {
+    pub fn active_frame(&self, workspace_id: &str) -> Option<&'a SnapshotFrame> {
         self.broker
             .surfaces
             .get(workspace_id)
             .and_then(|state| state.frames.back())
     }
 
-    pub fn snapshot_strip(&self, workspace_id: &str) -> Vec<&SnapshotFrame> {
+    pub fn snapshot_strip(&self, workspace_id: &str) -> Vec<&'a SnapshotFrame> {
         self.broker
             .surfaces
             .get(workspace_id)
@@ -67,7 +67,7 @@ impl<'a> SurfaceReader<'a> {
             .unwrap_or_default()
     }
 
-    pub fn active_workspace_id(&self) -> Option<&str> {
+    pub fn active_workspace_id(&self) -> Option<&'a str> {
         self.broker.active_workspace.as_deref()
     }
 
@@ -180,12 +180,8 @@ impl SurfaceBroker {
             state.fields.push(field);
         }
         state.last_caption = caption.to_string();
-        if matches!(
-            state.descriptor.preview_mode,
-            PreviewMode::SnapshotOnAction
-                | PreviewMode::SnapshotOnSwitch
-                | PreviewMode::LiveDamage
-        ) {
+        let mode = state.descriptor.preview_mode;
+        if preview_captures_snapshot(mode) {
             self.capture_ram_snapshot(workspace_id, caption, ledger_event_hash)?;
         }
         Ok(())
@@ -329,6 +325,13 @@ pub fn default_mixed_workspace_descriptors() -> [WorkspaceSurfaceDescriptor; 2] 
     ]
 }
 
+fn preview_captures_snapshot(mode: PreviewMode) -> bool {
+    matches!(
+        mode,
+        PreviewMode::SnapshotOnAction | PreviewMode::SnapshotOnSwitch | PreviewMode::LiveDamage
+    )
+}
+
 fn render_snapshot_rgba(
     width: usize,
     height: usize,
@@ -338,15 +341,20 @@ fn render_snapshot_rgba(
     seq: u64,
 ) -> Vec<u8> {
     let mut rgba = vec![0_u8; width * height * 4];
-    // Background slate
-    fill_rect(&mut rgba, width, height, 0, 0, width, height, [20, 25, 34, 255]);
-    // Top bar
-    fill_rect(&mut rgba, width, height, 0, 0, width, 24, [35, 45, 62, 255]);
+    let bg = [20, 25, 34, 255];
+    let top_bar = [35, 45, 62, 255];
+    let fg_head = [220, 232, 248, 255];
+    let fg_cap = [145, 224, 178, 255];
+    let fg_name = [180, 195, 215, 255];
+    let fg_val = [242, 246, 252, 255];
+
+    fill_rect(&mut rgba, width, height, 0, 0, width, height, bg);
+    fill_rect(&mut rgba, width, height, 0, 0, width, 24, top_bar);
     // Header indicator bars derived deterministically from caption/workspace
     let accent = color_from_seed(sha256_hex(caption.as_bytes()).as_bytes());
     fill_rect(&mut rgba, width, height, 10, 6, 12, 12, accent);
-    draw_text_blocks(&mut rgba, width, height, 28, 8, workspace_id, [220, 232, 248, 255]);
-    draw_text_blocks(&mut rgba, width, height, 10, 34, caption, [145, 224, 178, 255]);
+    draw_text_blocks(&mut rgba, width, height, 28, 8, workspace_id, fg_head);
+    draw_text_blocks(&mut rgba, width, height, 10, 34, caption, fg_cap);
 
     // Render deterministic visual form boxes for title, description, thumbnail, secret, publish
     let mut y = 52;
@@ -367,8 +375,8 @@ fn render_snapshot_rgba(
             [110, 168, 254, 255]
         };
         fill_rect(&mut rgba, width, height, 12, y + 3, 8, 10, label_color);
-        draw_text_blocks(&mut rgba, width, height, 26, y + 4, name, [180, 195, 215, 255]);
-        draw_text_blocks(&mut rgba, width, height, 118, y + 4, value, [242, 246, 252, 255]);
+        draw_text_blocks(&mut rgba, width, height, 26, y + 4, name, fg_name);
+        draw_text_blocks(&mut rgba, width, height, 118, y + 4, value, fg_val);
         y += 20;
     }
 
@@ -481,11 +489,10 @@ mod tests {
             "hash-2",
         )?;
 
-        assert_eq!(broker.reader().active_workspace_id(), Some("ws-human-terminal"));
-        assert_eq!(
-            broker.reader().descriptor("ws-ai-upload").map(|d| d.liveness),
-            Some(LivenessState::Running)
-        );
+        let active_id = broker.reader().active_workspace_id();
+        assert_eq!(active_id, Some("ws-human-terminal"));
+        let ai_live = broker.reader().descriptor("ws-ai-upload").map(|d| d.liveness);
+        assert_eq!(ai_live, Some(LivenessState::Running));
 
         // Cortex channel masks secret fields and forbids raw screenshot access.
         let semantic = broker.cortex_semantic_view("ws-ai-upload")?;
@@ -504,15 +511,13 @@ mod tests {
         let frame = broker
             .switch_active_tab("ws-ai-upload")?
             .expect("AI tab snapshot");
-        assert_eq!(frame.fields.get("title").map(String::as_str), Some("Spacetime Demo"));
-        assert_eq!(
-            broker.reader().descriptor("ws-ai-upload").map(|d| d.liveness),
-            Some(LivenessState::Rendering)
-        );
-        assert_eq!(
-            broker.reader().descriptor("ws-human-terminal").map(|d| d.liveness),
-            Some(LivenessState::Running)
-        );
+        let title = frame.fields.get("title").map(String::as_str);
+        assert_eq!(title, Some("Spacetime Demo"));
+        let ai_live_after = broker.reader().descriptor("ws-ai-upload").map(|d| d.liveness);
+        assert_eq!(ai_live_after, Some(LivenessState::Rendering));
+        let reader = broker.reader();
+        let human_live = reader.descriptor("ws-human-terminal").map(|d| d.liveness);
+        assert_eq!(human_live, Some(LivenessState::Running));
         assert_eq!(broker.reader().rendering_count(), 1);
         assert_eq!(broker.reader().disk_writes_performed(), 0);
 

@@ -273,12 +273,11 @@ mod tests {
             ))
             .is_err());
 
-        let skill =
-            store.distill_skill("sk-upload-form", "test_upload_draft", 4, "trace:4", || Ok(()))?;
+        let ok_fn = || Ok(());
+        let skill = store.distill_skill("sk-upload-form", "test_upload_draft", 4, "trace:4", ok_fn)?;
         assert!(skill.enabled);
-        assert!(!store.rerun_skill_test("sk-upload-form", 5, || Err(
-            SpacetimeError::new("ui selector drifted")
-        ))?);
+        let err_fn = || Err(SpacetimeError::new("ui selector drifted"));
+        assert!(!store.rerun_skill_test("sk-upload-form", 5, err_fn)?);
         assert!(!store.skills().last().expect("skill").enabled);
 
         let _ = fs::remove_dir_all(&dir);

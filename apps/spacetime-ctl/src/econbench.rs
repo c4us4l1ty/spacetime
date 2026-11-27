@@ -188,7 +188,9 @@ fn cmd_bench_harness(args: &[String]) -> Result<()> {
         }
     }
     fs::write(&out_path, text)?;
-    println!("harness_report={} arms={}", out_path.display(), summaries.len());
+    let out_disp = out_path.display();
+    let arm_count = summaries.len();
+    println!("harness_report={out_disp} arms={arm_count}");
     Ok(())
 }
 

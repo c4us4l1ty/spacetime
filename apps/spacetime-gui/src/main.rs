@@ -400,7 +400,8 @@ impl WorkspaceApp {
     }
 
     fn sync_snapshot_texture(&mut self, context: &egui::Context) {
-        let Some(frame) = self.surface_broker.reader().active_frame("ws-ai-upload") else {
+        let reader = self.surface_broker.reader();
+        let Some(frame) = reader.active_frame("ws-ai-upload") else {
             return;
         };
         if self.last_snapshot_seq == Some(frame.seq) {

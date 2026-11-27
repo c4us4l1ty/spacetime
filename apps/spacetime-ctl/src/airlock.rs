@@ -178,9 +178,13 @@ mod tests {
         // Ambient paste before copy fails.
         assert!(clip.paste_once("ws-dest").is_err());
         // Canary or @vault: leaks fail.
-        assert!(clip
-            .stage_copy("ws-src", Taint::TrustedUser, "SECRET_CANARY_AIRLOCK", &mut vault)
-            .is_err());
+        let bad_canary = clip.stage_copy(
+            "ws-src",
+            Taint::TrustedUser,
+            "SECRET_CANARY_AIRLOCK",
+            &mut vault,
+        );
+        assert!(bad_canary.is_err());
         let bad_vault =
             clip.stage_copy("ws-src", Taint::TrustedUser, "@vault:api_key", &mut vault);
         assert!(bad_vault.is_err());

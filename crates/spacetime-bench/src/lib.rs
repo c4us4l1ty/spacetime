@@ -484,7 +484,9 @@ pub fn evaluate_provenance_gate(
                 reasons: vec!["provenance line is not key=value".to_string()],
             };
         };
-        if kv.insert(k.trim().to_string(), v.trim().to_string()).is_some() {
+        let key = k.trim().to_string();
+        let val = v.trim().to_string();
+        if kv.insert(key, val).is_some() {
             return ProvenanceGateEvaluation {
                 status: ProvenanceGateStatus::Rejected,
                 measurement_digest: intake.digest,
@@ -501,15 +503,18 @@ pub fn evaluate_provenance_gate(
     }
     let prov_profile = kv.get("target_profile").cloned().unwrap_or_default();
     if prov_profile != intake.target_profile {
-        reasons.push("provenance target_profile does not match measurement file".to_string());
+        let msg = "provenance target_profile does not match measurement file";
+        reasons.push(msg.to_string());
     }
     let meas_sha = kv.get("measurement_sha256").map(String::as_str).unwrap_or("");
     if !is_valid_hex64(meas_sha) || meas_sha != intake.digest {
-        reasons.push("provenance measurement_sha256 does not match measurement digest".to_string());
+        let msg = "provenance measurement_sha256 does not match measurement digest";
+        reasons.push(msg.to_string());
     }
     let facts_sha = kv.get("host_facts_sha256").map(String::as_str).unwrap_or("");
     if !is_valid_hex64(facts_sha) {
-        reasons.push("provenance host_facts_sha256 must be a valid non-zero sha256".to_string());
+        let msg = "provenance host_facts_sha256 must be a valid non-zero sha256";
+        reasons.push(msg.to_string());
     }
     for required_field in [
         "measurement_host",

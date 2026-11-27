@@ -222,7 +222,8 @@ fn collect_space_files(
 /// Branch a `.space` directory to a new target directory, attempting CoW reflinks first.
 pub fn branch_space(source_dir: &Path, target_dir: &Path) -> Result<BranchOutcome> {
     if target_dir.exists() {
-        return Err(SpacetimeError::new("branch target directory already exists"));
+        let msg = "branch target directory already exists";
+        return Err(SpacetimeError::new(msg));
     }
     let mut files = BTreeMap::new();
     collect_space_files(source_dir, source_dir, &mut files)?;
@@ -354,10 +355,10 @@ fn hex_decode(hex: &str) -> Result<Vec<u8>> {
     let bytes = hex.as_bytes();
     let mut i = 0;
     while i < bytes.len() {
-        let pair = std::str::from_utf8(&bytes[i..i + 2])
-            .map_err(|_| SpacetimeError::new("invalid hex utf8"))?;
-        let val = u8::from_str_radix(pair, 16)
-            .map_err(|_| SpacetimeError::new("invalid hex digit"))?;
+        let pair = std::str::from_utf8(&bytes[i..i + 2]);
+        let pair = pair.map_err(|_| SpacetimeError::new("invalid hex utf8"))?;
+        let val = u8::from_str_radix(pair, 16);
+        let val = val.map_err(|_| SpacetimeError::new("invalid hex digit"))?;
         out.push(val);
         i += 2;
     }

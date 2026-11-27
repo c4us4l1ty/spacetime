@@ -712,7 +712,9 @@ fn cmd_machine(args: &[String]) -> Result<()> {
 fn cmd_machine_provenance(args: &[String]) -> Result<()> {
     let measurement = flag(args, "--measurement")?;
     let provenance = flag(args, "--provenance")?;
-    let eval = evaluate_provenance_gate(Some(Path::new(&measurement)), Some(Path::new(&provenance)));
+    let meas_path = Path::new(&measurement);
+    let prov_path = Path::new(&provenance);
+    let eval = evaluate_provenance_gate(Some(meas_path), Some(prov_path));
     println!(
         "provenance_gate={} target_profile={} measurement_digest={} provenance_digest={}",
         eval.status.as_str(),
