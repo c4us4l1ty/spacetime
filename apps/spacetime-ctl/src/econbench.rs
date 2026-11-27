@@ -128,7 +128,8 @@ pub fn cmd_bench(args: &[String]) -> Result<()> {
 }
 
 fn cmd_bench_harness(args: &[String]) -> Result<()> {
-    let out = crate::flag(args, "--out")?;
+    let flags = crate::parse_exact_flags(args, &["--out"])?;
+    let out = &flags["--out"];
     let cases = vec![
         spacetime_cortex::population::HarnessTaskCase {
             task_id: "planted_01".to_string(),

@@ -9,8 +9,84 @@ use spacetime_types::{
 };
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
+
+fn validate_sha256_hex(digest: &str) -> Result<()> {
+    if digest.len() == 64
+        && digest
+            .bytes()
+            .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+    {
+        Ok(())
+    } else {
+        Err(SpacetimeError::new(
+            "CAS digest must be 64 lowercase hexadecimal characters",
+        ))
+    }
+}
+
+fn validate_snapshot_name(name: &str) -> Result<()> {
+    if !name.is_empty()
+        && name.len() <= 128
+        && !name.starts_with('.')
+        && !name.contains("..")
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.'))
+    {
+        Ok(())
+    } else {
+        Err(SpacetimeError::new(format!(
+            "invalid CAS snapshot name: {name}"
+        )))
+    }
+}
+
+fn validate_relative_path(rel: &str) -> Result<PathBuf> {
+    if rel.is_empty() || rel.contains('\0') || rel.contains('\\') {
+        return Err(SpacetimeError::new(format!(
+            "unsafe relative path in CAS artifact: {rel}"
+        )));
+    }
+    let path = Path::new(rel);
+    if path.is_absolute() {
+        return Err(SpacetimeError::new(format!(
+            "unsafe absolute path in CAS artifact: {rel}"
+        )));
+    }
+    let mut out = PathBuf::new();
+    for comp in path.components() {
+        match comp {
+            Component::Normal(part) => out.push(part),
+            _ => {
+                return Err(SpacetimeError::new(format!(
+                    "unsafe path component in CAS artifact: {rel}"
+                )));
+            }
+        }
+    }
+    if out.as_os_str().is_empty() {
+        return Err(SpacetimeError::new("empty relative path in CAS artifact"));
+    }
+    Ok(out)
+}
+
+fn ensure_no_symlink_ancestors(root: &Path, rel: &Path) -> Result<()> {
+    let mut cur = root.to_path_buf();
+    for comp in rel.components() {
+        cur.push(comp);
+        if let Ok(meta) = fs::symlink_metadata(&cur) {
+            if meta.file_type().is_symlink() {
+                return Err(SpacetimeError::new(format!(
+                    "refusing to traverse or overwrite symlink path: {}",
+                    cur.display()
+                )));
+            }
+        }
+    }
+    Ok(())
+}
 
 #[derive(Debug, Clone)]
 pub struct WavefunctionCas {
@@ -91,12 +167,14 @@ impl WavefunctionCas {
     }
 
     pub fn get_layer(&self, digest: &str) -> Result<CasLayer> {
+        validate_sha256_hex(digest)?;
         let meta_path = self.root.join("layers").join(format!("{digest}.json"));
         let text = fs::read_to_string(meta_path)?;
         from_json_str(&text)
     }
 
     pub fn get_bytes(&self, digest: &str) -> Result<Vec<u8>> {
+        validate_sha256_hex(digest)?;
         let obj_path = self.root.join("objects").join(digest);
         let bytes = fs::read(&obj_path)?;
         if sha256_hex(&bytes) != digest {
@@ -123,6 +201,7 @@ impl WavefunctionCas {
 
     /// Collapse a `.space` directory into a content-addressed `.wavefunction` snapshot manifest.
     pub fn collapse_space(&self, space_dir: &Path, snapshot_name: &str) -> Result<CollapseSummary> {
+        validate_snapshot_name(snapshot_name)?;
         let mut files = BTreeMap::new();
         let mut total_bytes = 0u64;
         collect_space_files(space_dir, space_dir, &mut files)?;
@@ -162,6 +241,7 @@ impl WavefunctionCas {
 
     /// Restore a collapsed `.wavefunction` snapshot into `dest_dir` after verifying every SHA-256.
     pub fn restore_snapshot(&self, snapshot_name: &str, dest_dir: &Path) -> Result<usize> {
+        validate_snapshot_name(snapshot_name)?;
         let snap_path = self
             .root
             .join("snapshots")
@@ -174,16 +254,13 @@ impl WavefunctionCas {
         fs::create_dir_all(dest_dir)?;
         let mut restored = 0usize;
         for (rel, digest_val) in files {
-            if rel.contains("..") || Path::new(rel).is_absolute() {
-                return Err(SpacetimeError::new(format!(
-                    "unsafe path in snapshot manifest: {rel}"
-                )));
-            }
+            let rel_path = validate_relative_path(rel)?;
             let digest = digest_val
                 .as_str()
                 .ok_or_else(|| SpacetimeError::new("non-string digest in snapshot"))?;
             let bytes = self.get_bytes(digest)?;
-            write_atomic(&dest_dir.join(rel), &bytes)?;
+            ensure_no_symlink_ancestors(dest_dir, &rel_path)?;
+            write_atomic(&dest_dir.join(&rel_path), &bytes)?;
             restored += 1;
         }
         Ok(restored)
@@ -308,20 +385,35 @@ pub fn import_space_bundle(bundle_path: &Path, dest_dir: &Path) -> Result<usize>
     if bundle.get("kind").and_then(|v| v.as_str()) != Some("spacetime_space_bundle") {
         return Err(SpacetimeError::new("unsupported space bundle kind"));
     }
+    if bundle.get("secrets_included").and_then(|v| v.as_bool()) != Some(false) {
+        return Err(SpacetimeError::new(
+            "space bundle must explicitly declare secrets_included=false",
+        ));
+    }
+    let snapshot_name = bundle
+        .get("snapshot_name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| SpacetimeError::new("missing snapshot_name in space bundle"))?;
+    validate_snapshot_name(snapshot_name)?;
+    let expected_manifest = bundle
+        .get("manifest_digest")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| SpacetimeError::new("missing manifest_digest in space bundle"))?;
+    validate_sha256_hex(expected_manifest)?;
     let files = bundle
         .get("files")
         .and_then(|v| v.as_object())
         .ok_or_else(|| SpacetimeError::new("missing files in space bundle"))?;
-    fs::create_dir_all(dest_dir)?;
-    let mut imported = 0usize;
+
+    let mut decoded_entries = Vec::with_capacity(files.len());
+    let mut manifest_entries = serde_json::Map::new();
     for (rel, entry) in files {
-        if rel.contains("..") || Path::new(rel).is_absolute() {
-            return Err(SpacetimeError::new(format!("unsafe bundle path: {rel}")));
-        }
+        let rel_path = validate_relative_path(rel)?;
         let expected_sha = entry
             .get("sha256")
             .and_then(|v| v.as_str())
             .ok_or_else(|| SpacetimeError::new("missing file sha256"))?;
+        validate_sha256_hex(expected_sha)?;
         let hex_str = entry
             .get("hex")
             .and_then(|v| v.as_str())
@@ -332,10 +424,28 @@ pub fn import_space_bundle(bundle_path: &Path, dest_dir: &Path) -> Result<usize>
                 "imported bundle file failed SHA-256 verification: {rel}"
             )));
         }
-        write_atomic(&dest_dir.join(rel), &bytes)?;
-        imported += 1;
+        manifest_entries.insert(rel.clone(), json!(expected_sha));
+        decoded_entries.push((rel_path, bytes));
     }
-    Ok(imported)
+
+    let manifest = json!({
+        "schema_version": 1,
+        "snapshot": snapshot_name,
+        "files": manifest_entries,
+    });
+    let recomputed_manifest = sha256_hex(serde_json::to_string_pretty(&manifest)?.as_bytes());
+    if recomputed_manifest != expected_manifest {
+        return Err(SpacetimeError::new(
+            "space bundle manifest_digest verification failed",
+        ));
+    }
+
+    fs::create_dir_all(dest_dir)?;
+    for (rel_path, bytes) in &decoded_entries {
+        ensure_no_symlink_ancestors(dest_dir, rel_path)?;
+        write_atomic(&dest_dir.join(rel_path), bytes)?;
+    }
+    Ok(decoded_entries.len())
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
@@ -428,6 +538,19 @@ mod tests {
             fs::read(imported_dir.join("goals.json"))?,
             b"[{\"id\":\"g1\"}]"
         );
+
+        // Path traversal, invalid snapshot names, and forged digests must fail.
+        assert!(cas.get_bytes("../layers/foo").is_err());
+        assert!(cas.collapse_space(&space_a, "../escape").is_err());
+        let bad_restore = cas.restore_snapshot("../escape", &imported_dir);
+        assert!(bad_restore.is_err());
+
+        let mut forged_bundle: Value = serde_json::from_str(&fs::read_to_string(&bundle)?)?;
+        forged_bundle["secrets_included"] = json!(true);
+        let bad_bundle = root.join("bad.bundle.json");
+        fs::write(&bad_bundle, serde_json::to_string_pretty(&forged_bundle)?)?;
+        let bad_import = import_space_bundle(&bad_bundle, &root.join("bad-dest"));
+        assert!(bad_import.is_err());
 
         let _ = fs::remove_dir_all(&root);
         Ok(())

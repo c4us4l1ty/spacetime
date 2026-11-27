@@ -200,21 +200,58 @@ pub fn is_forbidden_host_target(raw: &str) -> bool {
         || trimmed.starts_with('/')
         || trimmed.starts_with("unix:")
         || Path::new(&trimmed).is_absolute()
-        || trimmed == "localhost"
-        || trimmed.ends_with(".localhost")
-        || trimmed.ends_with(".local")
-        || trimmed == "metadata.google.internal"
     {
         return true;
     }
 
-    if let Ok(ip) = trimmed.parse::<Ipv4Addr>() {
+    let host_no_zone = trimmed.split('%').next().unwrap_or("");
+    let normalized = host_no_zone.trim_end_matches('.');
+    if normalized.is_empty()
+        || normalized == "localhost"
+        || normalized.ends_with(".localhost")
+        || normalized.ends_with(".local")
+        || normalized == "metadata.google.internal"
+    {
+        return true;
+    }
+
+    if let Ok(ip) = normalized.parse::<Ipv4Addr>() {
         return is_forbidden_ipv4(ip);
     }
-    if let Ok(ip) = trimmed.parse::<Ipv6Addr>() {
+    if let Some(ip) = parse_alternate_ipv4(normalized) {
+        return is_forbidden_ipv4(ip);
+    }
+    if let Ok(ip) = normalized.parse::<Ipv6Addr>() {
         return is_forbidden_ipv6(ip);
     }
     false
+}
+
+fn parse_alternate_ipv4(host: &str) -> Option<Ipv4Addr> {
+    if let Ok(int_ip) = host.parse::<u32>() {
+        return Some(Ipv4Addr::from(int_ip));
+    }
+    if let Some(hex_body) = host.strip_prefix("0x") {
+        if let Ok(hex_ip) = u32::from_str_radix(hex_body, 16) {
+            return Some(Ipv4Addr::from(hex_ip));
+        }
+    }
+    let parts: Vec<&str> = host.split('.').collect();
+    if parts.len() == 4 {
+        let mut octets = [0u8; 4];
+        for (idx, part) in parts.iter().enumerate() {
+            let val = if let Some(hex_part) = part.strip_prefix("0x") {
+                u8::from_str_radix(hex_part, 16).ok()?
+            } else if part.len() > 1 && part.starts_with('0') {
+                u8::from_str_radix(part, 8).ok()?
+            } else {
+                part.parse::<u8>().ok()?
+            };
+            octets[idx] = val;
+        }
+        return Some(Ipv4Addr::from(octets));
+    }
+    None
 }
 
 fn is_forbidden_ipv4(ip: Ipv4Addr) -> bool {
@@ -262,15 +299,22 @@ mod tests {
         for forbidden in [
             "127.0.0.1",
             "127.0.1.1",
+            "2130706433",
+            "0x7f000001",
+            "0177.0.0.1",
             "::1",
+            "::1%lo",
             "::ffff:127.0.0.1",
             "169.254.169.254",
             "10.0.0.1",
             "172.16.0.5",
             "192.168.1.1",
             "fe80::1",
+            "[fe80::1%eth0]",
             "fc00::1",
             "localhost",
+            "localhost.",
+            "metadata.google.internal.",
             "/var/run/docker.sock",
             "unix:/tmp/.X11-unix/X0",
         ] {
@@ -286,9 +330,13 @@ mod tests {
         let unknown = broker.evaluate_connect("bogus-credential-1234", None, "93.184.216.34", 443);
         assert!(!unknown.allowed);
 
-        // Valid public IP on direct cell succeeds.
+        // Valid public IP / domain / public IPv6 on direct cell succeeds.
         let ok = broker.evaluate_connect(cred, Some("ws-direct"), "93.184.216.34", 443);
         assert!(ok.allowed);
+        let ok_domain = broker.evaluate_connect(cred, Some("ws-direct"), "example.com", 443);
+        assert!(ok_domain.allowed);
+        let ok_v6 = broker.evaluate_connect(cred, Some("ws-direct"), "2606:4700:4700::1111", 443);
+        assert!(ok_v6.allowed);
 
         assert!(broker
             .validate_guest_resolver(cred, "/etc/resolv.conf")

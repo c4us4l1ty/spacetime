@@ -190,13 +190,16 @@ CARGO_BUILD_JOBS=1 cargo run --locked -p spacetime-gui
 ```
 
 The first build downloads Rust dependencies and may take time and disk space. Limiting build jobs
-reduces concurrent compiler work but is not a measured 4 GB guarantee. It starts the same
-experimental offline VM described above, showing a line-oriented console in a
-native window. It is not a full terminal emulator: full-screen or interactive terminal programs,
-multiple tabs, graphical guest apps, and AI are not supported. Use only trusted software. The VM
-still requires KVM, bubblewrap, a compatible Linux kernel, and static BusyBox. Stopping the window
-terminates its worker and removes its temporary guest image on normal shutdown; forced termination,
-swap and logs can leave traces. No 4 GB performance or hostile-code security claims are made.
+reduces concurrent compiler work but is not a measured 4 GB guarantee. It provides a native
+mixed-workspace shell (`ws-human-terminal` backed by `vt100` over the experimental offline VM plus
+`ws-ai-upload` displaying RAM-only `SnapshotOnAction` textures, a Ring -3 human blocker queue,
+non-blocking steering, and a `CortexSemanticView` panel with secrets masked). Full-screen
+interactive terminal apps, live graphical guest apps, and live external AI calls are not included;
+the AI tab runs an offline mock dry-run only (`net = none`). Use only trusted software for the VM
+tab, which still requires KVM, bubblewrap, a compatible Linux kernel, and static BusyBox. Stopping
+the window terminates its worker and removes its temporary guest image on normal shutdown; forced
+termination, swap and logs can leave traces. No 4 GB performance or hostile-code security claims
+are made.
 
 ## Rust terminal dashboard (early prototype)
 

@@ -263,6 +263,8 @@ impl WorkspaceApp {
 
     fn advance_ai_upload_step(&mut self) {
         self.turn_counter = self.turn_counter.saturating_add(1);
+        let turn = self.turn_counter;
+        self.steering.retain(|m| !m.is_expired(turn));
         match self.ai_step {
             0 => {
                 let _ = self.surface_broker.apply_supervisor_field_update(
@@ -540,7 +542,14 @@ impl eframe::App for WorkspaceApp {
                         self.steering_input.clear();
                     }
                 });
-                for msg in self.steering.iter().rev().take(3) {
+                let turn = self.turn_counter;
+                for msg in self
+                    .steering
+                    .iter()
+                    .rev()
+                    .filter(|m| !m.is_expired(turn))
+                    .take(3)
+                {
                     ui.small(format!("- [t{}] {}", msg.created_turn, msg.text));
                 }
                 ui.separator();

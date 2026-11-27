@@ -231,6 +231,10 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- space export --dir target/ci-space --cas target/ci-cas --name snap1 --out target/ci-bundle.json
           cargo run --release --locked -p spacetime-ctl -- space import --bundle target/ci-bundle.json --dest target/ci-space-import
           cargo run --release --locked -p spacetime-ctl -- space memory-query --dir target/ci-space --q goal
+          ! cargo run --release --locked -p spacetime-ctl -- space init --dir target/ci-space --bogus x
+          ! cargo run --release --locked -p spacetime-ctl -- security redteam --bogus x
+          ! cargo run --release --locked -p spacetime-ctl -- audit leak --bogus x
+          ! cargo run --release --locked -p spacetime-ctl -- bench harness --out target/harness.json --bogus x
 
       - name: Measurement intake smoke
         run: |

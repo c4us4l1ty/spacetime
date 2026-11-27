@@ -124,8 +124,12 @@ pub fn close_and_tombstone(
         peak_rss_kb,
         canary_reads,
     )?;
-    if upper_dir.exists() {
-        fs::remove_dir_all(upper_dir)?;
+    if let Ok(meta) = fs::symlink_metadata(upper_dir) {
+        if meta.file_type().is_dir() {
+            fs::remove_dir_all(upper_dir)?;
+        } else {
+            fs::remove_file(upper_dir)?;
+        }
     }
     let summary = format!(
         "added={} modified={} deleted={} whiteouts={} blocked_egress={} canary_reads={} peak_rss_kb={}",

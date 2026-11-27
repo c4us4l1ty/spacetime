@@ -3,6 +3,7 @@
 //! Workspaces never share an ambient clipboard or filesystem mount. Transfers across workspace
 //! boundaries happen only through explicit, size-bounded, secret/canary-checked one-shot tickets.
 
+use crate::memory::write_atomic;
 use crate::security::HostVault;
 use spacetime_types::{sha256_hex, Result, SpacetimeError, Taint};
 use std::fs;
@@ -104,13 +105,17 @@ pub fn airlock_copy_file(
     dest_root: &Path,
     vault: &mut HostVault,
 ) -> Result<FileAirlockReceipt> {
-    if relative_path.is_absolute()
-        || relative_path
+    let rel_str = relative_path.to_str().unwrap_or("");
+    if rel_str.is_empty()
+        || rel_str.contains('\0')
+        || rel_str.contains('\\')
+        || relative_path.is_absolute()
+        || !relative_path
             .components()
-            .any(|c| matches!(c, Component::ParentDir))
+            .all(|c| matches!(c, Component::Normal(_)))
     {
         return Err(SpacetimeError::new(
-            "file airlock rejects absolute or parent-traversal paths",
+            "file airlock rejects empty, absolute, backslash, or traversal paths",
         ));
     }
     let file_name = relative_path
@@ -144,16 +149,27 @@ pub fn airlock_copy_file(
         ));
     }
     let bytes = fs::read(&canonical_src)?;
-    if let Ok(text) = std::str::from_utf8(&bytes) {
-        vault.inspect_for_canary_or_secret(
-            &format!("file_airlock:{source_workspace}:{file_name}"),
-            text,
-        )?;
+    let lossy = String::from_utf8_lossy(&bytes);
+    if lossy.contains("@vault:") {
+        return Err(SpacetimeError::new(
+            "file airlock refused @vault: symbolic secret handle",
+        ));
     }
+    vault.inspect_for_canary_or_secret(
+        &format!("file_airlock:{source_workspace}:{file_name}"),
+        &lossy,
+    )?;
     let digest = sha256_hex(&bytes);
     fs::create_dir_all(dest_root)?;
     let dest_path = dest_root.join(file_name);
-    fs::write(&dest_path, &bytes)?;
+    if let Ok(dest_meta) = fs::symlink_metadata(&dest_path) {
+        if dest_meta.file_type().is_symlink() {
+            return Err(SpacetimeError::new(
+                "file airlock refuses overwriting a destination symlink",
+            ));
+        }
+    }
+    write_atomic(&dest_path, &bytes)?;
 
     Ok(FileAirlockReceipt {
         source_workspace: source_workspace.to_string(),
@@ -214,6 +230,32 @@ mod tests {
             "ws-src",
             &src_dir,
             Path::new("../escape.txt"),
+            "ws-dest",
+            &dst_dir,
+            &mut vault,
+        )
+        .is_err());
+
+        // Binary payload hiding a canary must not bypass UTF-8 inspection.
+        let mut binary_leak = vec![0xffu8, 0x00u8, 0xfeu8];
+        binary_leak.extend_from_slice(b"SECRET_CANARY_AIRLOCK");
+        fs::write(src_dir.join("blob.bin"), binary_leak)?;
+        assert!(airlock_copy_file(
+            "ws-src",
+            &src_dir,
+            Path::new("blob.bin"),
+            "ws-dest",
+            &dst_dir,
+            &mut vault,
+        )
+        .is_err());
+
+        // @vault: handle inside a file is also rejected.
+        fs::write(src_dir.join("vault.txt"), b"key=@vault:yt_key")?;
+        assert!(airlock_copy_file(
+            "ws-src",
+            &src_dir,
+            Path::new("vault.txt"),
             "ws-dest",
             &dst_dir,
             &mut vault,

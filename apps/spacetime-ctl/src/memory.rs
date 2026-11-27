@@ -16,6 +16,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static ATOMIC_TMP_SEQ: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MemoryLayer {
@@ -460,13 +463,15 @@ impl SpaceSupervisor {
 }
 
 pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
-    let parent = path
-        .parent()
-        .ok_or_else(|| SpacetimeError::new("target path has no parent directory"))?;
+    let parent = match path.parent() {
+        Some(dir) if !dir.as_os_str().is_empty() => dir,
+        _ => Path::new("."),
+    };
     fs::create_dir_all(parent)?;
     let fname_opt = path.file_name().and_then(|n| n.to_str());
     let fname = fname_opt.unwrap_or("state");
-    let tmp = parent.join(format!(".{fname}.tmp.{}", std::process::id()));
+    let seq = ATOMIC_TMP_SEQ.fetch_add(1, Ordering::Relaxed);
+    let tmp = parent.join(format!(".{fname}.tmp.{}.{seq}", std::process::id()));
     {
         let mut file = OpenOptions::new()
             .create(true)

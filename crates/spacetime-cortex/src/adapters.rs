@@ -66,11 +66,7 @@ impl CortexPromptEnvelope {
                 // Enforce defense-in-depth masking before any Cortex adapter receives UI state.
                 view.raw_screenshot_allowed_for_cortex = false;
                 for field in &mut view.fields {
-                    if field.is_secret
-                        || field.field_type.eq_ignore_ascii_case("password")
-                        || field.name.to_ascii_lowercase().contains("password")
-                        || field.name.to_ascii_lowercase().contains("token")
-                    {
+                    if field.looks_sensitive() {
                         field.is_secret = true;
                         field.value = "[MASKED]".to_string();
                         view.contains_secret_fields = true;

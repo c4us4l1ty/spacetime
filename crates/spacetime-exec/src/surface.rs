@@ -208,11 +208,7 @@ impl SurfaceBroker {
             .fields
             .iter()
             .map(|field| {
-                let secret_like = field.is_secret
-                    || field.field_type.eq_ignore_ascii_case("password")
-                    || field.name.to_ascii_lowercase().contains("password")
-                    || field.name.to_ascii_lowercase().contains("token");
-                if secret_like {
+                if field.looks_sensitive() {
                     contains_secret_fields = true;
                     SemanticField {
                         name: field.name.clone(),
@@ -264,7 +260,7 @@ impl SurfaceBroker {
         state.next_seq = state.next_seq.saturating_add(1);
         let mut field_map = BTreeMap::new();
         for field in &state.fields {
-            let shown = if field.is_secret || field.field_type.eq_ignore_ascii_case("password") {
+            let shown = if field.looks_sensitive() {
                 "********".to_string()
             } else {
                 field.value.clone()
@@ -514,6 +510,27 @@ mod tests {
             .expect("AI tab snapshot");
         let title = frame.fields.get("title").map(String::as_str);
         assert_eq!(title, Some("Spacetime Demo"));
+
+        // Non-password fields named like tokens/secrets must be masked in RAM snapshots too.
+        broker.apply_supervisor_field_update(
+            "ws-ai-upload",
+            SemanticField {
+                name: "api_token".to_string(),
+                field_type: "text".to_string(),
+                value: "raw-bearer-987".to_string(),
+                is_secret: false,
+            },
+            "token update",
+            "hash-3",
+        )?;
+        let snapshot = broker
+            .reader()
+            .active_frame("ws-ai-upload")
+            .expect("updated frame");
+        assert_eq!(
+            snapshot.fields.get("api_token").map(String::as_str),
+            Some("********")
+        );
         let reader = broker.reader();
         let ai_live_after = reader.descriptor("ws-ai-upload").map(|d| d.liveness);
         assert_eq!(ai_live_after, Some(LivenessState::Rendering));

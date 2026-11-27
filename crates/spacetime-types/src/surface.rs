@@ -15,6 +15,22 @@ pub struct SemanticField {
     pub is_secret: bool,
 }
 
+impl SemanticField {
+    /// Returns true when the field is marked secret, looks like a credential by type or name,
+    /// or contains a symbolic `@vault:` handle.
+    pub fn looks_sensitive(&self) -> bool {
+        let lower_name = self.name.to_ascii_lowercase();
+        self.is_secret
+            || self.field_type.eq_ignore_ascii_case("password")
+            || lower_name.contains("password")
+            || lower_name.contains("token")
+            || lower_name.contains("secret")
+            || lower_name.contains("api_key")
+            || lower_name.contains("credential")
+            || self.value.contains("@vault:")
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SemanticView {
