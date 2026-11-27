@@ -216,29 +216,27 @@ impl CrucibleVerifier {
             );
         }
 
-        let mut results = Vec::new();
-        for _ in 0..fixture.determinism_runs {
-            results.push(runner.run(&candidate.action));
+        let first = runner.run(&candidate.action);
+        for _ in 1..fixture.determinism_runs {
+            if runner.run(&candidate.action) != first {
+                return proof(
+                    CRUCIBLE_VERIFIER_ID,
+                    Verdict::Error,
+                    first.observation.digest,
+                    first.observation.determinism_profile_digest,
+                    fixture.source,
+                    fixture.determinism_runs,
+                    candidate.mutation_score_bps,
+                    "determinism disagreement between runs",
+                );
+            }
         }
-        let first = results.first().expect("determinism_runs >= 2");
-        if results.iter().skip(1).any(|result| result != first) {
+        if let RunStatus::Error(reason) = first.status {
             return proof(
                 CRUCIBLE_VERIFIER_ID,
                 Verdict::Error,
-                first.observation.digest.clone(),
-                first.observation.determinism_profile_digest.clone(),
-                fixture.source,
-                fixture.determinism_runs,
-                candidate.mutation_score_bps,
-                "determinism disagreement between runs",
-            );
-        }
-        if let RunStatus::Error(reason) = &first.status {
-            return proof(
-                CRUCIBLE_VERIFIER_ID,
-                Verdict::Error,
-                first.observation.digest.clone(),
-                first.observation.determinism_profile_digest.clone(),
+                first.observation.digest,
+                first.observation.determinism_profile_digest,
                 fixture.source,
                 fixture.determinism_runs,
                 candidate.mutation_score_bps,
@@ -249,8 +247,8 @@ impl CrucibleVerifier {
             return proof(
                 CRUCIBLE_VERIFIER_ID,
                 Verdict::Fail,
-                first.observation.digest.clone(),
-                first.observation.determinism_profile_digest.clone(),
+                first.observation.digest,
+                first.observation.determinism_profile_digest,
                 fixture.source,
                 fixture.determinism_runs,
                 candidate.mutation_score_bps,
@@ -261,8 +259,8 @@ impl CrucibleVerifier {
         proof(
             CRUCIBLE_VERIFIER_ID,
             Verdict::Pass,
-            first.observation.digest.clone(),
-            first.observation.determinism_profile_digest.clone(),
+            first.observation.digest,
+            first.observation.determinism_profile_digest,
             fixture.source,
             fixture.determinism_runs,
             candidate.mutation_score_bps,
@@ -312,19 +310,34 @@ pub fn false_pass_report(
     runner: &dyn Runner,
     runs: u32,
 ) -> (f64, f64) {
-    let verifier = CrucibleVerifier;
-    let mut verdicts = Vec::with_capacity(runs as usize);
-    for _ in 0..runs {
-        verdicts.push(
-            verifier
-                .verify_candidate(candidate, fixture, runner)
-                .verdict,
-        );
+    if runs == 0 {
+        return (0.0, 0.0);
     }
-    (
-        verdict_flip_rate(&verdicts),
-        false_pass_leak_rate(&verdicts, fixture.expected_verdict),
-    )
+    let verifier = CrucibleVerifier;
+    let mut prev: Option<Verdict> = None;
+    let mut flips = 0u64;
+    let mut leaks = 0u64;
+    for _ in 0..runs {
+        let verdict = verifier
+            .verify_candidate(candidate, fixture, runner)
+            .verdict;
+        if let Some(prev_verdict) = prev {
+            if verdict != prev_verdict {
+                flips += 1;
+            }
+        }
+        if verdict != fixture.expected_verdict {
+            leaks += 1;
+        }
+        prev = Some(verdict);
+    }
+    let flip_rate = if runs <= 1 {
+        0.0
+    } else {
+        flips as f64 / f64::from(runs - 1)
+    };
+    let leak_rate = leaks as f64 / f64::from(runs);
+    (flip_rate, leak_rate)
 }
 
 pub fn false_pass_rate(
@@ -578,19 +591,34 @@ pub fn population_report(operator_count: usize, runs: u32) -> PopulationReport {
     let mut max_flip_rate = 0.0;
     let mut promoted_false_pass_leaks = 0;
     for index in 0..operator_count {
-        let operator = SyntheticOperator::new(
-            format!("synthetic-operator-{index:02}"),
-            operator_kind(index),
-        );
-        let verdicts = operator.verdicts(runs);
-        let flip_rate = verdict_flip_rate(&verdicts);
+        let kind = operator_kind(index);
+        let mut prev: Option<Verdict> = None;
+        let mut flips = 0u64;
+        let mut all_pass = true;
+        for run in 0..runs {
+            let verdict = kind.verdict(run, runs);
+            if let Some(prev_verdict) = prev {
+                if verdict != prev_verdict {
+                    flips += 1;
+                }
+            }
+            if verdict != Verdict::Pass {
+                all_pass = false;
+            }
+            prev = Some(verdict);
+        }
+        let flip_rate = if runs <= 1 {
+            0.0
+        } else {
+            flips as f64 / f64::from(runs - 1)
+        };
         if flip_rate > max_flip_rate {
             max_flip_rate = flip_rate;
         }
         if flip_rate > 0.0 {
             unstable += 1;
         }
-        if verdicts.iter().all(|verdict| *verdict == Verdict::Pass) {
+        if all_pass {
             accepted += 1;
             if flip_rate > 0.01 {
                 promoted_false_pass_leaks += 1;

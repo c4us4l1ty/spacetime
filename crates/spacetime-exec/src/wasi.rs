@@ -136,6 +136,9 @@ impl WasiRuntime for ConstrainedWasiWorker {
                     stack.push(value.wrapping_shl(*shift % 64));
                 }
                 WasiInstruction::ReadInputByte(index) => {
+                    if stack.len() >= 1024 {
+                        return Err(SpacetimeError::new("wasi operand stack overflow"));
+                    }
                     let byte = input
                         .get(*index)
                         .copied()
@@ -219,6 +222,11 @@ mod tests {
 
         let too_long = vec![WasiInstruction::PushU64(1); 11];
         assert!(worker.execute(&spec, &too_long, b"").is_err());
+
+        let mut deep_spec = WasiWorkerSpec::strict_default("wasi-stack");
+        deep_spec.max_fuel = 2000;
+        let overflow_reads = vec![WasiInstruction::ReadInputByte(0); 1025];
+        assert!(worker.execute(&deep_spec, &overflow_reads, b"x").is_err());
         Ok(())
     }
 }

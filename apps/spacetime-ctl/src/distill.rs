@@ -120,6 +120,9 @@ impl DistillationStore {
             .rfind(|op| op.id == operator_id)
             .ok_or_else(|| SpacetimeError::new(format!("unknown operator: {operator_id}")))?;
 
+        if op.health == OperatorHealth::Dead {
+            return Ok(OperatorHealth::Dead);
+        }
         if deterministic_pass && observed_mutation_bps >= MIN_PROMOTION_MUTATION_BPS {
             op.health = OperatorHealth::Healthy;
             op.last_green_turn = current_turn;
@@ -263,6 +266,11 @@ mod tests {
         );
         assert_eq!(
             store.audit_operator_drift("op-tx-parse", 3, false, 6_000)?,
+            OperatorHealth::Dead
+        );
+        // Dead operator must remain terminal until a new version is registered.
+        assert_eq!(
+            store.audit_operator_drift("op-tx-parse", 4, true, 9_500)?,
             OperatorHealth::Dead
         );
 

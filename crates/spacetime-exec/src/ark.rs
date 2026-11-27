@@ -102,6 +102,12 @@ impl ArkCellSpec {
                 "--setenv",
                 "TZ",
                 "UTC",
+                "--setenv",
+                "__GL_SHADER_DISK_CACHE",
+                "0",
+                "--setenv",
+                "MESA_SHADER_CACHE_DISABLE",
+                "true",
                 "--ro-bind",
                 "/usr",
                 "/usr",
@@ -129,7 +135,9 @@ impl ArkCellSpec {
         } else {
             cmd.current_dir(&self.upper_dir)
                 .env("LC_ALL", "C")
-                .env("TZ", "UTC");
+                .env("TZ", "UTC")
+                .env("__GL_SHADER_DISK_CACHE", "0")
+                .env("MESA_SHADER_CACHE_DISABLE", "true");
         }
         cmd.arg(program).args(args);
         cmd

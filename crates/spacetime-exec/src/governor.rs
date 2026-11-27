@@ -5,7 +5,8 @@
 
 use spacetime_types::surface::{GovernorAction, IntentSummary, WorkspaceSurfaceDescriptor};
 use spacetime_types::{LivenessState, PreviewMode, SurfaceKind};
-use std::fs;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GovernorPolicy {
@@ -72,11 +73,16 @@ impl ResourceGovernor {
 
     /// Read current process RSS from Linux `/proc/self/status` when available.
     pub fn sample_current_process_rss_kb() -> Option<u64> {
-        let status = fs::read_to_string("/proc/self/status").ok()?;
-        status.lines().find_map(|line| {
-            let rest = line.strip_prefix("VmRSS:")?;
-            rest.split_whitespace().next()?.parse::<u64>().ok()
-        })
+        let file = File::open("/proc/self/status").ok()?;
+        let mut reader = BufReader::new(file);
+        let mut line = String::new();
+        while reader.read_line(&mut line).ok()? > 0 {
+            if let Some(rest) = line.strip_prefix("VmRSS:") {
+                return rest.split_whitespace().next()?.parse::<u64>().ok();
+            }
+            line.clear();
+        }
+        None
     }
 
     pub fn evaluate_workspace(

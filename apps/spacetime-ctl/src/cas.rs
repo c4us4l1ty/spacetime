@@ -8,9 +8,12 @@ use spacetime_types::{
     from_json_str, sha256_hex, to_json_pretty, Result, SpacetimeError, WorkspaceId,
 };
 use std::collections::BTreeMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
+
+const MAX_BUNDLE_BYTES: u64 = 64 * 1024 * 1024;
 
 fn validate_sha256_hex(digest: &str) -> Result<()> {
     if digest.len() == 64
@@ -298,7 +301,7 @@ fn collect_space_files(
 
 /// Branch a `.space` directory to a new target directory, attempting CoW reflinks first.
 pub fn branch_space(source_dir: &Path, target_dir: &Path) -> Result<BranchOutcome> {
-    if target_dir.exists() {
+    if fs::symlink_metadata(target_dir).is_ok() {
         let msg = "branch target directory already exists";
         return Err(SpacetimeError::new(msg));
     }
@@ -306,21 +309,27 @@ pub fn branch_space(source_dir: &Path, target_dir: &Path) -> Result<BranchOutcom
     collect_space_files(source_dir, source_dir, &mut files)?;
     fs::create_dir_all(target_dir)?;
 
-    let mut all_reflinked = !files.is_empty();
+    let mut try_reflink = !files.is_empty();
+    let mut all_reflinked = try_reflink;
     for (rel, src) in &files {
         let dst = target_dir.join(rel);
         if let Some(parent) = dst.parent() {
             fs::create_dir_all(parent)?;
         }
-        let reflink_ok = Command::new("cp")
-            .args(["--reflink=always", "--"])
-            .arg(src)
-            .arg(&dst)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .is_ok_and(|s| s.success());
+        let reflink_ok = if try_reflink {
+            Command::new("cp")
+                .args(["--reflink=always", "--"])
+                .arg(src)
+                .arg(&dst)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|s| s.success())
+        } else {
+            false
+        };
         if !reflink_ok {
+            try_reflink = false;
             all_reflinked = false;
             fs::copy(src, &dst)?;
         }
@@ -381,7 +390,17 @@ pub fn export_space_bundle(
 }
 
 pub fn import_space_bundle(bundle_path: &Path, dest_dir: &Path) -> Result<usize> {
-    let bundle: Value = serde_json::from_str(&fs::read_to_string(bundle_path)?)?;
+    let file = File::open(bundle_path)?;
+    let meta = file.metadata()?;
+    if !meta.is_file() || meta.len() > MAX_BUNDLE_BYTES {
+        return Err(SpacetimeError::new("space bundle must be a regular file <= 64 MiB"));
+    }
+    let mut raw = Vec::with_capacity(meta.len() as usize);
+    file.take(MAX_BUNDLE_BYTES + 1).read_to_end(&mut raw)?;
+    if raw.len() as u64 > MAX_BUNDLE_BYTES {
+        return Err(SpacetimeError::new("space bundle exceeds 64 MiB limit"));
+    }
+    let bundle: Value = serde_json::from_slice(&raw)?;
     if bundle.get("kind").and_then(|v| v.as_str()) != Some("spacetime_space_bundle") {
         return Err(SpacetimeError::new("unsupported space bundle kind"));
     }

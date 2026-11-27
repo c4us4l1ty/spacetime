@@ -177,6 +177,10 @@ fn adversarial_dir() -> PathBuf {
 
 pub(crate) fn crucible_inputs(task_path: &Path) -> Result<(Candidate, Fixture)> {
     let cortex = ScriptedCortex::from_file(task_path)?;
+    crucible_inputs_from_cortex(&cortex)
+}
+
+pub(crate) fn crucible_inputs_from_cortex(cortex: &ScriptedCortex) -> Result<(Candidate, Fixture)> {
     let action = cortex.first_action()?;
     let expected_digest = cortex
         .expected_digest()
@@ -233,14 +237,14 @@ pub(crate) fn fixture_population_report(runs: u32) -> Result<FixturePopulationRe
         real_operator_study: false,
         ..Default::default()
     };
+    let runner = ScriptedRunner::new()?;
     for path in paths {
         let cortex = ScriptedCortex::from_file(&path)?;
         if cortex.expected_digest().is_none() {
             report.skipped_without_oracle += 1;
             continue;
         }
-        let (candidate, fixture) = crucible_inputs(&path)?;
-        let runner = ScriptedRunner::new()?;
+        let (candidate, fixture) = crucible_inputs_from_cortex(&cortex)?;
         let (flip_rate, leak_rate) =
             false_pass_report_checked(&candidate, &fixture, &runner, runs)?;
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
@@ -297,6 +301,7 @@ pub(crate) fn adversarial_report(dir: &Path) -> Result<AdversarialReport> {
         fixtures: paths.len(),
         ..Default::default()
     };
+    let runner = ScriptedRunner::new()?;
     for path in &paths {
         let (candidate, fixture) = crucible_inputs(path)?;
         if fixture.source != VerifierSource::AdversarialModel {
@@ -305,7 +310,6 @@ pub(crate) fn adversarial_report(dir: &Path) -> Result<AdversarialReport> {
                 path.display()
             )));
         }
-        let runner = ScriptedRunner::new()?;
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
         if proof.source != VerifierSource::AdversarialModel
             || proof.source_priority != fixture.source.priority()

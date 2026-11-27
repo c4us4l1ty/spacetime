@@ -191,26 +191,75 @@ fn evaluate_destination(grant: &CellEgressGrant, destination: &str, port: u16) -
 }
 
 pub fn is_forbidden_host_target(raw: &str) -> bool {
-    let trimmed = raw
-        .trim()
-        .trim_start_matches('[')
-        .trim_end_matches(']')
-        .to_ascii_lowercase();
+    let trimmed = raw.trim();
     if trimmed.is_empty()
+        || trimmed.chars().any(|c| c.is_control() || c.is_whitespace())
         || trimmed.starts_with('/')
-        || trimmed.starts_with("unix:")
-        || Path::new(&trimmed).is_absolute()
+        || Path::new(trimmed).is_absolute()
     {
         return true;
     }
 
-    let host_no_zone = trimmed.split('%').next().unwrap_or("");
+    let lower = trimmed.to_ascii_lowercase();
+    if lower.starts_with("unix:") || lower.starts_with("file:") {
+        return true;
+    }
+
+    let after_scheme = match lower.split_once("://") {
+        Some((scheme, rest)) => {
+            if scheme.is_empty()
+                || !scheme
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'+' | b'-' | b'.'))
+            {
+                return true;
+            }
+            rest
+        }
+        None => lower.as_str(),
+    };
+
+    let authority = after_scheme.split(['/', '?', '#']).next().unwrap_or("");
+    let host_port = match authority.rsplit_once('@') {
+        Some((_, hp)) => hp,
+        None => authority,
+    };
+
+    let raw_host = if let Some(rest) = host_port.strip_prefix('[') {
+        let Some((inside, after_bracket)) = rest.split_once(']') else {
+            return true;
+        };
+        if !after_bracket.is_empty() {
+            let Some(port_str) = after_bracket.strip_prefix(':') else {
+                return true;
+            };
+            if port_str.is_empty() || port_str.parse::<u16>().is_err() {
+                return true;
+            }
+        }
+        inside
+    } else if let Some((h, port_str)) = host_port.rsplit_once(':') {
+        if h.contains(':') {
+            host_port
+        } else if port_str.is_empty() || port_str.parse::<u16>().is_err() {
+            return true;
+        } else {
+            h
+        }
+    } else {
+        host_port
+    };
+
+    let host_no_zone = raw_host.split('%').next().unwrap_or("");
     let normalized = host_no_zone.trim_end_matches('.');
     if normalized.is_empty()
         || normalized == "localhost"
         || normalized.ends_with(".localhost")
+        || normalized == "local"
         || normalized.ends_with(".local")
+        || normalized == "metadata"
         || normalized == "metadata.google.internal"
+        || normalized.ends_with(".internal")
     {
         return true;
     }
@@ -227,31 +276,60 @@ pub fn is_forbidden_host_target(raw: &str) -> bool {
     false
 }
 
-fn parse_alternate_ipv4(host: &str) -> Option<Ipv4Addr> {
-    if let Ok(int_ip) = host.parse::<u32>() {
-        return Some(Ipv4Addr::from(int_ip));
+fn parse_inet_aton_part(part: &str) -> Option<u32> {
+    if part.is_empty() {
+        return None;
     }
-    if let Some(hex_body) = host.strip_prefix("0x") {
-        if let Ok(hex_ip) = u32::from_str_radix(hex_body, 16) {
-            return Some(Ipv4Addr::from(hex_ip));
+    if let Some(hex_part) = part.strip_prefix("0x") {
+        if hex_part.is_empty() {
+            return None;
         }
+        u32::from_str_radix(hex_part, 16).ok()
+    } else if part.len() > 1 && part.starts_with('0') {
+        u32::from_str_radix(&part[1..], 8).ok()
+    } else {
+        part.parse::<u32>().ok()
+    }
+}
+
+fn parse_alternate_ipv4(host: &str) -> Option<Ipv4Addr> {
+    if let Some(single) = parse_inet_aton_part(host) {
+        return Some(Ipv4Addr::from(single));
     }
     let parts: Vec<&str> = host.split('.').collect();
-    if parts.len() == 4 {
-        let mut octets = [0u8; 4];
-        for (idx, part) in parts.iter().enumerate() {
-            let val = if let Some(hex_part) = part.strip_prefix("0x") {
-                u8::from_str_radix(hex_part, 16).ok()?
-            } else if part.len() > 1 && part.starts_with('0') {
-                u8::from_str_radix(part, 8).ok()?
+    match parts.as_slice() {
+        [a, b] => {
+            let a = parse_inet_aton_part(a)?;
+            let b = parse_inet_aton_part(b)?;
+            if a <= 0xff && b <= 0x00ff_ffff {
+                Some(Ipv4Addr::from((a << 24) | b))
             } else {
-                part.parse::<u8>().ok()?
-            };
-            octets[idx] = val;
+                None
+            }
         }
-        return Some(Ipv4Addr::from(octets));
+        [a, b, c] => {
+            let a = parse_inet_aton_part(a)?;
+            let b = parse_inet_aton_part(b)?;
+            let c = parse_inet_aton_part(c)?;
+            if a <= 0xff && b <= 0xff && c <= 0xffff {
+                Some(Ipv4Addr::from((a << 24) | (b << 16) | c))
+            } else {
+                None
+            }
+        }
+        [a, b, c, d] => {
+            let a = parse_inet_aton_part(a)?;
+            let b = parse_inet_aton_part(b)?;
+            let c = parse_inet_aton_part(c)?;
+            let d = parse_inet_aton_part(d)?;
+            if a <= 0xff && b <= 0xff && c <= 0xff && d <= 0xff {
+                Some(Ipv4Addr::from((a << 24) | (b << 16) | (c << 8) | d))
+            } else {
+                None
+            }
+        }
+        _ => None,
     }
-    None
 }
 
 fn is_forbidden_ipv4(ip: Ipv4Addr) -> bool {
@@ -264,6 +342,12 @@ fn is_forbidden_ipv4(ip: Ipv4Addr) -> bool {
         || ip.is_unspecified()
         // 100.64.0.0/10 CGNAT / shared address space
         || (octets[0] == 100 && (64..=127).contains(&octets[1]))
+        // 192.0.0.0/24 IETF protocol assignments
+        || (octets[0] == 192 && octets[1] == 0 && octets[2] == 0)
+        // 198.18.0.0/15 network benchmark testing
+        || (octets[0] == 198 && (18..=19).contains(&octets[1]))
+        // 240.0.0.0/4 reserved for future use
+        || octets[0] >= 240
 }
 
 fn is_forbidden_ipv6(ip: Ipv6Addr) -> bool {
@@ -274,6 +358,16 @@ fn is_forbidden_ipv6(ip: Ipv6Addr) -> bool {
     // IPv4-mapped (::ffff:a.b.c.d) or IPv4-compatible (::a.b.c.d) addresses
     if segments[..5] == [0, 0, 0, 0, 0] && (segments[5] == 0xffff || segments[5] == 0) {
         let mapped = Ipv4Addr::from((u32::from(segments[6]) << 16) | u32::from(segments[7]));
+        return is_forbidden_ipv4(mapped);
+    }
+    // NAT64 well-known prefix 64:ff9b::/96
+    if segments[..6] == [0x0064, 0xff9b, 0, 0, 0, 0] {
+        let mapped = Ipv4Addr::from((u32::from(segments[6]) << 16) | u32::from(segments[7]));
+        return is_forbidden_ipv4(mapped);
+    }
+    // 6to4 prefix 2002::/16 embedding an IPv4 address in segments[1..3]
+    if segments[0] == 0x2002 {
+        let mapped = Ipv4Addr::from((u32::from(segments[1]) << 16) | u32::from(segments[2]));
         return is_forbidden_ipv4(mapped);
     }
     // Unique local addresses fc00::/7 or link-local unicast fe80::/10
@@ -314,6 +408,20 @@ mod tests {
             "fc00::1",
             "localhost",
             "localhost.",
+            "localhost:8080",
+            "127.0.0.1:8080",
+            "127.1",
+            "127.0.1",
+            "192.168.1",
+            "0x7f.1",
+            "0177.1",
+            "0",
+            "[::1]:443",
+            "http://127.0.0.1/latest",
+            "https://example.com@127.0.0.1:8443/",
+            "file:///etc/passwd",
+            "64:ff9b::127.0.0.1",
+            "2002:7f00:1::1",
             "metadata.google.internal.",
             "/var/run/docker.sock",
             "unix:/tmp/.X11-unix/X0",

@@ -6,9 +6,13 @@ use spacetime_types::{
     SurfaceKind, Verdict, SCHEMA_VERSION,
 };
 use std::collections::BTreeMap;
+use std::ffi::OsString;
 use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static ATOMIC_SEQ: AtomicU64 = AtomicU64::new(0);
 
 pub fn genesis_hash() -> String {
     spacetime_types::sha256_hex(b"spacetime-ledger-v1")
@@ -21,9 +25,31 @@ pub fn head_path(path: &Path) -> PathBuf {
 }
 
 fn atomic_write(path: &Path, bytes: &[u8]) -> Result<()> {
-    let temporary = path.with_extension("tmp");
-    fs::write(&temporary, bytes)?;
-    fs::rename(&temporary, path)?;
+    let parent = match path.parent() {
+        Some(dir) if !dir.as_os_str().is_empty() => dir,
+        _ => Path::new("."),
+    };
+    let seq = ATOMIC_SEQ.fetch_add(1, Ordering::Relaxed);
+    let pid = std::process::id();
+    let mut name = path
+        .file_name()
+        .map(|os| os.to_os_string())
+        .unwrap_or_else(|| OsString::from("ledger"));
+    name.push(format!(".tmp.{pid}.{seq}"));
+    let temporary = parent.join(name);
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)?;
+    if let Err(error) = file.write_all(bytes).and_then(|()| file.flush()) {
+        drop(file);
+        let _ = fs::remove_file(&temporary);
+        return Err(error.into());
+    }
+    if let Err(error) = fs::rename(&temporary, path) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error.into());
+    }
     Ok(())
 }
 
@@ -208,17 +234,29 @@ impl Ledger {
         }
 
         let file = fs::File::open(path)?;
-        let reader = BufReader::new(file);
+        let mut reader = BufReader::with_capacity(64 * 1024, file);
         let mut prev = genesis_hash();
         let mut events = Vec::new();
+        let mut line = String::new();
+        let mut index = 0usize;
 
-        for (index, line_result) in reader.lines().enumerate() {
-            let line = line_result?;
+        loop {
+            line.clear();
+            if reader.read_line(&mut line)? == 0 {
+                break;
+            }
+            if line.ends_with('\n') {
+                line.pop();
+                if line.ends_with('\r') {
+                    line.pop();
+                }
+            }
             if line.trim().is_empty() {
                 return Err(SpacetimeError::new("blank ledger line"));
             }
             let event = Event::from_json_str(&line)?;
-            if line != event.to_json_string()? {
+            let (is_canonical, hash_ok) = event.verify_canonical_and_hash(&line)?;
+            if !is_canonical {
                 return Err(SpacetimeError::new("non-canonical ledger line"));
             }
             if event.schema_version != SCHEMA_VERSION {
@@ -234,11 +272,12 @@ impl Ledger {
             if event.prev_hash != prev {
                 return Err(SpacetimeError::new("ledger prev_hash chain mismatch"));
             }
-            if !event.verify_hash()? {
+            if !hash_ok {
                 return Err(SpacetimeError::new("ledger event hash mismatch"));
             }
             prev = event.hash.clone();
             events.push(event);
+            index += 1;
         }
 
         let count = u64::try_from(events.len())
