@@ -304,6 +304,8 @@ fn verify_transmutation_case(case_id: &str, variant: CandidateVariant) -> Result
     for index in 0..checks {
         let left = sample_input(index.wrapping_mul(2));
         let right = sample_input(index.wrapping_mul(2).wrapping_add(1));
+        let rot = (right % 64) as u32;
+        let bad_rot = (rot + 1) % 64;
         let matches = match (case_id, variant) {
             ("transform_bit_reverse", CandidateVariant::Passing) => {
                 reference_bit_reverse(left) == left.reverse_bits()
@@ -318,16 +320,16 @@ fn verify_transmutation_case(case_id: &str, variant: CandidateVariant) -> Result
                 reference_byte_swap(left) == (left.swap_bytes() ^ 0xff)
             }
             ("transform_rotate_left", CandidateVariant::Passing) => {
-                reference_rotate_left(left, right) == left.rotate_left((right % 64) as u32)
+                reference_rotate_left(left, right) == left.rotate_left(rot)
             }
             ("transform_rotate_left", CandidateVariant::PlantedBug) => {
-                reference_rotate_left(left, right) == left.rotate_left(((right + 1) % 64) as u32)
+                reference_rotate_left(left, right) == left.rotate_left(bad_rot)
             }
             ("transform_rotate_right", CandidateVariant::Passing) => {
-                reference_rotate_right(left, right) == left.rotate_right((right % 64) as u32)
+                reference_rotate_right(left, right) == left.rotate_right(rot)
             }
             ("transform_rotate_right", CandidateVariant::PlantedBug) => {
-                reference_rotate_right(left, right) == left.rotate_right(((right + 1) % 64) as u32)
+                reference_rotate_right(left, right) == left.rotate_right(bad_rot)
             }
             ("transform_saturating_add", CandidateVariant::Passing) => {
                 reference_saturating_add(left, right) == left.saturating_add(right)
