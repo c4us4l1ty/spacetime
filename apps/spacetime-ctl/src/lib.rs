@@ -1,9 +1,11 @@
-//! CLI supervisor for Spacetime Blocks 1-2.
+//! CLI supervisor for Spacetime (Blocks 1-12 offline slices).
 
 use spacetime_bench::{
-    baseline_profile, baseline_toml, bounded_resource_gate, target_profiles, ResourceGateStatus,
+    baseline_profile, baseline_toml, bounded_resource_gate, evaluate_provenance_gate,
+    target_profiles, ProvenanceGateStatus, ResourceGateStatus,
 };
 use spacetime_cortex::{Cortex, ScriptedCortex};
+use spacetime_exec::leak_audit::run_leak_audit;
 use spacetime_exec::{Runner, ScriptedRunner};
 use spacetime_ledger::{Ledger, LedgerState};
 use spacetime_types::{
@@ -19,15 +21,24 @@ use spacetime_verifier::{
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub use spacetime_bench;
+pub use spacetime_exec;
+pub use spacetime_types;
+
+pub mod airlock;
+pub mod cas;
 mod console;
 mod dashboard;
+pub mod distill;
 mod econbench;
 mod initramfs;
+pub mod memory;
+pub mod security;
 mod space;
 mod verify;
 pub mod workspace;
 
-const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
+const USAGE: &str = r#"spacetime-ctl — Spacetime Supervisor CLI
 
 Commands:
   run --task <file> --cortex scripted --ledger <file>
@@ -43,16 +54,26 @@ Commands:
   crucible fixture-population --runs <n>
   verify --out <file> [--measurement <file>]
   bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
+  bench harness --out <file>
   console --ledger <file> --out <file>
   dashboard [ledger-file]
   workspace
+  security redteam
+  audit leak
   space doctor
+  space init --dir <dir>
+  space memory-query --dir <dir> --q <query>
+  space branch --from <dir> --to <dir>
+  space collapse --dir <dir> --cas <dir> --name <name>
+  space export --dir <dir> --cas <dir> --name <name> --out <file>
+  space import --bundle <file> --dest <dir>
   space run --experimental --kernel <file> --busybox <file> [--app <file>]
   space boot --experimental --kernel <file> --initramfs <file>
   space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>
   machine
   machine profiles
   machine gate [--measurement <file>]
+  machine provenance --measurement <file> --provenance <file>
   digest <text>
   help
 "#;
@@ -96,6 +117,8 @@ pub fn run(args: &[String]) -> Result<()> {
         "console" => console::cmd_console(&args[1..]),
         "dashboard" => dashboard::cmd_dashboard(&args[1..]),
         "workspace" => workspace::cmd_ui(&args[1..]),
+        "security" => cmd_security(&args[1..]),
+        "audit" => cmd_audit(&args[1..]),
         "space" => space::cmd_space(&args[1..]),
         "machine" => cmd_machine(&args[1..]),
         "digest" => {
@@ -609,12 +632,72 @@ fn cmd_replay(path: &str) -> Result<()> {
     Ok(())
 }
 
+fn cmd_security(args: &[String]) -> Result<()> {
+    let subcommand = args
+        .first()
+        .map(String::as_str)
+        .ok_or_else(|| SpacetimeError::new("missing security subcommand"))?;
+    match subcommand {
+        "redteam" => {
+            let report = security::run_redteam_suite()?;
+            println!(
+                "redteam_total={} redteam_blocked={} redteam_leaked={}",
+                report.total, report.blocked, report.leaked
+            );
+            for scenario in &report.scenarios {
+                println!(
+                    "scenario={} blocked={} detail=\"{}\"",
+                    scenario.id, scenario.blocked, scenario.detail
+                );
+            }
+            if report.leaked > 0 {
+                return Err(SpacetimeError::new("red-team vector leaked"));
+            }
+            Ok(())
+        }
+        _ => Err(SpacetimeError::new(format!(
+            "unknown security subcommand: {subcommand}"
+        ))),
+    }
+}
+
+fn cmd_audit(args: &[String]) -> Result<()> {
+    let subcommand = args
+        .first()
+        .map(String::as_str)
+        .ok_or_else(|| SpacetimeError::new("missing audit subcommand"))?;
+    match subcommand {
+        "leak" => {
+            let audit = run_leak_audit(None);
+            println!(
+                "zero_traces_claimed={} dumpable_or_core_checked={} core_dump_disabled_in_status={} swap_active={} shader_disk_cache_disabled_in_env={} no_spacetime_thumbnails_on_disk={}",
+                audit.zero_traces_claimed,
+                audit.dumpable_or_core_checked,
+                audit.core_dump_disabled_in_status,
+                audit.swap_active,
+                audit.shader_disk_cache_disabled_in_env,
+                audit.no_spacetime_thumbnails_on_disk
+            );
+            for note in &audit.residual_risk_notes {
+                println!("note={note}");
+            }
+            Ok(())
+        }
+        _ => Err(SpacetimeError::new(format!(
+            "unknown audit subcommand: {subcommand}"
+        ))),
+    }
+}
+
 fn cmd_machine(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("gate") {
         return cmd_machine_gate(&args[1..]);
     }
     if args.first().map(String::as_str) == Some("profiles") {
         return cmd_machine_profiles(&args[1..]);
+    }
+    if args.first().map(String::as_str) == Some("provenance") {
+        return cmd_machine_provenance(&args[1..]);
     }
     if let Some(argument) = args.first() {
         return Err(SpacetimeError::new(format!(
@@ -623,6 +706,31 @@ fn cmd_machine(args: &[String]) -> Result<()> {
     }
     let baseline = baseline_toml()?;
     print!("{baseline}");
+    Ok(())
+}
+
+fn cmd_machine_provenance(args: &[String]) -> Result<()> {
+    let measurement = flag(args, "--measurement")?;
+    let provenance = flag(args, "--provenance")?;
+    let eval = evaluate_provenance_gate(
+        Some(Path::new(&measurement)),
+        Some(Path::new(&provenance)),
+    );
+    println!(
+        "provenance_gate={} target_profile={} measurement_digest={} provenance_digest={}",
+        eval.status.as_str(),
+        eval.target_profile,
+        eval.measurement_digest,
+        eval.provenance_digest
+    );
+    for reason in &eval.reasons {
+        println!("reason={reason}");
+    }
+    if matches!(eval.status, ProvenanceGateStatus::Rejected) {
+        return Err(SpacetimeError::new(
+            "provenance gate rejected measurement or attestation bundle",
+        ));
+    }
     Ok(())
 }
 
@@ -711,7 +819,7 @@ fn optional_flag(args: &[String], name: &str) -> Result<Option<String>> {
     Ok(found)
 }
 
-fn flag(args: &[String], name: &str) -> Result<String> {
+pub(crate) fn flag(args: &[String], name: &str) -> Result<String> {
     let mut indices = args
         .iter()
         .enumerate()

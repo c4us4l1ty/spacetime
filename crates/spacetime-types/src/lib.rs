@@ -1,6 +1,10 @@
-//! Core versioned types for Spacetime Block 1.
+//! Core versioned types for Spacetime.
 //!
 //! This crate is deliberately small: no async runtime, no GUI, no network client, and no model SDK.
+
+pub mod policy;
+pub mod supervisor;
+pub mod surface;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -66,6 +70,17 @@ pub fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>> {
 pub fn canonical_json_string<T: Serialize>(value: &T) -> Result<String> {
     let value = serde_json::to_value(value)?;
     Ok(serde_json::to_string(&value)?)
+}
+
+pub fn to_json_pretty<T: Serialize>(value: &T) -> Result<String> {
+    let value = serde_json::to_value(value)?;
+    let mut out = serde_json::to_string_pretty(&value)?;
+    out.push('\n');
+    Ok(out)
+}
+
+pub fn from_json_str<T: serde::de::DeserializeOwned>(text: &str) -> Result<T> {
+    Ok(serde_json::from_str(text)?)
 }
 
 macro_rules! string_id {
@@ -322,11 +337,38 @@ pub struct WorkspaceBinding {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum ActionOp {
-    ProduceEvidence { evidence: String },
-    Echo { text: String },
-    Sleep { milliseconds: u64 },
-    ClaimDone { expected_digest: Option<String> },
-    Flaky { token: String },
+    ProduceEvidence {
+        evidence: String,
+    },
+    Echo {
+        text: String,
+    },
+    Sleep {
+        milliseconds: u64,
+    },
+    ClaimDone {
+        expected_digest: Option<String>,
+    },
+    Flaky {
+        token: String,
+    },
+    UiSetField {
+        field: String,
+        value: String,
+        secret: bool,
+    },
+    IrreversibleEffect {
+        effect: String,
+        target: String,
+    },
+    SpendFakeCredits {
+        amount: u64,
+        recipient: String,
+    },
+    RunOperator {
+        operator_id: String,
+        input: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -543,5 +585,34 @@ mod tests {
         for (index, source) in VERIFIER_SOURCE_PRIORITY.iter().enumerate() {
             assert_eq!(source.priority(), (index + 1) as u8);
         }
+    }
+
+    #[test]
+    fn policy_and_surface_types_enforce_invariants() -> Result<()> {
+        assert_eq!(
+            policy::VaultHandle::parse_symbolic("@vault:yt_api_key"),
+            Some("yt_api_key")
+        );
+        assert_eq!(policy::VaultHandle::parse_symbolic("@vault:bad key"), None);
+        assert!(policy::taint_is_untrusted(Taint::UntrustedWeb));
+        assert!(!policy::taint_is_untrusted(Taint::TrustedUser));
+        assert_eq!(
+            policy::join_taint(Taint::TrustedUser, Taint::UntrustedWeb),
+            Taint::UntrustedWeb
+        );
+        assert!(surface::CasProvenanceTier::UpstreamSigned.globally_shareable());
+        assert!(surface::CasProvenanceTier::ReproBuilt.globally_shareable());
+        assert!(!surface::CasProvenanceTier::TabLocal.globally_shareable());
+        assert!(!surface::CasProvenanceTier::Quarantined.globally_shareable());
+
+        let steering = supervisor::SteeringMessage {
+            id: "s1".to_string(),
+            text: "focus".to_string(),
+            created_turn: 2,
+            ttl_turns: 3,
+        };
+        assert!(!steering.is_expired(4));
+        assert!(steering.is_expired(5));
+        Ok(())
     }
 }

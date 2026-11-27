@@ -113,17 +113,26 @@ cargo run -p spacetime-ctl -- machine gate
 cargo run -p spacetime-ctl -- verify --out target/verify.toml
 cargo run -p spacetime-ctl -- verify --out target/verify.toml --measurement <file>
 cargo run -p spacetime-ctl -- bench run --arm A --model scripted-fixture --budget 1000 --out target/econbench-A.json
+cargo run -p spacetime-ctl -- bench harness --out target/harness.json
+cargo run -p spacetime-ctl -- security redteam
+cargo run -p spacetime-ctl -- audit leak
 cargo run -p spacetime-ctl -- console --ledger bench/econbench/sample-ledger.jsonl --out target/console-report.json
 # Optional local preview of the static review artifact only (no product backend or web app).
 python3 -m http.server 8000 --bind 0.0.0.0 --directory apps/spacetime-console
 bash bench/measurements/capture-host-facts.sh --list-profiles
 ```
 
-`verify --out` runs 28 offline gates end to end and writes a TOML-style report; the 26th gate
-checks the explicit target-profile registry, the 27th checks the offline EconBench seed, and the
-28th checks the static console report. The optional bounded `verify --measurement <file>` path
-evaluates a measurement file against its selected profile for the report without ever promoting
-file shape to a measured resource gate.
+`verify --out` runs 39 offline gates end to end and writes a TOML-style report covering Blocks 1–3
+and the offline software slices across Blocks 4–12 (EconBench planted-bug rejection + bounties
+consistency, provenance-consuming gate contract, population-per-turn cycler + A/B/C harness, `.space`
+supervisor + BM25 3-layer memory, Ring -3 policy + vault + 10-vector red-team suite, Tier 1 WASI
++ Tier 2 Ark + active `net=none` listener probe, `ResourceGovernor` + read-only `SurfaceBroker`,
+quarantine upperdir autopsy + leak audit, `.wavefunction` CAS + `Collapse` + branching/export/import,
+egress broker + clipboard/file airlock, and operator drift quarantine + protocol distillation). The
+optional bounded `verify --measurement <file>` path and `machine provenance` check measurement/attestation
+bundles without ever promoting synthetic or CI inputs to a measured 4 GB gate (`resource_gate =
+"unmeasured_target_4gb"` and `performance_claims = "unmeasured"` remain until physical evidence on
+a recorded target is attested).
 `crucible panel` resolves five independent verifier sources conservatively; `crucible adversarial`
 runs twenty offline model-authored fixtures; `crucible population` uses synthetic operators, and
 `crucible fixture-population` reruns 26 real declared-oracle fixtures 50 times each. Both population
@@ -154,20 +163,22 @@ attestation is committed. `resource_gate = "unmeasured_target_4gb"` and
 `performance_claims = "unmeasured"` remain.
 
 PR #11 merged the exploratory profiler and target-intake preparation to `main` at
-`a6a722efb1068ef04861035c0e89657c49e37f41`. The active branch `arena/3f609a12-spacetime` (based
-on that commit) is hardening differential verification and adding a process-local mock-economy
-primitive with atomic, idempotent fake-credit transfers. These are verification and library slices;
-they do not implement the full EconBench task pack or measure the native workspace, cold startup,
-tab switching, snapshots, or physical provenance, and cannot mark any resource gate as passed. PR
-#11's strict CI evidence is recorded in the pull request checks.
+`a6a722efb1068ef04861035c0e89657c49e37f41`. Branch `arena/4ac485f0-spacetime` (from `f67f0ed2`)
+completes the offline Block 3 EconBench planted-bug rejection, `bounties.json` consistency,
+provenance-consuming gate contract, and the offline pure-Rust/Linux slices across Blocks 4–12
+(including the multi-tab `spacetime-gui` mixed-workspace shell with RAM-only `SnapshotOnAction`
+textures and Ring -3 telemetry), while explicitly keeping `resource_gate = "unmeasured_target_4gb"`
+and `performance_claims = "unmeasured"` pending physical target measurement.
 
 See `BUILD-PLAN.md` for the blocked roadmap, `docs/ADR-0001-block1.md` for Block 1 decisions,
 `docs/ADR-0002-block2.md` for the Block 2 boundary, `docs/ADR-0003-target-profiles.md` for the
 public target-profile decision, `docs/ADR-0004-block3-offline-console.md` for the offline Block 3
 prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profiler,
 `docs/TARGET-MEASUREMENT-READINESS.md` for target-side host-facts collection,
-`docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction, and
-`docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules.
+`docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction,
+`docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules,
+`docs/ADR-0008-econbench-domain-verifiers.md` for domain verifiers, and
+`docs/ADR-0009-blocks-3-to-12-offline-slices.md` for the Blocks 3–12 offline architecture.
 
 ## Experimental native window
 

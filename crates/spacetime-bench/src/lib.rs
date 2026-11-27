@@ -366,6 +366,210 @@ pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateInta
     intake
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProvenanceGateStatus {
+    Unmeasured,
+    VerifiedTarget4Gb,
+    VerifiedOptionalProfileBaselinePending,
+    Rejected,
+}
+
+impl ProvenanceGateStatus {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Unmeasured => "unmeasured_target_4gb",
+            Self::VerifiedTarget4Gb => "measured_target_4gb",
+            Self::VerifiedOptionalProfileBaselinePending => "measured_optional_baseline_pending",
+            Self::Rejected => "rejected",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProvenanceRecord {
+    pub target_profile: String,
+    pub measurement_host: String,
+    pub measurement_sha256: String,
+    pub host_facts_sha256: String,
+    pub hardware_model: String,
+    pub installed_ram_mb: u64,
+    pub capture_utc: String,
+    pub operator: String,
+    pub reviewer: String,
+    pub workload_protocol: String,
+    pub baseline_4gb_evidence_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProvenanceGateEvaluation {
+    pub status: ProvenanceGateStatus,
+    pub measurement_digest: String,
+    pub provenance_digest: String,
+    pub target_profile: String,
+    pub reasons: Vec<String>,
+}
+
+fn is_valid_hex64(digest: &str) -> bool {
+    digest.len() == 64
+        && digest.bytes().all(|b| b.is_ascii_hexdigit())
+        && !digest.bytes().all(|b| b == b'0')
+}
+
+fn has_disallowed_marker(value: &str) -> bool {
+    let lower = value.trim().to_ascii_lowercase();
+    lower.is_empty()
+        || lower.contains("<fill")
+        || lower == "pending"
+        || lower == "none"
+        || lower == "unspecified"
+        || lower == "unknown"
+        || NON_TARGET_HOST_MARKERS.iter().any(|m| lower.contains(m))
+}
+
+/// Evaluate a measurement file paired with an out-of-band provenance attestation record.
+/// Without both a passing measurement and a consistent, non-synthetic provenance bundle, the
+/// baseline 4 GB gate remains unmeasured (`ProvenanceGateStatus::Unmeasured` / `Rejected`).
+pub fn evaluate_provenance_gate(
+    measurement_path: Option<&Path>,
+    provenance_path: Option<&Path>,
+) -> ProvenanceGateEvaluation {
+    let intake = resource_gate_intake(measurement_path);
+    let Some(prov_path) = provenance_path else {
+        return ProvenanceGateEvaluation {
+            status: ProvenanceGateStatus::Unmeasured,
+            measurement_digest: intake.digest,
+            provenance_digest: "none".to_string(),
+            target_profile: intake.target_profile,
+            reasons: vec!["no provenance bundle supplied; resource_gate stays unmeasured".to_string()],
+        };
+    };
+
+    if intake.status != ResourceGateStatus::Pass || !intake.file_supplied {
+        return ProvenanceGateEvaluation {
+            status: ProvenanceGateStatus::Rejected,
+            measurement_digest: intake.digest,
+            provenance_digest: "unavailable".to_string(),
+            target_profile: intake.target_profile,
+            reasons: intake.reasons,
+        };
+    }
+
+    let raw = match read_bounded_measurement(prov_path) {
+        Ok(text) => text,
+        Err(reason) => {
+            return ProvenanceGateEvaluation {
+                status: ProvenanceGateStatus::Rejected,
+                measurement_digest: intake.digest,
+                provenance_digest: "unavailable".to_string(),
+                target_profile: intake.target_profile,
+                reasons: vec![reason],
+            };
+        }
+    };
+    let provenance_digest = sha256_hex(raw.as_bytes());
+    let mut kv = BTreeMap::new();
+    for line in raw.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let Some((k, v)) = trimmed.split_once('=') else {
+            return ProvenanceGateEvaluation {
+                status: ProvenanceGateStatus::Rejected,
+                measurement_digest: intake.digest,
+                provenance_digest,
+                target_profile: intake.target_profile,
+                reasons: vec!["provenance line is not key=value".to_string()],
+            };
+        };
+        if kv.insert(k.trim().to_string(), v.trim().to_string()).is_some() {
+            return ProvenanceGateEvaluation {
+                status: ProvenanceGateStatus::Rejected,
+                measurement_digest: intake.digest,
+                provenance_digest,
+                target_profile: intake.target_profile,
+                reasons: vec!["duplicate provenance key".to_string()],
+            };
+        }
+    }
+
+    let mut reasons = Vec::new();
+    if kv.get("schema_version").map(String::as_str) != Some("1") {
+        reasons.push("provenance schema_version must equal 1".to_string());
+    }
+    let prov_profile = kv.get("target_profile").cloned().unwrap_or_default();
+    if prov_profile != intake.target_profile {
+        reasons.push("provenance target_profile does not match measurement file".to_string());
+    }
+    let meas_sha = kv.get("measurement_sha256").map(String::as_str).unwrap_or("");
+    if !is_valid_hex64(meas_sha) || meas_sha != intake.digest {
+        reasons.push("provenance measurement_sha256 does not match measurement digest".to_string());
+    }
+    let facts_sha = kv.get("host_facts_sha256").map(String::as_str).unwrap_or("");
+    if !is_valid_hex64(facts_sha) {
+        reasons.push("provenance host_facts_sha256 must be a valid non-zero sha256".to_string());
+    }
+    for required_field in [
+        "measurement_host",
+        "hardware_model",
+        "capture_utc",
+        "operator",
+        "reviewer",
+        "workload_protocol",
+    ] {
+        let val = kv.get(required_field).map(String::as_str).unwrap_or("");
+        if has_disallowed_marker(val) {
+            reasons.push(format!(
+                "provenance field {required_field} is missing or contains placeholder/non-target marker"
+            ));
+        }
+    }
+    if kv
+        .get("operator")
+        .zip(kv.get("reviewer"))
+        .is_some_and(|(op, rev)| op.eq_ignore_ascii_case(rev))
+    {
+        reasons.push("provenance operator and reviewer must be distinct".to_string());
+    }
+    match kv
+        .get("installed_ram_mb")
+        .and_then(|v| v.parse::<u64>().ok())
+    {
+        Some(mb) if mb >= 1024 => {}
+        _ => {
+            reasons.push("provenance installed_ram_mb must be an integer >= 1024".to_string());
+        }
+    }
+
+    if !reasons.is_empty() {
+        return ProvenanceGateEvaluation {
+            status: ProvenanceGateStatus::Rejected,
+            measurement_digest: intake.digest,
+            provenance_digest,
+            target_profile: intake.target_profile,
+            reasons,
+        };
+    }
+
+    let status = if intake.target_profile == BASELINE_TARGET_PROFILE
+        || kv
+            .get("baseline_4gb_evidence_sha256")
+            .is_some_and(|h| is_valid_hex64(h))
+    {
+        ProvenanceGateStatus::VerifiedTarget4Gb
+    } else {
+        ProvenanceGateStatus::VerifiedOptionalProfileBaselinePending
+    };
+
+    ProvenanceGateEvaluation {
+        status,
+        measurement_digest: intake.digest,
+        provenance_digest,
+        target_profile: intake.target_profile,
+        reasons,
+    }
+}
+
 fn read_bounded_measurement(path: &Path) -> std::result::Result<String, String> {
     let metadata = match fs::metadata(path) {
         Ok(metadata) => metadata,
@@ -779,6 +983,41 @@ mod tests {
         assert_eq!(gate.baseline_profile, BASELINE_TARGET_PROFILE);
         assert_eq!(gate.profile_role, ProfileRole::OptionalProfile);
         assert_eq!(gate.memory_budget_kb, 8 * 1024 * 1024);
+        Ok(())
+    }
+
+    #[test]
+    fn provenance_gate_requires_matching_digest_and_attestation() -> Result<()> {
+        let meas_content = "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n";
+        let meas_path = temp_measurement("prov-meas", meas_content)?;
+        let meas_sha = sha256_hex(meas_content.as_bytes());
+        let facts_sha = sha256_hex(b"real-dmi-capture");
+
+        // Missing provenance stays unmeasured.
+        let unmeasured = evaluate_provenance_gate(Some(meas_path.as_path()), None);
+        assert_eq!(unmeasured.status, ProvenanceGateStatus::Unmeasured);
+
+        // Wrong measurement sha rejects.
+        let bad_prov_path = temp_measurement(
+            "prov-bad",
+            &format!("schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\nmeasurement_sha256={}\nhost_facts_sha256={facts_sha}\nhardware_model=Acer-Aspire-ES1\ninstalled_ram_mb=4096\ncapture_utc=2026-11-27T10:00:00Z\noperator=alice\nreviewer=bob\nworkload_protocol=mixed-workspace-v1\n", "f".repeat(64)),
+        )?;
+        let rejected =
+            evaluate_provenance_gate(Some(meas_path.as_path()), Some(bad_prov_path.as_path()));
+        let _ = fs::remove_file(&bad_prov_path);
+        assert_eq!(rejected.status, ProvenanceGateStatus::Rejected);
+
+        // Matching provenance verifies.
+        let ok_prov_path = temp_measurement(
+            "prov-ok",
+            &format!("schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\nmeasurement_sha256={meas_sha}\nhost_facts_sha256={facts_sha}\nhardware_model=Acer-Aspire-ES1\ninstalled_ram_mb=4096\ncapture_utc=2026-11-27T10:00:00Z\noperator=alice\nreviewer=bob\nworkload_protocol=mixed-workspace-v1\n"),
+        )?;
+        let verified =
+            evaluate_provenance_gate(Some(meas_path.as_path()), Some(ok_prov_path.as_path()));
+        let _ = fs::remove_file(&ok_prov_path);
+        let _ = fs::remove_file(&meas_path);
+        assert_eq!(verified.status, ProvenanceGateStatus::VerifiedTarget4Gb);
+        assert_eq!(verified.status.as_str(), "measured_target_4gb");
         Ok(())
     }
 }

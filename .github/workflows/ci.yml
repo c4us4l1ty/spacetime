@@ -143,7 +143,7 @@ jobs:
           grep -q 'atomic=true overdraft_rejected=true idempotent=true hash_chain=verified' target/verify.toml
           grep -q 'name = "block1_happy"' target/verify.toml
           grep -q 'name = "crucible_flaky_family"' target/verify.toml
-          grep -q '^gates = 29$' target/verify.toml
+          grep -q '^gates = 39$' target/verify.toml
           grep -q 'name = "determinism_controls"' target/verify.toml
           grep -q 'name = "capability_enforcement"' target/verify.toml
           grep -q 'name = "cli_input_validation"' target/verify.toml
@@ -180,6 +180,38 @@ jobs:
           grep -q '^measurement_evaluator = "none"$' target/verify.toml
           grep -q '^measurement_digest = "none"$' target/verify.toml
           grep -q 'no measurement file supplied' target/verify.toml
+          grep -q 'name = "econbench_planted_bugs_and_bounties"' target/verify.toml
+          grep -q 'name = "provenance_gate_contract"' target/verify.toml
+          grep -q 'name = "population_cycler_and_abc_harness"' target/verify.toml
+          grep -q 'name = "space_supervisor_bm25_memory"' target/verify.toml
+          grep -q 'name = "ring3_policy_vault_redteam"' target/verify.toml
+          grep -q 'name = "tier1_wasi_tier2_ark_net_none"' target/verify.toml
+          grep -q 'name = "resource_governor_and_surface_broker"' target/verify.toml
+          grep -q 'name = "quarantine_autopsy_and_leak_audit"' target/verify.toml
+          grep -q 'name = "wavefunction_cas_branch_export"' target/verify.toml
+          grep -q 'name = "egress_airlock_and_distillation"' target/verify.toml
+
+      - name: Blocks 4-12 offline CLI smoke
+        run: |
+          cargo run --release --locked -p spacetime-ctl -- security redteam > target/redteam.txt
+          grep -q 'redteam_total=10 redteam_blocked=10 redteam_leaked=0' target/redteam.txt
+          cargo run --release --locked -p spacetime-ctl -- audit leak > target/leak.txt
+          grep -q 'zero_traces_claimed=false' target/leak.txt
+          cargo run --release --locked -p spacetime-ctl -- bench harness --out target/harness.json
+          python3 - <<'PY'
+          import json
+          h = json.load(open('target/harness.json'))
+          assert h['resource_gate'] == 'unmeasured_target_4gb'
+          assert h['performance_claims'] == 'unmeasured'
+          assert len(h['arms']) == 3
+          PY
+          rm -rf target/ci-space target/ci-space-branch target/ci-cas target/ci-space-import target/ci-bundle.json
+          cargo run --release --locked -p spacetime-ctl -- space init --dir target/ci-space
+          cargo run --release --locked -p spacetime-ctl -- space branch --from target/ci-space --to target/ci-space-branch
+          cargo run --release --locked -p spacetime-ctl -- space collapse --dir target/ci-space --cas target/ci-cas --name snap1
+          cargo run --release --locked -p spacetime-ctl -- space export --dir target/ci-space --cas target/ci-cas --name snap1 --out target/ci-bundle.json
+          cargo run --release --locked -p spacetime-ctl -- space import --bundle target/ci-bundle.json --dest target/ci-space-import
+          cargo run --release --locked -p spacetime-ctl -- space memory-query --dir target/ci-space --q goal
 
       - name: Measurement intake smoke
         run: |
@@ -187,7 +219,7 @@ jobs:
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-ci-host.toml --measurement target/ci-host.measurement > target/verify-ci-host.stdout
           cat target/verify-ci-host.toml
           grep -q '^status = "pass"$' target/verify-ci-host.toml
-          grep -q '^gates = 29$' target/verify-ci-host.toml
+          grep -q '^gates = 39$' target/verify-ci-host.toml
           grep -q '^measurement_intake = "evaluated"$' target/verify-ci-host.toml
           grep -q '^measurement_evaluator = "unmeasured"$' target/verify-ci-host.toml
           grep -q '^resource_gate = "unmeasured_target_4gb"$' target/verify-ci-host.toml
@@ -220,7 +252,7 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- machine gate --measurement target/duplicate-host.measurement
           printf 'schema_version=1\ntarget_profile=8gb_reference\nmeasurement_host=public-target-lab\npeak_rss_kb=6000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n' > target/public-profile.measurement
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify-public.toml --measurement target/public-profile.measurement > target/verify-public.stdout
-          grep -q '^gates = 29$' target/verify-public.toml
+          grep -q '^gates = 39$' target/verify-public.toml
           grep -q '^target_profile = "8gb_reference"$' target/verify-public.toml
           grep -q '^baseline_target_profile = "4gb_potato"$' target/verify-public.toml
           grep -q '^target_profile_registry = 3$' target/verify-public.toml

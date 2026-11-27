@@ -13,6 +13,10 @@ fn action_name(action: &ActionOp) -> &'static str {
         ActionOp::Sleep { .. } => "sleep",
         ActionOp::ClaimDone { .. } => "claim done",
         ActionOp::Flaky { .. } => "flaky fixture",
+        ActionOp::UiSetField { .. } => "ui set field",
+        ActionOp::IrreversibleEffect { .. } => "irreversible effect",
+        ActionOp::SpendFakeCredits { .. } => "spend fake credits",
+        ActionOp::RunOperator { .. } => "run operator",
     }
 }
 

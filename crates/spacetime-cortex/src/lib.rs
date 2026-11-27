@@ -1,6 +1,9 @@
-//! Deterministic scripted Cortex for Spacetime Block 1.
+//! Deterministic scripted Cortex and adapter/population boundaries for Spacetime.
 //!
-//! No API keys, browser, web chat, or network calls exist in this adapter.
+//! No API keys, browser, web chat, or network calls exist in this crate.
+
+pub mod adapters;
+pub mod population;
 
 use spacetime_ledger::LedgerState;
 use spacetime_types::{
@@ -216,6 +219,23 @@ fn parse_action_line(
         },
         "flaky" => ActionOp::Flaky {
             token: required(&fields, "token")?.to_string(),
+        },
+        "ui_set_field" => ActionOp::UiSetField {
+            field: required(&fields, "field")?.to_string(),
+            value: required(&fields, "value")?.to_string(),
+            secret: fields.get("secret").is_some_and(|v| *v == "true"),
+        },
+        "irreversible_effect" => ActionOp::IrreversibleEffect {
+            effect: required(&fields, "effect")?.to_string(),
+            target: required(&fields, "target")?.to_string(),
+        },
+        "spend_fake_credits" => ActionOp::SpendFakeCredits {
+            amount: required(&fields, "amount")?.parse::<u64>()?,
+            recipient: required(&fields, "recipient")?.to_string(),
+        },
+        "run_operator" => ActionOp::RunOperator {
+            operator_id: required(&fields, "operator_id")?.to_string(),
+            input: required(&fields, "input")?.to_string(),
         },
         _ => return Err(SpacetimeError::new(format!("unknown action: {name}"))),
     };

@@ -35,6 +35,10 @@ fn action_label(op: &ActionOp) -> &'static str {
         ActionOp::Sleep { .. } => "sleep",
         ActionOp::ClaimDone { .. } => "claim_done",
         ActionOp::Flaky { .. } => "flaky",
+        ActionOp::UiSetField { .. } => "ui_set_field",
+        ActionOp::IrreversibleEffect { .. } => "irreversible_effect",
+        ActionOp::SpendFakeCredits { .. } => "spend_fake_credits",
+        ActionOp::RunOperator { .. } => "run_operator",
     }
 }
 

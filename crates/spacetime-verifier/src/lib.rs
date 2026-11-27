@@ -116,7 +116,11 @@ impl Verifier for FixtureVerifier {
             ActionOp::ProduceEvidence { .. }
             | ActionOp::Echo { .. }
             | ActionOp::Sleep { .. }
-            | ActionOp::Flaky { .. } => proof(
+            | ActionOp::Flaky { .. }
+            | ActionOp::UiSetField { .. }
+            | ActionOp::IrreversibleEffect { .. }
+            | ActionOp::SpendFakeCredits { .. }
+            | ActionOp::RunOperator { .. } => proof(
                 FIXTURE_VERIFIER_ID,
                 Verdict::Pass,
                 observation.digest.clone(),
