@@ -125,7 +125,7 @@ def read_vm_hwm_kb(pid: int) -> int | None:
         for line in Path(f"/proc/{pid}/status").read_text(encoding="ascii").splitlines():
             if line.startswith("VmHWM:"):
                 fields = line.split()
-                if len(fields) >= 2 and fields[2] == "kB":
+                if len(fields) >= 3 and fields[2] == "kB":
                     return int(fields[1])
     except (OSError, UnicodeError, ValueError, IndexError):
         return None

@@ -148,10 +148,11 @@ impl SurfaceBroker {
         }
         self.active_workspace = Some(workspace_id.to_string());
         // Refresh RAM snapshot immediately upon switching to an active non-terminal tab.
-        let needs_refresh = self
-            .surfaces
-            .get(workspace_id)
-            .is_some_and(|state| state.descriptor.surface_kind != SurfaceKind::Terminal);
+        let needs_refresh = self.surfaces.get(workspace_id).is_some_and(|state| {
+            state.descriptor.surface_kind != SurfaceKind::Terminal
+                && state.descriptor.liveness != LivenessState::Dead
+                && state.descriptor.preview_mode != PreviewMode::Headless
+        });
         if needs_refresh {
             self.capture_ram_snapshot(workspace_id, "tab switch refresh", "tab-switch")?;
         }
@@ -241,7 +242,15 @@ impl SurfaceBroker {
         }
         state.frames.clear();
         if self.active_workspace.as_deref() == Some(workspace_id) {
-            self.active_workspace = self.surfaces.keys().next().cloned();
+            let next_active = self.surfaces.keys().next().cloned();
+            if let Some(ref next_id) = next_active {
+                if let Some(next_state) = self.surfaces.get_mut(next_id) {
+                    if next_state.descriptor.liveness != LivenessState::Dead {
+                        next_state.descriptor.liveness = LivenessState::Rendering;
+                    }
+                }
+            }
+            self.active_workspace = next_active;
         }
         Ok(())
     }
@@ -415,10 +424,16 @@ fn fill_rect(
 ) {
     let max_y = y.saturating_add(rect_h).min(height);
     let max_x = x.saturating_add(rect_w).min(width);
+    if y >= max_y || x >= max_x {
+        return;
+    }
+    let row_start_byte = x * 4;
+    let row_end_byte = max_x * 4;
     for py in y..max_y {
-        for px in x..max_x {
-            let offset = (py * width + px) * 4;
-            rgba[offset..offset + 4].copy_from_slice(&color);
+        let row_offset = py * width * 4;
+        let row = &mut rgba[row_offset + row_start_byte..row_offset + row_end_byte];
+        for pixel in row.chunks_exact_mut(4) {
+            pixel.copy_from_slice(&color);
         }
     }
 }
@@ -541,6 +556,25 @@ mod tests {
 
         broker.close_workspace("ws-ai-upload")?;
         assert!(broker.reader().descriptor("ws-ai-upload").is_none());
+        assert_eq!(
+            broker
+                .reader()
+                .descriptor("ws-human-terminal")
+                .map(|d| d.liveness),
+            Some(LivenessState::Rendering)
+        );
+
+        broker.register_workspace(WorkspaceSurfaceDescriptor {
+            workspace_id: WorkspaceId::new("ws-headless"),
+            surface_id: SurfaceId::new("surface-headless"),
+            surface_kind: SurfaceKind::Framebuffer,
+            trust_tier: TrustTier::ArkCell,
+            egress_class: EgressClass::None,
+            preview_mode: PreviewMode::Headless,
+            liveness: LivenessState::Running,
+            shared_ark_kernel: true,
+        })?;
+        assert!(broker.switch_active_tab("ws-headless")?.is_none());
         Ok(())
     }
 }

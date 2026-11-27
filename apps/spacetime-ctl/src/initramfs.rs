@@ -98,6 +98,19 @@ fn validate_elf(data: &[u8], name: &str) -> Result<()> {
     Ok(())
 }
 
+fn push_hex_u32(out: &mut Vec<u8>, val: u32) {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut buf = [0u8; 8];
+    let mut i = 8;
+    let mut v = val;
+    while i > 0 {
+        i -= 1;
+        buf[i] = HEX[(v & 0xf) as usize];
+        v >>= 4;
+    }
+    out.extend_from_slice(&buf);
+}
+
 // Archive entries have deterministic metadata and 4-byte-aligned headers, names and contents.
 fn entry(archive: &mut Vec<u8>, name: &str, mode: u32, contents: &[u8], rdev: (u32, u32)) {
     let name_len = name.len() + 1;
@@ -118,7 +131,7 @@ fn entry(archive: &mut Vec<u8>, name: &str, mode: u32, contents: &[u8], rdev: (u
     ];
     archive.extend_from_slice(b"070701");
     for field in fields {
-        archive.extend_from_slice(format!("{field:08x}").as_bytes());
+        push_hex_u32(archive, field);
     }
     archive.extend_from_slice(name.as_bytes());
     archive.push(0);
@@ -136,7 +149,8 @@ fn build_archive(busybox: &[u8], app: Option<&[u8]>) -> Result<Vec<u8>> {
     if let Some(app) = app {
         validate_elf(app, "app")?;
     }
-    let mut archive = Vec::new();
+    let payload_bytes = busybox.len() + app.map_or(0, <[u8]>::len);
+    let mut archive = Vec::with_capacity(payload_bytes + 8 * 1024);
     for dir in ["bin", "dev", "proc", "sys", "tmp"] {
         entry(&mut archive, dir, 0o040755, &[], (0, 0));
     }
@@ -168,7 +182,7 @@ fn read_binary(path: &Path, name: &str) -> Result<Vec<u8>> {
             "{name} must be a regular file no larger than 32 MiB"
         )));
     }
-    let mut data = Vec::new();
+    let mut data = Vec::with_capacity(metadata.len() as usize);
     source.take(MAX_BUSYBOX + 1).read_to_end(&mut data)?;
     if data.len() as u64 > MAX_BUSYBOX {
         return Err(SpacetimeError::new(format!("{name} is larger than 32 MiB")));

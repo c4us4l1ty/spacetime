@@ -3,7 +3,7 @@
 //! This is a functional prototype over scripted local fixtures. It makes no resource,
 //! performance, model-efficacy, or real-economy claim. Arms A/B/C are harness metadata only.
 
-use crate::{crucible_inputs, ensure_flag_value};
+use crate::crucible_inputs_from_cortex;
 use serde_json::{json, Value};
 use spacetime_bench::econbench::verify_task_case;
 use spacetime_bench::{baseline_profile, target_profiles};
@@ -77,7 +77,7 @@ fn parse_bench_run(args: &[String]) -> Result<BenchArgs> {
         let value = args
             .get(index + 1)
             .ok_or_else(|| SpacetimeError::new(format!("missing value for {flag}")))?;
-        ensure_flag_value(flag.as_str(), value.as_str())?;
+        crate::ensure_flag_value(flag.as_str(), value.as_str())?;
         if !seen.insert(flag.clone()) {
             return Err(SpacetimeError::new(format!("duplicate {flag} flag")));
         }
@@ -244,6 +244,7 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
         )));
     }
     let root = TempRoot::new("spacetime-econbench")?;
+    let runner = ScriptedRunner::new()?;
     let started = Instant::now();
     let mut tasks = Vec::new();
     let mut claims = 0usize;
@@ -251,14 +252,21 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
     let mut max_leak_rate = 0.0f64;
 
     for (index, path) in paths.iter().enumerate() {
-        let source_text = fs::read_to_string(path)?;
-        let category =
-            metadata_value(&source_text, "category").unwrap_or_else(|| "unknown".to_string());
-        let verifier_source = metadata_value(&source_text, "verifier_source")
-            .unwrap_or_else(|| "fixture_suite".to_string());
-        let domain_case = metadata_value(&source_text, "case_id").ok_or_else(|| {
-            SpacetimeError::new(format!("fixture {} is missing case_id", path.display()))
-        })?;
+        let mut cortex = ScriptedCortex::from_file(path)?;
+        let category = cortex
+            .metadata_value("category")
+            .unwrap_or("unknown")
+            .to_string();
+        let verifier_source = cortex
+            .metadata_value("verifier_source")
+            .unwrap_or("fixture_suite")
+            .to_string();
+        let domain_case = cortex
+            .metadata_value("case_id")
+            .ok_or_else(|| {
+                SpacetimeError::new(format!("fixture {} is missing case_id", path.display()))
+            })?
+            .to_string();
         let domain_verification = verify_task_case(&domain_case)?;
         let declared_source = match domain_verification.verifier_id {
             "independent-differential-v1" => "differential_reference",
@@ -275,8 +283,7 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
                 path.display()
             )));
         }
-        let (candidate, fixture) = crucible_inputs(path)?;
-        let runner = ScriptedRunner::new()?;
+        let (candidate, fixture) = crucible_inputs_from_cortex(&cortex)?;
         let (flip_rate, leak_rate) =
             false_pass_report_checked(&candidate, &fixture, &runner, RERUNS)?;
         let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
@@ -288,7 +295,7 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
         }
         let ledger_name = format!("fixture-{index:02}.jsonl");
         let ledger_path = root.join(ledger_name.as_str());
-        let ledger_events = run_offline_task(path, &ledger_path)?;
+        let ledger_events = run_offline_task(&mut cortex, &runner, path, &ledger_path)?;
         claims += 1;
         max_flip_rate = max_flip_rate.max(flip_rate);
         max_leak_rate = max_leak_rate.max(leak_rate);
@@ -358,25 +365,13 @@ pub(crate) fn econbench_report(arm: &str, model: &str, budget: u64) -> Result<Va
     }))
 }
 
-fn metadata_value(text: &str, key: &str) -> Option<String> {
-    text.lines().find_map(|line| {
-        let line = line.trim();
-        if line.is_empty() || line.starts_with('#') {
-            return None;
-        }
-        let (found, value) = line.split_once('=')?;
-        if found.trim() == key {
-            Some(value.trim().to_string())
-        } else {
-            None
-        }
-    })
-}
-
-fn run_offline_task(task_path: &Path, ledger_path: &Path) -> Result<usize> {
-    let mut cortex = ScriptedCortex::from_file(task_path)?;
+fn run_offline_task(
+    cortex: &mut ScriptedCortex,
+    runner: &ScriptedRunner,
+    task_path: &Path,
+    ledger_path: &Path,
+) -> Result<usize> {
     let mut ledger = Ledger::create(ledger_path)?;
-    let runner = ScriptedRunner::new()?;
     let verifier = FixtureVerifier;
     let mut state = LedgerState::new();
     while let Some(action) = cortex.next_action(&state)? {

@@ -92,7 +92,7 @@ function renderStatus(report, sourceLabel) {
 function renderWarnings(report) {
   const container = node("warnings");
   clear(container);
-  const warnings = Array.isArray(report.warnings) ? report.warnings : [];
+  const warnings = Array.isArray(report.warnings) ? [...report.warnings] : [];
   warnings.push("Ark cells share a guest kernel. A tab is a view onto an execution domain, not a trust boundary.");
   warnings.push("Snapshot placeholders are not continuous live video; hidden AI work stays RUNNING while RENDERING changes.");
   for (const warning of warnings) container.appendChild(make("p", "", warning));

@@ -108,17 +108,27 @@ impl Bm25Index {
         let n = self.docs.len() as f64;
         let k1 = 1.5_f64;
         let b = 0.75_f64;
+        let query_idfs: Vec<(&String, f64)> = query_terms
+            .iter()
+            .filter_map(|term| {
+                let &df = self.doc_freq.get(term)?;
+                let df_f = df as f64;
+                let idf = (((n - df_f + 0.5) / (df_f + 0.5)) + 1.0).ln();
+                Some((term, idf))
+            })
+            .collect();
+        if query_idfs.is_empty() {
+            return Vec::new();
+        }
         let mut hits = Vec::new();
 
         for doc in &self.docs {
             let mut score = 0.0_f64;
             let dl = doc.length as f64;
-            for term in &query_terms {
+            for &(term, idf) in &query_idfs {
                 let Some(&tf) = doc.terms.get(term) else {
                     continue;
                 };
-                let df = *self.doc_freq.get(term).unwrap_or(&0) as f64;
-                let idf = (((n - df + 0.5) / (df + 0.5)) + 1.0).ln();
                 let tf_f = tf as f64;
                 let denom = tf_f + k1 * (1.0 - b + b * (dl / self.avg_len));
                 if denom > 0.0 {
@@ -199,7 +209,7 @@ impl SpaceSupervisor {
             bm25: Bm25Index::default(),
         };
         supervisor.rebuild_bm25_index();
-        supervisor.persist()?;
+        supervisor.persist_missing()?;
         Ok(supervisor)
     }
 
@@ -228,7 +238,10 @@ impl SpaceSupervisor {
         self.steering.retain(|item| !item.is_expired(turn));
         self.facts.retain(|fact| !fact.is_expired(turn));
         self.rebuild_bm25_index();
-        self.persist()?;
+        self.persist_turn()?;
+        self.persist_goals()?;
+        self.persist_steering()?;
+        self.persist_facts()?;
         Ok(self.current_turn)
     }
 
@@ -257,7 +270,7 @@ impl SpaceSupervisor {
             status: GoalLifecycle::InProgress,
         });
         self.rebuild_bm25_index();
-        self.persist()
+        self.persist_goals()
     }
 
     pub fn set_goal_status(&mut self, goal_id: &str, status: GoalLifecycle) -> Result<()> {
@@ -267,7 +280,7 @@ impl SpaceSupervisor {
             .find(|g| g.id == goal_id)
             .ok_or_else(|| SpacetimeError::new(format!("unknown goal: {goal_id}")))?;
         goal.status = status;
-        self.persist()
+        self.persist_goals()
     }
 
     pub fn push_steering(
@@ -283,7 +296,7 @@ impl SpaceSupervisor {
             ttl_turns: ttl_turns.max(1),
         });
         self.rebuild_bm25_index();
-        self.persist()
+        self.persist_steering()
     }
 
     pub fn active_steering(&self) -> Vec<&SteeringMessage> {
@@ -314,7 +327,7 @@ impl SpaceSupervisor {
             ttl_turns: ttl_turns.max(1),
         });
         self.rebuild_bm25_index();
-        self.persist()
+        self.persist_facts()
     }
 
     pub fn queue_blocker(
@@ -341,7 +354,7 @@ impl SpaceSupervisor {
             created_turn: self.current_turn,
             status: BlockerStatus::Pending,
         });
-        self.persist()
+        self.persist_blockers()
     }
 
     pub fn resolve_blocker(&mut self, blocker_id: &str, approve: bool) -> Result<()> {
@@ -355,7 +368,7 @@ impl SpaceSupervisor {
         } else {
             BlockerStatus::Denied
         };
-        self.persist()
+        self.persist_blockers()
     }
 
     pub fn goals(&self) -> &[GoalNode] {
@@ -437,27 +450,57 @@ impl SpaceSupervisor {
         Ok(sha256_hex(material.as_bytes()))
     }
 
-    fn persist(&self) -> Result<()> {
+    fn persist_turn(&self) -> Result<()> {
         write_atomic(
             &self.root.join("turn.txt"),
             format!("{}\n", self.current_turn).as_bytes(),
-        )?;
+        )
+    }
+
+    fn persist_goals(&self) -> Result<()> {
         write_atomic(
             &self.root.join("goals.json"),
             to_json_pretty(&self.goals)?.as_bytes(),
-        )?;
+        )
+    }
+
+    fn persist_steering(&self) -> Result<()> {
         write_atomic(
             &self.root.join("steering.json"),
             to_json_pretty(&self.steering)?.as_bytes(),
-        )?;
+        )
+    }
+
+    fn persist_facts(&self) -> Result<()> {
         write_atomic(
             &self.root.join("facts.json"),
             to_json_pretty(&self.facts)?.as_bytes(),
-        )?;
+        )
+    }
+
+    fn persist_blockers(&self) -> Result<()> {
         write_atomic(
             &self.root.join("blockers.json"),
             to_json_pretty(&self.blockers)?.as_bytes(),
-        )?;
+        )
+    }
+
+    fn persist_missing(&self) -> Result<()> {
+        if !self.root.join("turn.txt").is_file() {
+            self.persist_turn()?;
+        }
+        if !self.root.join("goals.json").is_file() {
+            self.persist_goals()?;
+        }
+        if !self.root.join("steering.json").is_file() {
+            self.persist_steering()?;
+        }
+        if !self.root.join("facts.json").is_file() {
+            self.persist_facts()?;
+        }
+        if !self.root.join("blockers.json").is_file() {
+            self.persist_blockers()?;
+        }
         Ok(())
     }
 }
@@ -472,17 +515,19 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let fname = fname_opt.unwrap_or("state");
     let seq = ATOMIC_TMP_SEQ.fetch_add(1, Ordering::Relaxed);
     let tmp = parent.join(format!(".{fname}.tmp.{}.{seq}", std::process::id()));
-    {
-        let mut file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&tmp)?;
+    let write_res = (|| -> Result<()> {
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        let mut file = options.open(&tmp)?;
         file.write_all(bytes)?;
         file.sync_all()?;
+        fs::rename(&tmp, path)?;
+        Ok(())
+    })();
+    if write_res.is_err() {
+        let _ = fs::remove_file(&tmp);
     }
-    fs::rename(&tmp, path)?;
-    Ok(())
+    write_res
 }
 
 #[cfg(test)]

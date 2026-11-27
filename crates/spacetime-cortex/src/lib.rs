@@ -11,7 +11,8 @@ use spacetime_types::{
     SpacetimeError, SurfaceId, SurfaceKind, WorkspaceBinding, WorkspaceId, SCHEMA_VERSION,
 };
 use std::collections::BTreeMap;
-use std::fs;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use std::str::FromStr;
 
@@ -31,11 +32,20 @@ pub struct ScriptedCortex {
 
 impl ScriptedCortex {
     pub fn from_file(path: &Path) -> Result<Self> {
-        let metadata = fs::metadata(path)?;
-        if metadata.len() > MAX_TASK_BYTES as u64 {
+        let file = File::open(path)?;
+        let file_meta = file.metadata()?;
+        if !file_meta.is_file() {
+            return Err(SpacetimeError::new("task path must be a regular file"));
+        }
+        if file_meta.len() > MAX_TASK_BYTES as u64 {
             return Err(SpacetimeError::new("task file exceeds 64 KiB resource cap"));
         }
-        let bytes = fs::read(path)?;
+        let mut bytes = Vec::with_capacity(file_meta.len() as usize);
+        let mut limited = file.take(MAX_TASK_BYTES as u64 + 1);
+        limited.read_to_end(&mut bytes)?;
+        if bytes.len() > MAX_TASK_BYTES {
+            return Err(SpacetimeError::new("task file exceeds 64 KiB resource cap"));
+        }
         let text = String::from_utf8(bytes)
             .map_err(|_| SpacetimeError::new("task file is not valid UTF-8"))?;
 
@@ -54,7 +64,12 @@ impl ScriptedCortex {
             let (key, value) = line
                 .split_once('=')
                 .ok_or_else(|| SpacetimeError::new(format!("invalid task line: {line}")))?;
-            metadata.insert(key.trim().to_string(), value.trim().to_string());
+            let key = key.trim().to_string();
+            let val = value.trim().to_string();
+            if metadata.insert(key.clone(), val).is_some() {
+                let msg = format!("duplicate task metadata key: {key}");
+                return Err(SpacetimeError::new(msg));
+            }
         }
 
         let binding = binding_from_metadata(&metadata)?;
@@ -81,6 +96,10 @@ impl ScriptedCortex {
             cursor: 0,
             metadata,
         })
+    }
+
+    pub fn metadata_value(&self, key: &str) -> Option<&str> {
+        self.metadata.get(key).map(String::as_str)
     }
 
     pub fn first_action(&self) -> Result<Action> {
@@ -200,7 +219,10 @@ fn parse_action_line(
         let (key, value) = part
             .split_once('=')
             .ok_or_else(|| SpacetimeError::new(format!("invalid action field: {part}")))?;
-        fields.insert(key, value);
+        if fields.insert(key, value).is_some() {
+            let msg = format!("duplicate action field: {key}");
+            return Err(SpacetimeError::new(msg));
+        }
     }
 
     let budget_millis = optional_u64(fields.get("budget_ms"), DEFAULT_BUDGET_MILLIS)?;
@@ -284,6 +306,7 @@ fn parse_expected_digest(value: Option<&&str>) -> Result<Option<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn parses_happy_path_fixture() -> Result<()> {
@@ -345,6 +368,28 @@ mod tests {
         assert_eq!(result.2, 7_500);
         assert_eq!(result.3, spacetime_types::Verdict::Fail);
         assert_eq!(result.4, spacetime_types::VerifierSource::AdversarialModel);
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_duplicate_keys_and_non_files() -> Result<()> {
+        let pid = std::process::id();
+        let dir = std::env::temp_dir().join(format!("spacetime-cortex-dup-{pid}"));
+        fs::create_dir_all(&dir)?;
+        assert!(ScriptedCortex::from_file(&dir).is_err());
+
+        let dup_meta = dir.join("dup-meta.task");
+        fs::write(
+            &dup_meta,
+            "schema_version=1\nverifier_source=fixture_suite\nverifier_source=spec_oracle\naction echo text=a\n",
+        )?;
+        assert!(ScriptedCortex::from_file(&dup_meta).is_err());
+
+        let dup_field = dir.join("dup-field.task");
+        fs::write(&dup_field, "schema_version=1\naction echo text=a text=b\n")?;
+        assert!(ScriptedCortex::from_file(&dup_field).is_err());
+
+        let _ = fs::remove_dir_all(&dir);
         Ok(())
     }
 }

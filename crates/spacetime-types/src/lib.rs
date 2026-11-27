@@ -9,7 +9,7 @@ pub mod surface;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
-use std::fmt::Write as _;
+use std::io::{self, BufReader};
 use std::str::FromStr;
 
 pub const SCHEMA_VERSION: u32 = 1;
@@ -51,15 +51,49 @@ impl From<std::num::ParseIntError> for SpacetimeError {
 
 pub type Result<T> = std::result::Result<T, SpacetimeError>;
 
+const HEX_LOWER: &[u8; 16] = b"0123456789abcdef";
+
+fn sha256_digest_hex(digest: &[u8]) -> String {
+    let mut out = String::with_capacity(digest.len() * 2);
+    for &byte in digest {
+        out.push(char::from(HEX_LOWER[(byte >> 4) as usize]));
+        out.push(char::from(HEX_LOWER[(byte & 0x0f) as usize]));
+    }
+    out
+}
+
+#[derive(Clone, Default)]
+pub struct StreamingSha256(Sha256);
+
+impl StreamingSha256 {
+    pub fn new() -> Self {
+        Self(Sha256::new())
+    }
+
+    pub fn update(&mut self, bytes: &[u8]) {
+        self.0.update(bytes);
+    }
+
+    pub fn finish_hex(self) -> String {
+        sha256_digest_hex(&self.0.finalize())
+    }
+}
+
+impl io::Write for StreamingSha256 {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.0.update(buf);
+        Ok(buf.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    let digest = hasher.finalize();
-    let mut out = String::with_capacity(64);
-    for byte in digest.iter() {
-        let _ = write!(out, "{byte:02x}");
-    }
-    out
+    sha256_digest_hex(&hasher.finalize())
 }
 
 pub fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>> {
@@ -70,6 +104,13 @@ pub fn canonical_json_bytes<T: Serialize>(value: &T) -> Result<Vec<u8>> {
 pub fn canonical_json_string<T: Serialize>(value: &T) -> Result<String> {
     let value = serde_json::to_value(value)?;
     Ok(serde_json::to_string(&value)?)
+}
+
+pub fn canonical_json_sha256_hex<T: Serialize>(value: &T) -> Result<String> {
+    let value = serde_json::to_value(value)?;
+    let mut hasher = StreamingSha256::new();
+    serde_json::to_writer(&mut hasher, &value)?;
+    Ok(hasher.finish_hex())
 }
 
 pub fn to_json_pretty<T: Serialize>(value: &T) -> Result<String> {
@@ -86,11 +127,17 @@ pub fn from_json_str<T: serde::de::DeserializeOwned>(text: &str) -> Result<T> {
 pub fn load_json_file_or_default<T: serde::de::DeserializeOwned + Default>(
     path: &std::path::Path,
 ) -> Result<T> {
-    if !path.is_file() {
-        return Ok(T::default());
+    let file = match std::fs::File::open(path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(T::default()),
+        Err(error) => return Err(error.into()),
+    };
+    let metadata = file.metadata()?;
+    if !metadata.is_file() {
+        let msg = format!("expected regular JSON file: {}", path.display());
+        return Err(SpacetimeError::new(msg));
     }
-    let text = std::fs::read_to_string(path)?;
-    from_json_str(&text)
+    Ok(serde_json::from_reader(BufReader::new(file))?)
 }
 
 macro_rules! string_id {
@@ -408,7 +455,7 @@ impl Action {
         expected_verifier: Option<String>,
     ) -> Result<Self> {
         let sequence = seq.0;
-        let args_digest = sha256_hex(canonical_json_bytes(&op)?.as_slice());
+        let args_digest = canonical_json_sha256_hex(&op)?;
         Ok(Self {
             schema_version: SCHEMA_VERSION,
             id: ActionId::new(format!("action-{sequence:06}")),
@@ -508,16 +555,32 @@ impl Event {
         Ok(self.compute_hash()? == self.hash)
     }
 
+    pub fn verify_canonical_and_hash(&self, canonical_line: &str) -> Result<(bool, bool)> {
+        let mut value = serde_json::to_value(self)?;
+        let canonical = serde_json::to_string(&value)?;
+        if canonical != canonical_line {
+            return Ok((false, false));
+        }
+        let object = value
+            .as_object_mut()
+            .ok_or_else(|| SpacetimeError::new("event must serialize to a JSON object"))?;
+        object.remove("hash");
+        let mut hasher = StreamingSha256::new();
+        hasher.update(self.prev_hash.as_bytes());
+        serde_json::to_writer(&mut hasher, &value)?;
+        Ok((true, hasher.finish_hex() == self.hash))
+    }
+
     fn compute_hash(&self) -> Result<String> {
         let mut value = serde_json::to_value(self)?;
         let object = value
             .as_object_mut()
             .ok_or_else(|| SpacetimeError::new("event must serialize to a JSON object"))?;
         object.remove("hash");
-        let canonical = serde_json::to_vec(&value)?;
-        let mut bytes = self.prev_hash.as_bytes().to_vec();
-        bytes.extend_from_slice(&canonical);
-        Ok(sha256_hex(&bytes))
+        let mut hasher = StreamingSha256::new();
+        hasher.update(self.prev_hash.as_bytes());
+        serde_json::to_writer(&mut hasher, &value)?;
+        Ok(hasher.finish_hex())
     }
 }
 
@@ -623,6 +686,23 @@ mod tests {
         };
         assert!(!steering.is_expired(4));
         assert!(steering.is_expired(5));
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_sha256_matches_canonical_json_bytes() -> Result<()> {
+        let mut hasher = StreamingSha256::new();
+        hasher.update(b"ab");
+        hasher.update(b"c");
+        assert_eq!(hasher.finish_hex(), sha256_hex(b"abc"));
+
+        let op = ActionOp::Echo {
+            text: "hello".to_string(),
+        };
+        assert_eq!(
+            canonical_json_sha256_hex(&op)?,
+            sha256_hex(&canonical_json_bytes(&op)?)
+        );
         Ok(())
     }
 }

@@ -69,18 +69,6 @@ impl RingMinus3Policy {
         match &action.op {
             ActionOp::SpendFakeCredits { amount, .. } => {
                 let is_untrusted = taint_is_untrusted(effective_taint);
-                if self.constitution.forbid_untrusted_spend && is_untrusted {
-                    return PolicyDecisionReport {
-                        effect: if explicit_human_approval {
-                            RuleEffect::Permit
-                        } else {
-                            RuleEffect::QueueBlocker
-                        },
-                        reason: "untrusted-tainted spend cannot execute without human approval"
-                            .to_string(),
-                        action_taint: effective_taint,
-                    };
-                }
                 let next_spend = self.daily_fake_spend_used.saturating_add(*amount);
                 if next_spend > self.constitution.max_daily_fake_spend
                     || next_spend > token.max_spend_fake_credits_per_day
@@ -94,7 +82,12 @@ impl RingMinus3Policy {
                 if !explicit_human_approval {
                     return PolicyDecisionReport {
                         effect: RuleEffect::QueueBlocker,
-                        reason: "spend requires human blocker approval".to_string(),
+                        reason: if self.constitution.forbid_untrusted_spend && is_untrusted {
+                            "untrusted-tainted spend cannot execute without human approval"
+                                .to_string()
+                        } else {
+                            "spend requires human blocker approval".to_string()
+                        },
                         action_taint: effective_taint,
                     };
                 }
@@ -282,8 +275,14 @@ impl HostVault {
 
     /// Scrub any raw secrets from Cortex/telemetry text before leaving the host boundary.
     pub fn redact_for_cortex(&self, text: &str) -> String {
+        let mut pairs: Vec<(&str, &str)> = self
+            .secrets
+            .iter()
+            .map(|(handle, secret)| (handle.as_str(), secret.as_str()))
+            .collect();
+        pairs.sort_by(|a, b| b.1.len().cmp(&a.1.len()).then_with(|| a.0.cmp(b.0)));
         let mut out = text.to_string();
-        for (handle, secret) in &self.secrets {
+        for (handle, secret) in pairs {
             if out.contains(secret) {
                 out = out.replace(secret, handle);
             }
@@ -297,8 +296,17 @@ impl HostVault {
         source_channel: &str,
         payload: &str,
     ) -> Result<()> {
+        self.inspect_bytes_for_canary_or_secret(source_channel, payload.as_bytes())
+    }
+
+    /// Zero-allocation byte-slice variant for scanning binary/airlock payloads directly.
+    pub fn inspect_bytes_for_canary_or_secret(
+        &mut self,
+        source_channel: &str,
+        payload: &[u8],
+    ) -> Result<()> {
         for (canary_id, canary_value) in &self.canaries {
-            if payload.contains(canary_value) {
+            if bytes_contains_subslice(payload, canary_value.as_bytes()) {
                 let alarm = CanaryAlarm {
                     canary_id: canary_id.clone(),
                     source_channel: source_channel.to_string(),
@@ -311,7 +319,7 @@ impl HostVault {
             }
         }
         for (handle, secret) in &self.secrets {
-            if payload.contains(secret) {
+            if bytes_contains_subslice(payload, secret.as_bytes()) {
                 let alarm = CanaryAlarm {
                     canary_id: handle.clone(),
                     source_channel: source_channel.to_string(),
@@ -329,6 +337,26 @@ impl HostVault {
     pub fn alarms(&self) -> &[CanaryAlarm] {
         &self.alarms
     }
+}
+
+pub(crate) fn bytes_contains_subslice(haystack: &[u8], needle: &[u8]) -> bool {
+    if needle.is_empty() {
+        return true;
+    }
+    if haystack.len() < needle.len() {
+        return false;
+    }
+    let first = needle[0];
+    let rest = &needle[1..];
+    let limit = haystack.len() - needle.len();
+    let mut i = 0;
+    while i <= limit {
+        if haystack[i] == first && &haystack[i + 1..i + needle.len()] == rest {
+            return true;
+        }
+        i += 1;
+    }
+    false
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -537,6 +565,65 @@ mod tests {
         assert_eq!(report.total, 10);
         assert_eq!(report.blocked, 10);
         assert_eq!(report.leaked, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn approved_untrusted_spend_consumes_budget_and_longest_secret_redacts_first() -> Result<()> {
+        let goal_id = spacetime_types::GoalId::new("goal-spend");
+        let binding = spacetime_types::WorkspaceBinding {
+            workspace_id: spacetime_types::WorkspaceId::new("ws-spend"),
+            surface_id: spacetime_types::SurfaceId::new("surf-spend"),
+            surface_kind: spacetime_types::SurfaceKind::Terminal,
+            preview_mode: spacetime_types::PreviewMode::Headless,
+            liveness: spacetime_types::LivenessState::Running,
+        };
+        let mut allowed_ops = BTreeSet::new();
+        allowed_ops.insert("spend_fake_credits".to_string());
+        let token = CapabilityToken {
+            token_id: "tok-spend".to_string(),
+            goal_id: goal_id.clone(),
+            allowed_ops,
+            max_spend_fake_credits_per_day: 50,
+            max_posts_per_day: 1,
+            allow_irreversible_delete: false,
+            allow_publish: false,
+            expires_at_turn: 10,
+            trust_tier: spacetime_types::TrustTier::ArkCell,
+            egress_class: EgressClass::None,
+        };
+        let action = Action::new(
+            spacetime_types::EventSeq(0),
+            spacetime_types::SpaceId::new("sp"),
+            goal_id,
+            binding,
+            ActionOp::SpendFakeCredits {
+                amount: 30,
+                recipient: "vendor".to_string(),
+            },
+            100,
+            Some("verifier".to_string()),
+        )?;
+        let mut policy = RingMinus3Policy::default();
+        assert_eq!(
+            policy
+                .evaluate_action(&action, &token, 1, Taint::UntrustedWeb, true)
+                .effect,
+            RuleEffect::Permit
+        );
+        assert_eq!(policy.daily_fake_spend_used, 30);
+        assert_eq!(
+            policy
+                .evaluate_action(&action, &token, 1, Taint::UntrustedWeb, true)
+                .effect,
+            RuleEffect::Forbid
+        );
+
+        let mut vault = HostVault::new();
+        vault.insert_secret("short_key", "SECRET_KEY")?;
+        vault.insert_secret("long_key", "SECRET_KEY_LONGER")?;
+        let scrubbed = vault.redact_for_cortex("auth=SECRET_KEY_LONGER");
+        assert_eq!(scrubbed, "auth=@vault:long_key");
         Ok(())
     }
 }

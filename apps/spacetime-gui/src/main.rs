@@ -15,7 +15,7 @@ use spacetime_ctl::spacetime_exec::governor::{GovernorPolicy, GovernorSample, Re
 use spacetime_ctl::spacetime_exec::surface::{default_mixed_workspace_descriptors, SurfaceBroker};
 use spacetime_ctl::spacetime_types::policy::{CapabilityToken, RuleEffect};
 use spacetime_ctl::spacetime_types::supervisor::{BlockerItem, BlockerStatus, SteeringMessage};
-use spacetime_ctl::spacetime_types::surface::{GovernorAction, SemanticField};
+use spacetime_ctl::spacetime_types::surface::{GovernorAction, SemanticField, SemanticView};
 use spacetime_ctl::spacetime_types::{
     Action, ActionOp, EgressClass, EventSeq, GoalId, LivenessState, PreviewMode, SpaceId,
     SurfaceId, SurfaceKind, Taint, TrustTier, WorkspaceBinding, WorkspaceId,
@@ -26,7 +26,7 @@ use std::io::{Read, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 struct Session {
     child: Child,
@@ -162,11 +162,15 @@ struct WorkspaceApp {
     blockers: Vec<BlockerItem>,
     steering: Vec<SteeringMessage>,
     steering_input: String,
+    next_steering_id: u64,
     turn_counter: u64,
     ai_step: u8,
     snapshot_texture: Option<egui::TextureHandle>,
     last_snapshot_seq: Option<u64>,
     last_governor_action: GovernorAction,
+    cached_rss_label: String,
+    last_rss_sample: Instant,
+    cached_semantic_view: Option<SemanticView>,
 }
 
 impl Default for WorkspaceApp {
@@ -207,6 +211,11 @@ impl Default for WorkspaceApp {
             egress_class: EgressClass::None,
         };
 
+        let cached_rss_label = ResourceGovernor::sample_current_process_rss_kb()
+            .map(|kb| format!("{kb} KiB"))
+            .unwrap_or_else(|| "unavailable".to_string());
+        let cached_semantic_view = surface_broker.cortex_semantic_view("ws-ai-upload").ok();
+
         Self {
             kernel: default_kernel().unwrap_or_default(),
             busybox: default_busybox().unwrap_or_default(),
@@ -224,16 +233,36 @@ impl Default for WorkspaceApp {
             blockers: Vec::new(),
             steering: Vec::new(),
             steering_input: String::new(),
+            next_steering_id: 0,
             turn_counter: 1,
             ai_step: 0,
             snapshot_texture: None,
             last_snapshot_seq: None,
             last_governor_action: GovernorAction::Allow,
+            cached_rss_label,
+            last_rss_sample: Instant::now(),
+            cached_semantic_view,
         }
     }
 }
 
 impl WorkspaceApp {
+    fn refresh_cached_rss(&mut self) -> u64 {
+        let sampled = ResourceGovernor::sample_current_process_rss_kb();
+        self.cached_rss_label = sampled
+            .map(|kb| format!("{kb} KiB"))
+            .unwrap_or_else(|| "unavailable".to_string());
+        self.last_rss_sample = Instant::now();
+        sampled.unwrap_or(64_000)
+    }
+
+    fn refresh_semantic_view(&mut self) {
+        self.cached_semantic_view = self
+            .surface_broker
+            .cortex_semantic_view("ws-ai-upload")
+            .ok();
+    }
+
     fn switch_tab(&mut self, workspace_id: &str) {
         if self.active_tab == workspace_id {
             return;
@@ -246,17 +275,28 @@ impl WorkspaceApp {
     }
 
     fn refresh_governor(&mut self) {
-        let rss_kb = ResourceGovernor::sample_current_process_rss_kb().unwrap_or(64_000);
-        if let Some(desc) = self.surface_broker.reader().descriptor(&self.active_tab) {
+        let rss_kb = self.refresh_cached_rss();
+        let active_heavy_rendering = self.surface_broker.reader().rendering_count();
+        if let Some(desc) = self
+            .surface_broker
+            .reader()
+            .descriptor(&self.active_tab)
+            .cloned()
+        {
             let eval = self.governor.evaluate_workspace(
-                desc,
+                &desc,
                 &GovernorSample {
                     total_rss_kb: rss_kb,
-                    active_heavy_rendering: self.surface_broker.reader().rendering_count(),
+                    active_heavy_rendering,
                     running_cells: 2,
                 },
                 true,
             );
+            if eval.chosen_preview_mode != desc.preview_mode {
+                let _ = self
+                    .surface_broker
+                    .set_preview_mode(&self.active_tab, eval.chosen_preview_mode);
+            }
             self.last_governor_action = eval.action;
         }
     }
@@ -366,39 +406,88 @@ impl WorkspaceApp {
             }
         }
         self.last_snapshot_seq = None;
+        self.refresh_semantic_view();
         self.refresh_governor();
     }
 
     fn resolve_blocker(&mut self, idx: usize, approve: bool) {
-        if let Some(blocker) = self.blockers.get_mut(idx) {
-            blocker.status = if approve {
-                BlockerStatus::Approved
-            } else {
-                BlockerStatus::Denied
-            };
-            let caption = if approve {
-                "Human approved mock publish"
-            } else {
-                "Human denied mock publish"
-            };
-            let value = if approve {
-                "PUBLISHED_MOCK_ONLY"
-            } else {
-                "DENIED_BY_HUMAN"
-            };
-            let _ = self.surface_broker.apply_supervisor_field_update(
-                "ws-ai-upload",
-                SemanticField {
-                    name: "status".to_string(),
-                    field_type: "text".to_string(),
-                    value: value.to_string(),
-                    is_secret: false,
-                },
-                caption,
-                "ev-resolve",
-            );
-            self.last_snapshot_seq = None;
+        let Some(blocker) = self.blockers.get(idx).cloned() else {
+            return;
+        };
+        if blocker.status != BlockerStatus::Pending {
+            return;
         }
+
+        let (final_status, value, caption) = if !approve {
+            (
+                BlockerStatus::Denied,
+                "DENIED_BY_HUMAN".to_string(),
+                "Human denied mock publish".to_string(),
+            )
+        } else {
+            let binding = WorkspaceBinding {
+                workspace_id: WorkspaceId::new("ws-ai-upload"),
+                surface_id: SurfaceId::new("surface-ai-upload"),
+                surface_kind: SurfaceKind::Framebuffer,
+                preview_mode: PreviewMode::SnapshotOnAction,
+                liveness: LivenessState::Running,
+            };
+            let evaluated = Action::new(
+                EventSeq(self.turn_counter),
+                SpaceId::new("space-gui"),
+                GoalId::new(blocker.goal_id.as_str()),
+                binding,
+                ActionOp::IrreversibleEffect {
+                    effect: blocker.effect.clone(),
+                    target: blocker.target.clone(),
+                },
+                100,
+                Some("spec-oracle-v1".to_string()),
+            )
+            .map(|action| {
+                self.policy.evaluate_action(
+                    &action,
+                    &self.capability,
+                    self.turn_counter,
+                    blocker.taint,
+                    true,
+                )
+            });
+            match evaluated {
+                Ok(decision) if decision.effect == RuleEffect::Permit => (
+                    BlockerStatus::Approved,
+                    "PUBLISHED_MOCK_ONLY".to_string(),
+                    "Human approved mock publish".to_string(),
+                ),
+                Ok(decision) => (
+                    BlockerStatus::Denied,
+                    "DENIED_BY_POLICY".to_string(),
+                    decision.reason,
+                ),
+                Err(error) => (
+                    BlockerStatus::Denied,
+                    "DENIED_BY_POLICY".to_string(),
+                    error.to_string(),
+                ),
+            }
+        };
+
+        if let Some(slot) = self.blockers.get_mut(idx) {
+            slot.status = final_status;
+        }
+        let _ = self.surface_broker.apply_supervisor_field_update(
+            "ws-ai-upload",
+            SemanticField {
+                name: "status".to_string(),
+                field_type: "text".to_string(),
+                value,
+                is_secret: false,
+            },
+            &caption,
+            "ev-resolve",
+        );
+        self.last_snapshot_seq = None;
+        self.refresh_semantic_view();
     }
 
     fn sync_snapshot_texture(&mut self, context: &egui::Context) {
@@ -487,9 +576,9 @@ impl eframe::App for WorkspaceApp {
                     }
                 }
             });
-            let rss_text = ResourceGovernor::sample_current_process_rss_kb()
-                .map(|kb| format!("{kb} KiB"))
-                .unwrap_or_else(|| "unavailable".to_string());
+            if self.last_rss_sample.elapsed() >= Duration::from_millis(500) {
+                let _ = self.refresh_cached_rss();
+            }
             ui.horizontal(|ui| {
                 ui.colored_label(
                     egui::Color32::LIGHT_GREEN,
@@ -503,8 +592,8 @@ impl eframe::App for WorkspaceApp {
                 );
                 ui.separator();
                 ui.small(format!(
-                    "resource_gate: unmeasured_target_4gb · performance_claims: unmeasured · rss: {rss_text} · governor: {:?}",
-                    self.last_governor_action
+                    "resource_gate: unmeasured_target_4gb · performance_claims: unmeasured · rss: {} · governor: {:?}",
+                    self.cached_rss_label, self.last_governor_action
                 ));
             });
         });
@@ -533,8 +622,9 @@ impl eframe::App for WorkspaceApp {
                     ui.text_edit_singleline(&mut self.steering_input);
                     if ui.button("Queue").clicked() && !self.steering_input.trim().is_empty() {
                         let text = self.steering_input.trim().to_string();
+                        self.next_steering_id = self.next_steering_id.saturating_add(1);
                         self.steering.push(SteeringMessage {
-                            id: format!("steer-{}", self.steering.len() + 1),
+                            id: format!("steer-{}", self.next_steering_id),
                             text,
                             created_turn: self.turn_counter,
                             ttl_turns: 4,
@@ -585,7 +675,7 @@ impl eframe::App for WorkspaceApp {
                 ui.separator();
 
                 ui.label("Cortex SemanticView (secrets masked)");
-                if let Ok(view) = self.surface_broker.cortex_semantic_view("ws-ai-upload") {
+                if let Some(view) = &self.cached_semantic_view {
                     for field in &view.fields {
                         ui.monospace(format!(
                             "{} ({}) = {}",
@@ -817,8 +907,11 @@ mod tests {
         app.advance_ai_upload_step();
         app.advance_ai_upload_step();
         app.advance_ai_upload_step();
-        assert_eq!(app.blockers.len(), 1);
+        // Queue a second publish blocker before resolving the first to test Ring -3 cap on resolve.
+        app.advance_ai_upload_step();
+        assert_eq!(app.blockers.len(), 2);
         assert_eq!(app.blockers[0].status, BlockerStatus::Pending);
+        assert_eq!(app.blockers[1].status, BlockerStatus::Pending);
 
         // Background AI stays RUNNING while Human Terminal is RENDERING.
         assert_eq!(
@@ -844,5 +937,10 @@ mod tests {
         assert_eq!(app.surface_broker.reader().disk_writes_performed(), 0);
         app.resolve_blocker(0, true);
         assert_eq!(app.blockers[0].status, BlockerStatus::Approved);
+        assert_eq!(app.policy.daily_posts_used, 1);
+
+        // Second publish attempt exceeds daily post cap even if approved in the UI.
+        app.resolve_blocker(1, true);
+        assert_eq!(app.blockers[1].status, BlockerStatus::Denied);
     }
 }

@@ -11,7 +11,8 @@ pub mod economy;
 use spacetime_types::{sha256_hex, Result, SpacetimeError};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::Path;
 use std::process::Command;
 
@@ -162,8 +163,16 @@ pub struct ResourceGate {
 }
 
 pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
+    let Some(path) = measurement_path else {
+        return Ok(default_unmeasured_gate());
+    };
+    let text = read_bounded_measurement(path).map_err(SpacetimeError::new)?;
+    resource_gate_from_text(&text)
+}
+
+fn default_unmeasured_gate() -> ResourceGate {
     let baseline = baseline_profile();
-    let mut gate = ResourceGate {
+    ResourceGate {
         status: ResourceGateStatus::Unmeasured,
         target_profile: baseline.id.to_string(),
         baseline_profile: baseline.id.to_string(),
@@ -173,11 +182,12 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
         reasons: vec![
             "no measurement file supplied; baseline 4 GB potato machine unmeasured".to_string(),
         ],
-    };
-    let Some(path) = measurement_path else {
-        return Ok(gate);
-    };
-    let text = fs::read_to_string(path)?;
+    }
+}
+
+fn resource_gate_from_text(text: &str) -> Result<ResourceGate> {
+    let baseline = baseline_profile();
+    let mut gate = default_unmeasured_gate();
     let mut metadata: BTreeMap<String, String> = BTreeMap::new();
     let mut measurements: BTreeMap<String, u64> = BTreeMap::new();
     let mut seen = BTreeSet::new();
@@ -284,11 +294,11 @@ pub fn resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
 /// failures but never establishes physical provenance.
 pub fn bounded_resource_gate(measurement_path: Option<&Path>) -> Result<ResourceGate> {
     let Some(path) = measurement_path else {
-        return resource_gate(None);
+        return Ok(default_unmeasured_gate());
     };
     let text = read_bounded_measurement(path).map_err(SpacetimeError::new)?;
     validate_measurement_shape(&text).map_err(SpacetimeError::new)?;
-    resource_gate(Some(path))
+    resource_gate_from_text(&text)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -309,9 +319,13 @@ pub struct ResourceGateIntake {
 /// A file that passes the evaluator's shape and budget arithmetic is only a shape pass. Physical
 /// provenance must be recorded out of band, so this function never establishes a measured gate.
 pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateIntake {
+    resource_gate_intake_and_host(measurement_path).0
+}
+
+fn resource_gate_intake_and_host(path: Option<&Path>) -> (ResourceGateIntake, String) {
     let baseline = baseline_profile();
     let mut intake = ResourceGateIntake {
-        file_supplied: measurement_path.is_some(),
+        file_supplied: path.is_some(),
         status: ResourceGateStatus::Unmeasured,
         digest: "none".to_string(),
         target_profile: baseline.id.to_string(),
@@ -323,27 +337,32 @@ pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateInta
             "no measurement file supplied; baseline 4 GB potato machine unmeasured".to_string(),
         ],
     };
-    let Some(path) = measurement_path else {
-        return intake;
+    let Some(path) = path else {
+        return (intake, String::new());
     };
     let text = match read_bounded_measurement(path) {
         Ok(text) => text,
         Err(reason) => {
             intake.digest = "unavailable".to_string();
             intake.reasons = vec![reason];
-            return intake;
+            return (intake, String::new());
         }
     };
     intake.digest = sha256_hex(text.as_bytes());
     if let Err(reason) = validate_measurement_shape(&text) {
         intake.reasons = vec![reason];
-        return intake;
+        return (intake, String::new());
     }
-    match resource_gate(Some(path)) {
+    let meas_host = text
+        .lines()
+        .filter_map(|line| line.trim().split_once('='))
+        .find_map(|(k, v)| (k.trim() == "measurement_host").then(|| v.trim().to_string()))
+        .unwrap_or_default();
+    match resource_gate_from_text(&text) {
         Ok(gate) => {
-            intake.measurements = gate.measurements.clone();
-            intake.target_profile = gate.target_profile.clone();
-            intake.baseline_profile = gate.baseline_profile.clone();
+            intake.measurements = gate.measurements;
+            intake.target_profile = gate.target_profile;
+            intake.baseline_profile = gate.baseline_profile;
             intake.profile_role = gate.profile_role;
             intake.memory_budget_kb = gate.memory_budget_kb;
             if gate.status == ResourceGateStatus::Pass {
@@ -363,7 +382,7 @@ pub fn resource_gate_intake(measurement_path: Option<&Path>) -> ResourceGateInta
             intake.reasons = vec!["measurement evaluator rejected the file".to_string()];
         }
     }
-    intake
+    (intake, meas_host)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -433,7 +452,7 @@ pub fn evaluate_provenance_gate(
     measurement_path: Option<&Path>,
     provenance_path: Option<&Path>,
 ) -> ProvenanceGateEvaluation {
-    let intake = resource_gate_intake(measurement_path);
+    let (intake, meas_host) = resource_gate_intake_and_host(measurement_path);
     let Some(prov_path) = provenance_path else {
         return ProvenanceGateEvaluation {
             status: ProvenanceGateStatus::Unmeasured,
@@ -446,7 +465,7 @@ pub fn evaluate_provenance_gate(
         };
     };
 
-    let Some(meas_path) = measurement_path else {
+    if measurement_path.is_none() {
         return ProvenanceGateEvaluation {
             status: ProvenanceGateStatus::Rejected,
             measurement_digest: intake.digest,
@@ -454,7 +473,7 @@ pub fn evaluate_provenance_gate(
             target_profile: intake.target_profile,
             reasons: vec!["missing measurement file".to_string()],
         };
-    };
+    }
 
     if intake.status != ResourceGateStatus::Pass || !intake.file_supplied {
         return ProvenanceGateEvaluation {
@@ -465,24 +484,6 @@ pub fn evaluate_provenance_gate(
             reasons: intake.reasons,
         };
     }
-
-    let meas_raw = match read_bounded_measurement(meas_path) {
-        Ok(text) => text,
-        Err(reason) => {
-            return ProvenanceGateEvaluation {
-                status: ProvenanceGateStatus::Rejected,
-                measurement_digest: intake.digest,
-                provenance_digest: "unavailable".to_string(),
-                target_profile: intake.target_profile,
-                reasons: vec![reason],
-            };
-        }
-    };
-    let meas_host = meas_raw
-        .lines()
-        .filter_map(|line| line.trim().split_once('='))
-        .find_map(|(k, v)| (k.trim() == "measurement_host").then(|| v.trim().to_string()))
-        .unwrap_or_default();
 
     let raw = match read_bounded_measurement(prov_path) {
         Ok(text) => text,
@@ -532,6 +533,15 @@ pub fn evaluate_provenance_gate(
         };
         let key = k.trim().to_string();
         let val = v.trim().to_string();
+        if val.len() > MEASUREMENT_VALUE_LIMIT_BYTES {
+            return ProvenanceGateEvaluation {
+                status: ProvenanceGateStatus::Rejected,
+                measurement_digest: intake.digest,
+                provenance_digest,
+                target_profile: intake.target_profile,
+                reasons: vec!["provenance value exceeds byte bound".to_string()],
+            };
+        }
         if kv.insert(key, val).is_some() {
             return ProvenanceGateEvaluation {
                 status: ProvenanceGateStatus::Rejected,
@@ -639,20 +649,20 @@ pub fn evaluate_provenance_gate(
 }
 
 fn read_bounded_measurement(path: &Path) -> std::result::Result<String, String> {
-    let metadata = match fs::metadata(path) {
-        Ok(metadata) => metadata,
-        Err(_) => return Err("measurement file is unreadable".to_string()),
-    };
+    let file = File::open(path).map_err(|_| "measurement file is unreadable".to_string())?;
+    let metadata = file
+        .metadata()
+        .map_err(|_| "measurement file is unreadable".to_string())?;
     if !metadata.is_file() {
         return Err("measurement path is not a regular file".to_string());
     }
     if metadata.len() > MEASUREMENT_FILE_LIMIT_BYTES {
         return Err("measurement file exceeds 64 KiB bound".to_string());
     }
-    let bytes = match fs::read(path) {
-        Ok(bytes) => bytes,
-        Err(_) => return Err("measurement file is unreadable".to_string()),
-    };
+    let mut bytes = Vec::with_capacity(metadata.len() as usize);
+    file.take(MEASUREMENT_FILE_LIMIT_BYTES + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| "measurement file is unreadable".to_string())?;
     if bytes.len() as u64 > MEASUREMENT_FILE_LIMIT_BYTES {
         return Err("measurement file exceeds 64 KiB bound".to_string());
     }

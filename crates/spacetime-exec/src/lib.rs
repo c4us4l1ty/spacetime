@@ -15,7 +15,7 @@ pub mod surface;
 pub mod wasi;
 
 use spacetime_types::{
-    canonical_json_bytes, sha256_hex, Action, ActionOp, CapabilityScope, Observation,
+    canonical_json_sha256_hex, sha256_hex, Action, ActionOp, CapabilityScope, Observation,
     SpacetimeError, Taint, SCHEMA_VERSION,
 };
 use std::fmt::Write as _;
@@ -425,8 +425,8 @@ fn capability_error(action: &Action) -> Option<String> {
     ) {
         return Some("untrusted action taint is denied".to_string());
     }
-    let expected_args_digest = match canonical_json_bytes(&action.op) {
-        Ok(bytes) => sha256_hex(bytes.as_slice()),
+    let expected_args_digest = match canonical_json_sha256_hex(&action.op) {
+        Ok(digest) => digest,
         Err(error) => {
             return Some(format!(
                 "capability args could not be canonicalized: {error}"

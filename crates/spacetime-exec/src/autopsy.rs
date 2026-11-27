@@ -5,22 +5,40 @@
 //! the ephemeral upperdir so untrusted artifacts are never retained.
 
 use spacetime_types::surface::{AutopsyReport, TombstoneRecord};
-use spacetime_types::{sha256_hex, Result, SpacetimeError, TrustTier, SCHEMA_VERSION};
+use spacetime_types::{
+    sha256_hex, Result, SpacetimeError, StreamingSha256, TrustTier, SCHEMA_VERSION,
+};
 use std::collections::BTreeMap;
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::Path;
 
 pub fn snapshot_dir_manifest(root: &Path) -> Result<BTreeMap<String, String>> {
     let mut manifest = BTreeMap::new();
-    if root.exists() {
-        walk_manifest(root, root, &mut manifest)?;
+    if fs::symlink_metadata(root).is_ok() {
+        let mut buf = vec![0u8; 64 * 1024];
+        walk_manifest(root, root, &mut buf, &mut manifest)?;
     }
     Ok(manifest)
+}
+
+fn stream_file_sha256(path: &Path, buf: &mut [u8]) -> Result<String> {
+    let mut file = File::open(path)?;
+    let mut hasher = StreamingSha256::new();
+    loop {
+        let n = file.read(buf)?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
+    Ok(hasher.finish_hex())
 }
 
 fn walk_manifest(
     root: &Path,
     current: &Path,
+    buf: &mut [u8],
     manifest: &mut BTreeMap<String, String>,
 ) -> Result<()> {
     let mut entries = Vec::new();
@@ -37,10 +55,12 @@ fn walk_manifest(
         let meta = fs::symlink_metadata(&path)?;
         if meta.file_type().is_dir() {
             manifest.insert(rel, "dir".to_string());
-            walk_manifest(root, &path, manifest)?;
+            walk_manifest(root, &path, buf, manifest)?;
         } else if meta.file_type().is_file() {
-            let bytes = fs::read(&path)?;
-            manifest.insert(rel, sha256_hex(&bytes));
+            manifest.insert(rel, stream_file_sha256(&path, buf)?);
+        } else if meta.file_type().is_symlink() {
+            let target = fs::read_link(&path)?;
+            manifest.insert(rel, format!("symlink:{}", target.to_string_lossy()));
         } else {
             manifest.insert(rel, "special".to_string());
         }
@@ -147,7 +167,7 @@ pub fn close_and_tombstone(
         trust_tier,
         blast_radius_hash: autopsy.blast_radius_hash.clone(),
         summary,
-        upperdir_removed: !upper_dir.exists(),
+        upperdir_removed: fs::symlink_metadata(upper_dir).is_err(),
     };
     Ok((autopsy, tombstone))
 }
@@ -160,6 +180,7 @@ mod tests {
     fn autopsy_diffs_upperdir_detects_whiteouts_and_deletes_artifacts() -> Result<()> {
         let root =
             std::env::temp_dir().join(format!("spacetime-autopsy-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
         let base_dir = root.join("base");
         let upper_dir = root.join("upper");
         fs::create_dir_all(&base_dir)?;
@@ -189,6 +210,42 @@ mod tests {
         assert_eq!(autopsy.canary_reads, 1);
         assert!(tombstone.upperdir_removed);
         assert!(!upper_dir.exists());
+
+        let _ = fs::remove_dir_all(&root);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn manifest_records_symlink_target_and_detects_target_change() -> Result<()> {
+        let root = std::env::temp_dir().join(format!(
+            "spacetime-autopsy-symlink-test-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let base_dir = root.join("base");
+        let upper_dir = root.join("upper");
+        fs::create_dir_all(&base_dir)?;
+        fs::create_dir_all(&upper_dir)?;
+        std::os::unix::fs::symlink("/bin/sh", base_dir.join("link"))?;
+        std::os::unix::fs::symlink("/bin/false", upper_dir.join("link"))?;
+
+        let base_manifest = snapshot_dir_manifest(&base_dir)?;
+        assert_eq!(
+            base_manifest.get("link").map(String::as_str),
+            Some("symlink:/bin/sh")
+        );
+        let (autopsy, tombstone) = close_and_tombstone(
+            "ws-quarantine-sym",
+            TrustTier::QuarantineMicroVm,
+            &base_manifest,
+            &upper_dir,
+            Vec::new(),
+            100,
+            0,
+        )?;
+        assert_eq!(autopsy.modified_files, vec!["link".to_string()]);
+        assert!(tombstone.upperdir_removed);
 
         let _ = fs::remove_dir_all(&root);
         Ok(())

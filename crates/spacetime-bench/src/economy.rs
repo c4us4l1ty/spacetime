@@ -5,7 +5,7 @@
 //! separately verified Spacetime ledger.
 
 use serde::Serialize;
-use spacetime_types::{canonical_json_bytes, sha256_hex, Result, SpacetimeError};
+use spacetime_types::{canonical_json_sha256_hex, Result, SpacetimeError};
 use std::collections::{BTreeMap, BTreeSet};
 
 const GENESIS_HASH: &str = "genesis";
@@ -45,7 +45,7 @@ impl WalletEvent {
     }
 
     fn calculate_hash(&self) -> Result<String> {
-        Ok(sha256_hex(&canonical_json_bytes(&self.payload())?))
+        canonical_json_sha256_hex(&self.payload())
     }
 }
 
@@ -211,7 +211,7 @@ fn request_hash(
         to_account,
         amount,
     };
-    Ok(sha256_hex(&canonical_json_bytes(&request)?))
+    canonical_json_sha256_hex(&request)
 }
 
 fn validate_id(value: &str, field: &str) -> Result<()> {

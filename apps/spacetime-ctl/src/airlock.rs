@@ -4,9 +4,10 @@
 //! boundaries happen only through explicit, size-bounded, secret/canary-checked one-shot tickets.
 
 use crate::memory::write_atomic;
-use crate::security::HostVault;
+use crate::security::{bytes_contains_subslice, HostVault};
 use spacetime_types::{sha256_hex, Result, SpacetimeError, Taint};
-use std::fs;
+use std::fs::{self, File};
+use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 const MAX_CLIPBOARD_BYTES: usize = 64 * 1024;
@@ -137,28 +138,41 @@ pub fn airlock_copy_file(
         ));
     }
     let canonical_src = fs::canonicalize(&source_path)?;
-    if !canonical_src.starts_with(&canonical_root) || !canonical_src.is_file() {
+    if !canonical_src.starts_with(&canonical_root) {
         return Err(SpacetimeError::new(
-            "file airlock source escaped workspace root or is not a regular file",
+            "file airlock source escaped workspace root",
         ));
     }
-    let meta = fs::metadata(&canonical_src)?;
+    let file = File::open(&canonical_src)?;
+    let meta = file.metadata()?;
+    if !meta.is_file() {
+        return Err(SpacetimeError::new(
+            "file airlock source is not a regular file",
+        ));
+    }
     if meta.len() > MAX_AIRLOCK_FILE_BYTES {
         return Err(SpacetimeError::new(
             "file airlock payload exceeds 4 MiB safety cap",
         ));
     }
-    let bytes = fs::read(&canonical_src)?;
-    let lossy = String::from_utf8_lossy(&bytes);
-    if lossy.contains("@vault:") {
+    let mut bytes = Vec::with_capacity(meta.len() as usize);
+    file.take(MAX_AIRLOCK_FILE_BYTES + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > MAX_AIRLOCK_FILE_BYTES {
+        return Err(SpacetimeError::new(
+            "file airlock payload exceeds 4 MiB safety cap",
+        ));
+    }
+    if bytes_contains_subslice(&bytes, b"@vault:") {
         return Err(SpacetimeError::new(
             "file airlock refused @vault: symbolic secret handle",
         ));
     }
-    vault.inspect_for_canary_or_secret(
+    vault.inspect_bytes_for_canary_or_secret(
         &format!("file_airlock:{source_workspace}:{file_name}"),
-        &lossy,
+        &bytes,
     )?;
+    let size_bytes = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
     let digest = sha256_hex(&bytes);
     fs::create_dir_all(dest_root)?;
     let dest_path = dest_root.join(file_name);
@@ -175,7 +189,7 @@ pub fn airlock_copy_file(
         source_workspace: source_workspace.to_string(),
         dest_workspace: dest_workspace.to_string(),
         relative_name: file_name.to_string(),
-        size_bytes: meta.len(),
+        size_bytes,
         sha256: digest,
         dest_path,
     })

@@ -76,16 +76,24 @@ fn has_image_files(dir: &Path) -> bool {
         return false;
     };
     for entry in entries.flatten() {
+        let Ok(file_type) = entry.file_type() else {
+            continue;
+        };
+        if file_type.is_symlink() {
+            continue;
+        }
         let path = entry.path();
-        if path.is_dir() && has_image_files(&path) {
+        if file_type.is_dir() && has_image_files(&path) {
             return true;
         }
-        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-            if matches!(
-                ext.to_ascii_lowercase().as_str(),
-                "png" | "jpg" | "jpeg" | "bmp" | "webp"
-            ) {
-                return true;
+        if file_type.is_file() {
+            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                if matches!(
+                    ext.to_ascii_lowercase().as_str(),
+                    "png" | "jpg" | "jpeg" | "bmp" | "webp" | "gif"
+                ) {
+                    return true;
+                }
             }
         }
     }
