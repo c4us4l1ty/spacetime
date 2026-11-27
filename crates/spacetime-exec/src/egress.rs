@@ -38,7 +38,8 @@ impl EgressBroker {
         pinned_dns: Option<String>,
     ) -> Result<()> {
         if channel_credential.len() < 16 {
-            return Err(SpacetimeError::new("egress channel credential is too short"));
+            let msg = "egress channel credential is too short";
+            return Err(SpacetimeError::new(msg));
         }
         let needs_proxy = matches!(egress_class, EgressClass::Proxy | EgressClass::Tor);
         if needs_proxy && pinned_proxy.is_none() {

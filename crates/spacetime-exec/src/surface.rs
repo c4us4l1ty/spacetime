@@ -489,9 +489,10 @@ mod tests {
             "hash-2",
         )?;
 
-        let active_id = broker.reader().active_workspace_id();
+        let reader = broker.reader();
+        let active_id = reader.active_workspace_id();
         assert_eq!(active_id, Some("ws-human-terminal"));
-        let ai_live = broker.reader().descriptor("ws-ai-upload").map(|d| d.liveness);
+        let ai_live = reader.descriptor("ws-ai-upload").map(|d| d.liveness);
         assert_eq!(ai_live, Some(LivenessState::Running));
 
         // Cortex channel masks secret fields and forbids raw screenshot access.
@@ -513,9 +514,9 @@ mod tests {
             .expect("AI tab snapshot");
         let title = frame.fields.get("title").map(String::as_str);
         assert_eq!(title, Some("Spacetime Demo"));
-        let ai_live_after = broker.reader().descriptor("ws-ai-upload").map(|d| d.liveness);
-        assert_eq!(ai_live_after, Some(LivenessState::Rendering));
         let reader = broker.reader();
+        let ai_live_after = reader.descriptor("ws-ai-upload").map(|d| d.liveness);
+        assert_eq!(ai_live_after, Some(LivenessState::Rendering));
         let human_live = reader.descriptor("ws-human-terminal").map(|d| d.liveness);
         assert_eq!(human_live, Some(LivenessState::Running));
         assert_eq!(broker.reader().rendering_count(), 1);

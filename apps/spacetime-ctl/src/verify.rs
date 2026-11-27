@@ -1888,10 +1888,10 @@ fn check_egress_airlock_and_distillation(root: &TempRoot) -> Result<String> {
     )?;
     let ws = Some("ws-net");
     let blocked_loop = !egress.evaluate_connect(cred, ws, "127.0.0.1", 8080).allowed;
-    let blocked_meta = !egress.evaluate_connect(cred, ws, "169.254.169.254", 80).allowed;
-    let blocked_dns = egress.validate_guest_resolver(cred, "/etc/resolv.conf").is_err();
+    let conn_meta = egress.evaluate_connect(cred, ws, "169.254.169.254", 80);
+    let dns_res = egress.validate_guest_resolver(cred, "/etc/resolv.conf");
     ensure(
-        blocked_loop && blocked_meta && blocked_dns,
+        blocked_loop && !conn_meta.allowed && dns_res.is_err(),
         "EgressBroker failed to deny localhost/metadata/host-resolv.conf",
     )?;
 

@@ -506,12 +506,12 @@ pub fn evaluate_provenance_gate(
         let msg = "provenance target_profile does not match measurement file";
         reasons.push(msg.to_string());
     }
-    let meas_sha = kv.get("measurement_sha256").map(String::as_str).unwrap_or("");
+    let meas_sha = kv.get("measurement_sha256").map_or("", String::as_str);
     if !is_valid_hex64(meas_sha) || meas_sha != intake.digest {
         let msg = "provenance measurement_sha256 does not match measurement digest";
         reasons.push(msg.to_string());
     }
-    let facts_sha = kv.get("host_facts_sha256").map(String::as_str).unwrap_or("");
+    let facts_sha = kv.get("host_facts_sha256").map_or("", String::as_str);
     if !is_valid_hex64(facts_sha) {
         let msg = "provenance host_facts_sha256 must be a valid non-zero sha256";
         reasons.push(msg.to_string());

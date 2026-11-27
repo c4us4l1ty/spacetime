@@ -185,8 +185,7 @@ mod tests {
             &mut vault,
         );
         assert!(bad_canary.is_err());
-        let bad_vault =
-            clip.stage_copy("ws-src", Taint::TrustedUser, "@vault:api_key", &mut vault);
+        let bad_vault = clip.stage_copy("ws-src", Taint::TrustedUser, "@vault:api_key", &mut vault);
         assert!(bad_vault.is_err());
 
         // Valid one-shot copy succeeds once and cannot be re-read ambiently.

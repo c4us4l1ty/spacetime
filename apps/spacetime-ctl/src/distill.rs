@@ -274,7 +274,8 @@ mod tests {
             .is_err());
 
         let ok_fn = || Ok(());
-        let skill = store.distill_skill("sk-upload-form", "test_upload_draft", 4, "trace:4", ok_fn)?;
+        let skill =
+            store.distill_skill("sk-upload-form", "test_upload_draft", 4, "trace:4", ok_fn)?;
         assert!(skill.enabled);
         let err_fn = || Err(SpacetimeError::new("ui selector drifted"));
         assert!(!store.rerun_skill_test("sk-upload-form", 5, err_fn)?);

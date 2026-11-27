@@ -464,10 +464,8 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
         .parent()
         .ok_or_else(|| SpacetimeError::new("target path has no parent directory"))?;
     fs::create_dir_all(parent)?;
-    let fname = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("state");
+    let fname_opt = path.file_name().and_then(|n| n.to_str());
+    let fname = fname_opt.unwrap_or("state");
     let tmp = parent.join(format!(".{fname}.tmp.{}", std::process::id()));
     {
         let mut file = OpenOptions::new()
