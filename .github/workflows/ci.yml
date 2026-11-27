@@ -40,8 +40,8 @@ jobs:
         run: |
           if ! cargo clippy --workspace --all-targets --locked -- -D warnings > clippy.log 2>&1; then
             cat clippy.log
-            sed -r 's/\x1B\[[0-9;]*[mK]//g' clippy.log | grep -i -E 'error|failed|panic' | grep -vE 'Checking |Compiling |Downloading ' | head -n 5 | sed 's/^/::error::/' || true
-            sed -r 's/\x1B\[[0-9;]*[mK]//g' clippy.log | tail -n 4 | sed 's/^/::error::/'
+            sed -r 's/\x1B\[[0-9;]*[mK]//g' clippy.log | grep -E '^(error|  --> )' | head -n 8 | sed 's/^/::error::/' || true
+            sed -r 's/\x1B\[[0-9;]*[mK]//g' clippy.log | tail -n 2 | sed 's/^/::error::/'
             exit 1
           fi
 
@@ -49,8 +49,8 @@ jobs:
         run: |
           if ! cargo test --workspace --all-targets --locked > test.log 2>&1; then
             cat test.log
-            sed -r 's/\x1B\[[0-9;]*[mK]//g' test.log | grep -i -E 'error|failed|panic' | grep -vE 'Checking |Compiling |Downloading ' | head -n 5 | sed 's/^/::error::/' || true
-            sed -r 's/\x1B\[[0-9;]*[mK]//g' test.log | tail -n 4 | sed 's/^/::error::/'
+            sed -r 's/\x1B\[[0-9;]*[mK]//g' test.log | grep -E '^(error|  --> |test .* FAILED|panicked at)' | head -n 8 | sed 's/^/::error::/' || true
+            sed -r 's/\x1B\[[0-9;]*[mK]//g' test.log | tail -n 2 | sed 's/^/::error::/'
             exit 1
           fi
 

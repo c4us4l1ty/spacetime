@@ -17,21 +17,11 @@ pub struct PolicyDecisionReport {
     pub action_taint: Taint,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RingMinus3Policy {
     pub constitution: ConstitutionPolicy,
     pub daily_fake_spend_used: u64,
     pub daily_posts_used: u32,
-}
-
-impl Default for RingMinus3Policy {
-    fn default() -> Self {
-        Self {
-            constitution: ConstitutionPolicy::default(),
-            daily_fake_spend_used: 0,
-            daily_posts_used: 0,
-        }
-    }
 }
 
 impl RingMinus3Policy {
