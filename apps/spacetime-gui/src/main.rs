@@ -555,7 +555,7 @@ impl eframe::App for WorkspaceApp {
                                 "{}: {} -> {} [{:?}]",
                                 blocker.id, blocker.effect, blocker.target, blocker.status
                             ));
-                            ui.small(&blocker.reason);
+                            ui.small(blocker.reason.as_str());
                             if blocker.status == BlockerStatus::Pending {
                                 ui.horizontal(|ui| {
                                     if ui.button("Approve").clicked() {

@@ -211,10 +211,7 @@ impl SpaceSupervisor {
     pub fn advance_turn(&mut self) -> Result<u64> {
         self.current_turn = self.current_turn.saturating_add(1);
         for goal in &mut self.goals {
-            if matches!(
-                goal.status,
-                GoalLifecycle::Open | GoalLifecycle::InProgress
-            ) {
+            if matches!(goal.status, GoalLifecycle::Open | GoalLifecycle::InProgress) {
                 goal.turns_elapsed = goal.turns_elapsed.saturating_add(1);
                 if goal.turns_elapsed >= goal.deadline_turns
                     || goal.tokens_spent > goal.budget_tokens
@@ -438,7 +435,10 @@ impl SpaceSupervisor {
     }
 
     fn persist(&self) -> Result<()> {
-        write_atomic(&self.root.join("turn.txt"), format!("{}\n", self.current_turn).as_bytes())?;
+        write_atomic(
+            &self.root.join("turn.txt"),
+            format!("{}\n", self.current_turn).as_bytes(),
+        )?;
         write_atomic(
             &self.root.join("goals.json"),
             to_json_pretty(&self.goals)?.as_bytes(),

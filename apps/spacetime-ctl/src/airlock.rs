@@ -50,10 +50,7 @@ impl ClipboardAirlock {
                 "clipboard airlock refused @vault: symbolic secret handle",
             ));
         }
-        vault.inspect_for_canary_or_secret(
-            &format!("clipboard:{source_workspace}"),
-            payload,
-        )?;
+        vault.inspect_for_canary_or_secret(&format!("clipboard:{source_workspace}"), payload)?;
         self.next_id = self.next_id.saturating_add(1);
         let ticket = ClipboardTicket {
             ticket_id: format!("clip-{:06}", self.next_id),
@@ -184,9 +181,9 @@ mod tests {
         assert!(clip
             .stage_copy("ws-src", Taint::TrustedUser, "SECRET_CANARY_AIRLOCK", &mut vault)
             .is_err());
-        assert!(clip
-            .stage_copy("ws-src", Taint::TrustedUser, "@vault:api_key", &mut vault)
-            .is_err());
+        let bad_vault =
+            clip.stage_copy("ws-src", Taint::TrustedUser, "@vault:api_key", &mut vault);
+        assert!(bad_vault.is_err());
 
         // Valid one-shot copy succeeds once and cannot be re-read ambiently.
         clip.stage_copy("ws-src", Taint::TrustedUser, "hello world", &mut vault)?;
