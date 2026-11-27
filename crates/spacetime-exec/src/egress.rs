@@ -230,19 +230,17 @@ fn is_forbidden_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_forbidden_ipv6(ip: Ipv6Addr) -> bool {
+    if ip.is_loopback() || ip.is_unspecified() || ip.is_multicast() {
+        return true;
+    }
     let segments = ip.segments();
     // IPv4-mapped (::ffff:a.b.c.d) or IPv4-compatible (::a.b.c.d) addresses
     if segments[..5] == [0, 0, 0, 0, 0] && (segments[5] == 0xffff || segments[5] == 0) {
         let mapped = Ipv4Addr::from((u32::from(segments[6]) << 16) | u32::from(segments[7]));
         return is_forbidden_ipv4(mapped);
     }
-    ip.is_loopback()
-        || ip.is_unspecified()
-        || ip.is_multicast()
-        // Unique local addresses fc00::/7
-        || (segments[0] & 0xfe00) == 0xfc00
-        // Link-local unicast fe80::/10
-        || (segments[0] & 0xffc0) == 0xfe80
+    // Unique local addresses fc00::/7 or link-local unicast fe80::/10
+    (segments[0] & 0xfe00) == 0xfc00 || (segments[0] & 0xffc0) == 0xfe80
 }
 
 #[cfg(test)]
