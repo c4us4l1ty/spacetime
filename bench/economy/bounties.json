@@ -103,45 +103,45 @@
       "fixture": "bench/econbench/15_protocol_distillation.task",
       "id": "15_protocol_distillation",
       "reward_fake_credits": 5,
-      "verifier_source": "mutation"
+      "verifier_source": "spec_oracle"
     },
     {
       "category": "protocol_distillation",
       "fixture": "bench/econbench/16_protocol_distillation.task",
       "id": "16_protocol_distillation",
       "reward_fake_credits": 1,
-      "verifier_source": "mutation"
+      "verifier_source": "spec_oracle"
     },
     {
       "category": "protocol_distillation",
       "fixture": "bench/econbench/17_protocol_distillation.task",
       "id": "17_protocol_distillation",
       "reward_fake_credits": 2,
-      "verifier_source": "mutation"
+      "verifier_source": "spec_oracle"
     },
     {
       "category": "protocol_distillation",
       "fixture": "bench/econbench/18_protocol_distillation.task",
       "id": "18_protocol_distillation",
       "reward_fake_credits": 3,
-      "verifier_source": "mutation"
+      "verifier_source": "spec_oracle"
     },
     {
       "category": "protocol_distillation",
       "fixture": "bench/econbench/19_protocol_distillation.task",
       "id": "19_protocol_distillation",
       "reward_fake_credits": 4,
-      "verifier_source": "mutation"
+      "verifier_source": "spec_oracle"
     },
     {
       "category": "protocol_distillation",
       "fixture": "bench/econbench/20_protocol_distillation.task",
       "id": "20_protocol_distillation",
       "reward_fake_credits": 5,
-      "verifier_source": "mutation"
+      "verifier_source": "spec_oracle"
     }
   ],
-  "fake_credits_total": 25,
+  "fake_credits_total": 60,
   "kind": "mock_bounty_board",
   "public_internet": false,
   "real_money": false,

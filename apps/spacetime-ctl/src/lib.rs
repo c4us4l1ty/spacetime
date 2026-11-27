@@ -1,9 +1,11 @@
-//! CLI supervisor for Spacetime Blocks 1-2.
+//! CLI supervisor for Spacetime (Blocks 1-12 offline slices).
 
 use spacetime_bench::{
-    baseline_profile, baseline_toml, bounded_resource_gate, target_profiles, ResourceGateStatus,
+    baseline_profile, baseline_toml, bounded_resource_gate, evaluate_provenance_gate,
+    target_profiles, ProvenanceGateStatus, ResourceGateStatus,
 };
 use spacetime_cortex::{Cortex, ScriptedCortex};
+use spacetime_exec::leak_audit::run_leak_audit;
 use spacetime_exec::{Runner, ScriptedRunner};
 use spacetime_ledger::{Ledger, LedgerState};
 use spacetime_types::{
@@ -19,15 +21,24 @@ use spacetime_verifier::{
 use std::fs;
 use std::path::{Path, PathBuf};
 
+pub use spacetime_bench;
+pub use spacetime_exec;
+pub use spacetime_types;
+
+pub mod airlock;
+pub mod cas;
 mod console;
 mod dashboard;
+pub mod distill;
 mod econbench;
 mod initramfs;
+pub mod memory;
+pub mod security;
 mod space;
 mod verify;
 pub mod workspace;
 
-const USAGE: &str = r#"spacetime-ctl — Block 1-2 CLI
+const USAGE: &str = r#"spacetime-ctl — Spacetime Supervisor CLI
 
 Commands:
   run --task <file> --cortex scripted --ledger <file>
@@ -43,16 +54,26 @@ Commands:
   crucible fixture-population --runs <n>
   verify --out <file> [--measurement <file>]
   bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
+  bench harness --out <file>
   console --ledger <file> --out <file>
   dashboard [ledger-file]
   workspace
+  security redteam
+  audit leak
   space doctor
+  space init --dir <dir>
+  space memory-query --dir <dir> --q <query>
+  space branch --from <dir> --to <dir>
+  space collapse --dir <dir> --cas <dir> --name <name>
+  space export --dir <dir> --cas <dir> --name <name> --out <file>
+  space import --bundle <file> --dest <dir>
   space run --experimental --kernel <file> --busybox <file> [--app <file>]
   space boot --experimental --kernel <file> --initramfs <file>
   space initramfs --busybox <static-binary> [--app <static-binary>] --out <new-file>
   machine
   machine profiles
   machine gate [--measurement <file>]
+  machine provenance --measurement <file> --provenance <file>
   digest <text>
   help
 "#;
@@ -66,6 +87,9 @@ pub fn run(args: &[String]) -> Result<()> {
     match command {
         "run" => cmd_run(&args[1..]),
         "ledger" => {
+            if args.len() != 3 {
+                return Err(SpacetimeError::new("usage: ledger verify <file>"));
+            }
             let subcommand = args
                 .get(1)
                 .map(String::as_str)
@@ -84,6 +108,9 @@ pub fn run(args: &[String]) -> Result<()> {
             }
         }
         "replay" => {
+            if args.len() != 2 {
+                return Err(SpacetimeError::new("usage: replay <file>"));
+            }
             let path = args
                 .get(1)
                 .map(String::as_str)
@@ -96,9 +123,14 @@ pub fn run(args: &[String]) -> Result<()> {
         "console" => console::cmd_console(&args[1..]),
         "dashboard" => dashboard::cmd_dashboard(&args[1..]),
         "workspace" => workspace::cmd_ui(&args[1..]),
+        "security" => cmd_security(&args[1..]),
+        "audit" => cmd_audit(&args[1..]),
         "space" => space::cmd_space(&args[1..]),
         "machine" => cmd_machine(&args[1..]),
         "digest" => {
+            if args.len() != 2 {
+                return Err(SpacetimeError::new("usage: digest <text>"));
+            }
             let text = args
                 .get(1)
                 .map(String::as_str)
@@ -124,7 +156,7 @@ fn cmd_crucible(args: &[String]) -> Result<()> {
         "verify" => cmd_crucible_verify(&args[1..]),
         "false-pass" => cmd_crucible_false_pass(&args[1..]),
         "differential" => cmd_crucible_differential(&args[1..]),
-        "sources" => cmd_crucible_sources(),
+        "sources" => cmd_crucible_sources(&args[1..]),
         "panel" => cmd_crucible_panel(&args[1..]),
         "adversarial" => cmd_crucible_adversarial(&args[1..]),
         "population" => cmd_crucible_population(&args[1..]),
@@ -393,7 +425,8 @@ pub(crate) fn panel_resolution_for_task(task_path: &Path) -> Result<PanelResolut
 }
 
 fn cmd_crucible_panel(args: &[String]) -> Result<()> {
-    let task = flag(args, "--task")?;
+    let flags = parse_exact_flags(args, &["--task"])?;
+    let task = &flags["--task"];
     let resolution = panel_resolution_for_task(Path::new(task.as_str()))?;
     println!(
         "panel_verdict={} selected_source={:?} selected_priority={} sources={} conflicts={}",
@@ -441,8 +474,9 @@ fn cmd_crucible_adversarial(args: &[String]) -> Result<()> {
 }
 
 fn cmd_crucible_population(args: &[String]) -> Result<()> {
-    let operators = flag(args, "--operators")?.parse::<usize>()?;
-    let runs = flag(args, "--runs")?.parse::<u32>()?;
+    let flags = parse_exact_flags(args, &["--operators", "--runs"])?;
+    let operators = flags["--operators"].parse::<usize>()?;
+    let runs = flags["--runs"].parse::<u32>()?;
     validate_operator_count(operators)?;
     validate_reruns(runs)?;
     let report = population_report_checked(operators, runs)?;
@@ -472,7 +506,8 @@ fn cmd_crucible_population(args: &[String]) -> Result<()> {
 }
 
 fn cmd_crucible_fixture_population(args: &[String]) -> Result<()> {
-    let runs = flag(args, "--runs")?.parse::<u32>()?;
+    let flags = parse_exact_flags(args, &["--runs"])?;
+    let runs = flags["--runs"].parse::<u32>()?;
     validate_reruns(runs)?;
     let report = fixture_population_report(runs)?;
     println!(
@@ -510,7 +545,8 @@ fn cmd_crucible_fixture_population(args: &[String]) -> Result<()> {
 }
 
 fn cmd_crucible_verify(args: &[String]) -> Result<()> {
-    let task = flag(args, "--task")?;
+    let flags = parse_exact_flags(args, &["--task"])?;
+    let task = &flags["--task"];
     let (candidate, fixture) = crucible_inputs(Path::new(task.as_str()))?;
     let runner = ScriptedRunner::new()?;
     let proof = CrucibleVerifier.verify_candidate(&candidate, &fixture, &runner);
@@ -549,8 +585,9 @@ fn cmd_crucible_verify(args: &[String]) -> Result<()> {
 }
 
 fn cmd_crucible_false_pass(args: &[String]) -> Result<()> {
-    let task = flag(args, "--task")?;
-    let runs = flag(args, "--runs")?.parse::<u32>()?;
+    let flags = parse_exact_flags(args, &["--task", "--runs"])?;
+    let task = &flags["--task"];
+    let runs = flags["--runs"].parse::<u32>()?;
     validate_reruns(runs)?;
     let (candidate, fixture) = crucible_inputs(Path::new(task.as_str()))?;
     let runner = ScriptedRunner::new()?;
@@ -564,7 +601,12 @@ fn cmd_crucible_false_pass(args: &[String]) -> Result<()> {
     Ok(())
 }
 
-fn cmd_crucible_sources() -> Result<()> {
+fn cmd_crucible_sources(args: &[String]) -> Result<()> {
+    if !args.is_empty() {
+        return Err(SpacetimeError::new(
+            "crucible sources does not accept arguments",
+        ));
+    }
     for source in verifier_source_priority() {
         println!("priority={} source={:?}", source.priority(), source);
     }
@@ -572,7 +614,8 @@ fn cmd_crucible_sources() -> Result<()> {
 }
 
 fn cmd_crucible_differential(args: &[String]) -> Result<()> {
-    let limit = flag(args, "--limit")?.parse::<u64>()?;
+    let flags = parse_exact_flags(args, &["--limit"])?;
+    let limit = flags["--limit"].parse::<u64>()?;
     validate_differential_limit(limit)?;
     let (matched, inputs) = differential_score(limit);
     let score = mutation_score_bps(limit);
@@ -584,9 +627,10 @@ fn cmd_crucible_differential(args: &[String]) -> Result<()> {
 }
 
 fn cmd_run(args: &[String]) -> Result<()> {
-    let task = flag(args, "--task")?;
-    let cortex = flag(args, "--cortex")?;
-    let ledger = flag(args, "--ledger")?;
+    let flags = parse_exact_flags(args, &["--task", "--cortex", "--ledger"])?;
+    let task = &flags["--task"];
+    let cortex = &flags["--cortex"];
+    let ledger = &flags["--ledger"];
     if cortex != "scripted" {
         return Err(SpacetimeError::new(format!("unsupported cortex: {cortex}")));
     }
@@ -609,12 +653,82 @@ fn cmd_replay(path: &str) -> Result<()> {
     Ok(())
 }
 
+fn cmd_security(args: &[String]) -> Result<()> {
+    let subcommand = args
+        .first()
+        .map(String::as_str)
+        .ok_or_else(|| SpacetimeError::new("missing security subcommand"))?;
+    if args.len() > 1 {
+        return Err(SpacetimeError::new(format!(
+            "unexpected arguments for security {subcommand}"
+        )));
+    }
+    match subcommand {
+        "redteam" => {
+            let report = security::run_redteam_suite()?;
+            println!(
+                "redteam_total={} redteam_blocked={} redteam_leaked={}",
+                report.total, report.blocked, report.leaked
+            );
+            for scenario in &report.scenarios {
+                println!(
+                    "scenario={} blocked={} detail=\"{}\"",
+                    scenario.id, scenario.blocked, scenario.detail
+                );
+            }
+            if report.leaked > 0 {
+                return Err(SpacetimeError::new("red-team vector leaked"));
+            }
+            Ok(())
+        }
+        _ => Err(SpacetimeError::new(format!(
+            "unknown security subcommand: {subcommand}"
+        ))),
+    }
+}
+
+fn cmd_audit(args: &[String]) -> Result<()> {
+    let subcommand = args
+        .first()
+        .map(String::as_str)
+        .ok_or_else(|| SpacetimeError::new("missing audit subcommand"))?;
+    if args.len() > 1 {
+        return Err(SpacetimeError::new(format!(
+            "unexpected arguments for audit {subcommand}"
+        )));
+    }
+    match subcommand {
+        "leak" => {
+            let audit = run_leak_audit(None);
+            println!(
+                "zero_traces_claimed={} dumpable_or_core_checked={} core_dump_disabled_in_status={} swap_active={} shader_disk_cache_disabled_in_env={} no_spacetime_thumbnails_on_disk={}",
+                audit.zero_traces_claimed,
+                audit.dumpable_or_core_checked,
+                audit.core_dump_disabled_in_status,
+                audit.swap_active,
+                audit.shader_disk_cache_disabled_in_env,
+                audit.no_spacetime_thumbnails_on_disk
+            );
+            for note in &audit.residual_risk_notes {
+                println!("note={note}");
+            }
+            Ok(())
+        }
+        _ => Err(SpacetimeError::new(format!(
+            "unknown audit subcommand: {subcommand}"
+        ))),
+    }
+}
+
 fn cmd_machine(args: &[String]) -> Result<()> {
     if args.first().map(String::as_str) == Some("gate") {
         return cmd_machine_gate(&args[1..]);
     }
     if args.first().map(String::as_str) == Some("profiles") {
         return cmd_machine_profiles(&args[1..]);
+    }
+    if args.first().map(String::as_str) == Some("provenance") {
+        return cmd_machine_provenance(&args[1..]);
     }
     if let Some(argument) = args.first() {
         return Err(SpacetimeError::new(format!(
@@ -623,6 +737,31 @@ fn cmd_machine(args: &[String]) -> Result<()> {
     }
     let baseline = baseline_toml()?;
     print!("{baseline}");
+    Ok(())
+}
+
+fn cmd_machine_provenance(args: &[String]) -> Result<()> {
+    let flags = parse_exact_flags(args, &["--measurement", "--provenance"])?;
+    let measurement = &flags["--measurement"];
+    let provenance = &flags["--provenance"];
+    let meas_path = Path::new(measurement);
+    let prov_path = Path::new(provenance);
+    let eval = evaluate_provenance_gate(Some(meas_path), Some(prov_path));
+    println!(
+        "provenance_gate={} target_profile={} measurement_digest={} provenance_digest={}",
+        eval.status.as_str(),
+        eval.target_profile,
+        eval.measurement_digest,
+        eval.provenance_digest
+    );
+    for reason in &eval.reasons {
+        println!("reason={reason}");
+    }
+    if matches!(eval.status, ProvenanceGateStatus::Rejected) {
+        return Err(SpacetimeError::new(
+            "provenance gate rejected measurement or attestation bundle",
+        ));
+    }
     Ok(())
 }
 
@@ -711,7 +850,39 @@ fn optional_flag(args: &[String], name: &str) -> Result<Option<String>> {
     Ok(found)
 }
 
-fn flag(args: &[String], name: &str) -> Result<String> {
+pub(crate) fn parse_exact_flags(
+    args: &[String],
+    required: &[&str],
+) -> Result<std::collections::BTreeMap<String, String>> {
+    if args.len() % 2 != 0 {
+        return Err(SpacetimeError::new("flags must be name/value pairs"));
+    }
+    let mut values = std::collections::BTreeMap::new();
+    let mut index = 0;
+    while index < args.len() {
+        let name = &args[index];
+        if !required.contains(&name.as_str()) {
+            return Err(SpacetimeError::new(format!("unknown flag: {name}")));
+        }
+        let value = args
+            .get(index + 1)
+            .ok_or_else(|| SpacetimeError::new(format!("missing value for {name}")))?;
+        ensure_flag_value(name, value)?;
+        if values.insert(name.clone(), value.clone()).is_some() {
+            return Err(SpacetimeError::new(format!("duplicate {name} flag")));
+        }
+        index += 2;
+    }
+    for req in required {
+        if !values.contains_key(*req) {
+            return Err(SpacetimeError::new(format!("missing flag {req}")));
+        }
+    }
+    Ok(values)
+}
+
+#[cfg(test)]
+pub(crate) fn flag(args: &[String], name: &str) -> Result<String> {
     let mut indices = args
         .iter()
         .enumerate()
@@ -1108,5 +1279,39 @@ mod tests {
     fn machine_profiles_lists_registry_and_rejects_arguments() {
         assert!(cmd_machine_profiles(&[]).is_ok());
         assert!(cmd_machine_profiles(&["--bogus".to_string()]).is_err());
+    }
+
+    #[test]
+    fn parse_exact_flags_rejects_unknown_duplicate_and_odd_arguments() -> Result<()> {
+        let parsed = parse_exact_flags(
+            &[
+                "--dir".to_string(),
+                "/tmp/a".to_string(),
+                "--q".to_string(),
+                "goal".to_string(),
+            ],
+            &["--dir", "--q"],
+        )?;
+        assert_eq!(parsed["--dir"], "/tmp/a");
+        assert_eq!(parsed["--q"], "goal");
+        assert!(parse_exact_flags(
+            &[
+                "--dir".to_string(),
+                "/tmp/a".to_string(),
+                "--bogus".to_string(),
+                "x".to_string(),
+            ],
+            &["--dir"],
+        )
+        .is_err());
+        let odd = parse_exact_flags(&["--dir".to_string()], &["--dir"]);
+        assert!(odd.is_err());
+        let bad_sec = cmd_security(&["redteam".to_string(), "--bogus".to_string()]);
+        assert!(bad_sec.is_err());
+        let bad_aud = cmd_audit(&["leak".to_string(), "--bogus".to_string()]);
+        assert!(bad_aud.is_err());
+        let bad_src = cmd_crucible_sources(&["--bogus".to_string()]);
+        assert!(bad_src.is_err());
+        Ok(())
     }
 }

@@ -287,14 +287,85 @@ fn doctor(args: &[String]) -> Result<()> {
 }
 
 pub fn cmd_space(args: &[String]) -> Result<()> {
-    if args.first().map(String::as_str) == Some("doctor") {
-        return doctor(&args[1..]);
-    }
-    if args.first().map(String::as_str) == Some("run") {
-        return crate::workspace::cmd_run(&args[1..]);
-    }
-    if args.first().map(String::as_str) == Some("initramfs") {
-        return crate::initramfs::cmd_initramfs(&args[1..]);
+    match args.first().map(String::as_str) {
+        Some("doctor") => return doctor(&args[1..]),
+        Some("run") => return crate::workspace::cmd_run(&args[1..]),
+        Some("initramfs") => return crate::initramfs::cmd_initramfs(&args[1..]),
+        Some("init") => {
+            let flags = crate::parse_exact_flags(&args[1..], &["--dir"])?;
+            let dir = &flags["--dir"];
+            let sup = crate::memory::SpaceSupervisor::open_or_init(Path::new(dir))?;
+            println!(
+                "space_dir={} turn={} digest={}",
+                sup.root().display(),
+                sup.current_turn(),
+                sup.state_digest()?
+            );
+            return Ok(());
+        }
+        Some("memory-query") => {
+            let flags = crate::parse_exact_flags(&args[1..], &["--dir", "--q"])?;
+            let dir = &flags["--dir"];
+            let q = &flags["--q"];
+            let sup = crate::memory::SpaceSupervisor::open_or_init(Path::new(dir))?;
+            let hits = sup.retrieve_memory(q, 5);
+            println!("hits={}", hits.len());
+            for hit in hits {
+                println!(
+                    "doc={} kind={} score_milli={} snippet=\"{}\"",
+                    hit.doc_id, hit.kind, hit.score_milli, hit.snippet
+                );
+            }
+            return Ok(());
+        }
+        Some("branch") => {
+            let flags = crate::parse_exact_flags(&args[1..], &["--from", "--to"])?;
+            let from = &flags["--from"];
+            let to = &flags["--to"];
+            let outcome = crate::cas::branch_space(Path::new(from), Path::new(to))?;
+            println!(
+                "branch={} cow_reflink_used={} files_copied={}",
+                outcome.branch_dir.display(),
+                outcome.cow_reflink_used,
+                outcome.files_copied
+            );
+            return Ok(());
+        }
+        Some("collapse") => {
+            let flags = crate::parse_exact_flags(&args[1..], &["--dir", "--cas", "--name"])?;
+            let dir = &flags["--dir"];
+            let cas_dir = &flags["--cas"];
+            let name = &flags["--name"];
+            let cas = crate::cas::WavefunctionCas::open_or_init(Path::new(cas_dir))?;
+            let summary = cas.collapse_space(Path::new(dir), name)?;
+            println!(
+                "snapshot={} manifest_digest={} objects={} total_bytes={}",
+                name, summary.manifest_digest, summary.object_count, summary.total_bytes
+            );
+            return Ok(());
+        }
+        Some("export") => {
+            let flags =
+                crate::parse_exact_flags(&args[1..], &["--dir", "--cas", "--name", "--out"])?;
+            let dir = &flags["--dir"];
+            let cas_dir = &flags["--cas"];
+            let name = &flags["--name"];
+            let out = &flags["--out"];
+            let cas = crate::cas::WavefunctionCas::open_or_init(Path::new(cas_dir))?;
+            let bundle_sha =
+                crate::cas::export_space_bundle(&cas, Path::new(dir), name, Path::new(out))?;
+            println!("bundle={out} sha256={bundle_sha}");
+            return Ok(());
+        }
+        Some("import") => {
+            let flags = crate::parse_exact_flags(&args[1..], &["--bundle", "--dest"])?;
+            let bundle = &flags["--bundle"];
+            let dest = &flags["--dest"];
+            let files = crate::cas::import_space_bundle(Path::new(bundle), Path::new(dest))?;
+            println!("imported_files={files} dest={dest}");
+            return Ok(());
+        }
+        _ => {}
     }
     let parsed = parse_args(args)?;
     if !cfg!(all(target_os = "linux", target_arch = "x86_64")) {

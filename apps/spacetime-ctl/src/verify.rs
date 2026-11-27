@@ -3,8 +3,13 @@
 //! This command never claims a measured resource gate. It proves the offline functional
 //! pipeline and labels the 4 GB potato-machine resource budget as unmeasured.
 
+use crate::airlock::{airlock_copy_file, ClipboardAirlock};
+use crate::cas::{branch_space, export_space_bundle, import_space_bundle, WavefunctionCas};
 use crate::console::{cmd_console, console_report, default_ledger_path};
+use crate::distill::{DistillationStore, OperatorSpec};
 use crate::econbench::econbench_report;
+use crate::memory::SpaceSupervisor;
+use crate::security::{run_redteam_suite, HostVault};
 use crate::{
     adversarial_report, cmd_crucible_adversarial, cmd_crucible_differential,
     cmd_crucible_false_pass, cmd_crucible_fixture_population, cmd_crucible_population,
@@ -12,16 +17,36 @@ use crate::{
     panel_resolution_for_task, run_task, state_path,
 };
 use serde_json::Value;
+use spacetime_bench::econbench::{verify_task_case_with_candidate, CandidateVariant};
 use spacetime_bench::economy::{MockEconomy, TransferOutcome};
 use spacetime_bench::{
-    baseline_profile, baseline_toml, profile_by_id, resource_gate, resource_gate_intake,
-    target_profiles, ProfileRole, ResourceGateIntake, ResourceGateStatus, BASELINE_TARGET_PROFILE,
+    baseline_profile, baseline_toml, evaluate_provenance_gate, profile_by_id, resource_gate,
+    resource_gate_intake, target_profiles, ProfileRole, ProvenanceGateStatus, ResourceGateIntake,
+    ResourceGateStatus, BASELINE_TARGET_PROFILE,
 };
+use spacetime_cortex::adapters::CortexPromptEnvelope;
+use spacetime_cortex::population::{
+    evaluate_abc_harness, CandidateEvaluation, CandidateProposal, HarnessTaskCase,
+    PopulationCycler, PopulationSelection,
+};
+use spacetime_exec::ark::{
+    probe_net_none_denial, select_domain, ArkBroker, ArkCellSpec, ArkDomain,
+};
+use spacetime_exec::autopsy::{close_and_tombstone, snapshot_dir_manifest};
+use spacetime_exec::egress::EgressBroker;
+use spacetime_exec::governor::{GovernorPolicy, GovernorSample, ResourceGovernor};
+use spacetime_exec::leak_audit::run_leak_audit;
+use spacetime_exec::surface::{default_mixed_workspace_descriptors, SurfaceBroker};
+use spacetime_exec::wasi::{ConstrainedWasiWorker, WasiInstruction, WasiRuntime, WasiWorkerSpec};
 use spacetime_exec::{RunStatus, Runner, ScriptedRunner, FIXED_DETERMINISM_PROFILE};
 use spacetime_ledger::Ledger;
+use spacetime_types::supervisor::{FactKind, OperatorHealth};
+use spacetime_types::surface::{CasProvenanceTier, GovernorAction, SemanticField, SemanticView};
 use spacetime_types::{
-    ActionOp, CapabilityScope, Event, GoalStatus, Result, SpacetimeError, Taint, Verdict,
-    VerifierSource, SCHEMA_VERSION, VERIFIER_SOURCE_PRIORITY,
+    sha256_hex, Action, ActionOp, CapabilityScope, EgressClass, Event, EventSeq, GoalId,
+    GoalStatus, LivenessState, PreviewMode, Result, SpaceId, SpacetimeError, SurfaceId,
+    SurfaceKind, Taint, TrustTier, Verdict, VerifierSource, WorkspaceBinding, WorkspaceId,
+    SCHEMA_VERSION, VERIFIER_SOURCE_PRIORITY,
 };
 use spacetime_verifier::{
     differential_score, false_pass_leak_rate, false_pass_report_checked, mutation_score_bps,
@@ -158,6 +183,36 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     ));
     gates.push(capture("static_console_report", || {
         check_static_console_report(&root)
+    }));
+    gates.push(capture("econbench_planted_bugs_and_bounties", || {
+        check_econbench_planted_bugs_and_bounties()
+    }));
+    gates.push(capture("provenance_gate_contract", || {
+        check_provenance_gate_contract(&root)
+    }));
+    gates.push(capture("population_cycler_and_abc_harness", || {
+        check_population_cycler_and_abc_harness()
+    }));
+    gates.push(capture("space_supervisor_bm25_memory", || {
+        check_space_supervisor_bm25_memory(&root)
+    }));
+    gates.push(capture("ring3_policy_vault_redteam", || {
+        check_ring3_policy_vault_redteam()
+    }));
+    gates.push(capture("tier1_wasi_tier2_ark_net_none", || {
+        check_tier1_wasi_tier2_ark_net_none(&root)
+    }));
+    gates.push(capture("resource_governor_and_surface_broker", || {
+        check_resource_governor_and_surface_broker()
+    }));
+    gates.push(capture("quarantine_autopsy_and_leak_audit", || {
+        check_quarantine_autopsy_and_leak_audit(&root)
+    }));
+    gates.push(capture("wavefunction_cas_branch_export", || {
+        check_wavefunction_cas_branch_export(&root)
+    }));
+    gates.push(capture("egress_airlock_and_distillation", || {
+        check_egress_airlock_and_distillation(&root)
     }));
 
     let report = render_report(&gates, &intake);
@@ -1063,7 +1118,10 @@ fn check_measurement_intake(root: &TempRoot) -> Result<String> {
             && !shape_report.contains("resource_gate = \"measured"),
         "shape pass was promoted to a measured resource gate",
     )?;
-    Ok("bounded=none/unreadable/malformed/duplicate/ci/synthetic/incomplete/wrong-profile/oversize shape_pass_only".to_string())
+    Ok(
+        "bounded=none/unreadable/malformed/duplicate/ci/synthetic/incomplete/wrong-profile/oversize shape_pass_only"
+            .to_string(),
+    )
 }
 
 fn check_resource_gate(root: &TempRoot) -> Result<String> {
@@ -1361,6 +1419,528 @@ fn check_static_console_report(root: &TempRoot) -> Result<String> {
         "exported console report claimed a measured resource gate",
     )?;
     Ok("static_html=offline ledger_verified=true snapshot_frames=3 workspaces=2".to_string())
+}
+
+fn check_econbench_planted_bugs_and_bounties() -> Result<String> {
+    let cases = [
+        "wallet_overdraft",
+        "wallet_exact_balance",
+        "wallet_idempotent_replay",
+        "wallet_id_reuse",
+        "wallet_overflow_atomicity",
+        "wallet_invalid_requests",
+        "wallet_tamper_detection",
+        "transform_bit_reverse",
+        "transform_byte_swap",
+        "transform_rotate_left",
+        "transform_rotate_right",
+        "transform_saturating_add",
+        "transform_checked_mul",
+        "transform_parity",
+        "protocol_empty_transaction",
+        "protocol_two_records",
+        "protocol_abort_discards",
+        "protocol_out_of_order",
+        "protocol_duplicate_sequence",
+        "protocol_write_after_commit",
+    ];
+    for case_id in cases {
+        let passing = verify_task_case_with_candidate(case_id, CandidateVariant::Passing)?;
+        ensure(passing.checks > 0, "passing case had zero checks")?;
+        ensure(
+            verify_task_case_with_candidate(case_id, CandidateVariant::PlantedBug).is_err(),
+            format!("planted bug escaped verification on {case_id}"),
+        )?;
+    }
+
+    let bounties: Value =
+        serde_json::from_str(include_str!("../../../bench/economy/bounties.json"))?;
+    let list = bounties
+        .get("bounties")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| SpacetimeError::new("bounties.json missing bounties array"))?;
+    ensure(list.len() == 20, "bounties.json must list 20 bounties")?;
+    let total = json_u64(&bounties, "fake_credits_total")?;
+    let sum: u64 = list
+        .iter()
+        .filter_map(|item| item.get("reward_fake_credits").and_then(|v| v.as_u64()))
+        .sum();
+    ensure(
+        total == sum && total == 60,
+        "bounties.json fake_credits_total does not match bounty rewards",
+    )?;
+    Ok("passing=20 planted_bugs_caught=20 bounties=20 fake_credits_total=60".to_string())
+}
+
+fn check_provenance_gate_contract(root: &TempRoot) -> Result<String> {
+    let meas_text = "schema_version=1\ntarget_profile=4gb_potato\nmeasurement_host=potato-target-lab\npeak_rss_kb=3000000\nboot_ms=900\ntab_switch_ms=900\ncpu_percent=80\n";
+    let meas_path = root.join("prov-check.measurement");
+    fs::write(&meas_path, meas_text)?;
+    let meas_sha = sha256_hex(meas_text.as_bytes());
+    let facts_sha = sha256_hex(b"host-facts-dmi");
+
+    let unmeasured = evaluate_provenance_gate(Some(&meas_path), None);
+    ensure(
+        unmeasured.status == ProvenanceGateStatus::Unmeasured,
+        "missing provenance promoted gate unexpectedly",
+    )?;
+
+    let bad_prov = root.join("prov-bad.kv");
+    let bad_prov_text = format!(
+        "schema_version=1\n\
+         target_profile=4gb_potato\n\
+         measurement_host=github_actions\n\
+         measurement_sha256={meas_sha}\n\
+         host_facts_sha256={facts_sha}\n\
+         hardware_model=CI\n\
+         installed_ram_mb=4096\n\
+         capture_utc=2026-11-27T10:00:00Z\n\
+         operator=alice\n\
+         reviewer=bob\n\
+         workload_protocol=v1\n"
+    );
+    fs::write(&bad_prov, bad_prov_text)?;
+    let rejected = evaluate_provenance_gate(Some(&meas_path), Some(&bad_prov));
+    ensure(
+        rejected.status == ProvenanceGateStatus::Rejected,
+        "CI provenance was not rejected",
+    )?;
+
+    let ok_prov = root.join("prov-ok.kv");
+    let ok_prov_text = format!(
+        "schema_version=1\n\
+         target_profile=4gb_potato\n\
+         measurement_host=potato-target-lab\n\
+         measurement_sha256={meas_sha}\n\
+         host_facts_sha256={facts_sha}\n\
+         hardware_model=Celeron-N3060\n\
+         installed_ram_mb=4096\n\
+         capture_utc=2026-11-27T10:00:00Z\n\
+         operator=alice\n\
+         reviewer=bob\n\
+         workload_protocol=mixed-workspace-v1\n"
+    );
+    fs::write(&ok_prov, ok_prov_text)?;
+    let ok = evaluate_provenance_gate(Some(&meas_path), Some(&ok_prov));
+    ensure(
+        ok.status == ProvenanceGateStatus::VerifiedTarget4Gb,
+        "valid provenance attestation failed verification",
+    )?;
+    Ok("unmeasured_default=true ci_rejected=true valid_attested_verified=true".to_string())
+}
+
+fn check_population_cycler_and_abc_harness() -> Result<String> {
+    let cycler = PopulationCycler::new(8, 8_000)?;
+    let binding = WorkspaceBinding {
+        workspace_id: WorkspaceId::new("ws-pop"),
+        surface_id: SurfaceId::new("surf-pop"),
+        surface_kind: SurfaceKind::Framebuffer,
+        preview_mode: PreviewMode::SnapshotOnAction,
+        liveness: LivenessState::Running,
+    };
+    let proposals: Vec<CandidateProposal> = (0..8)
+        .map(|i| {
+            let action = Action::new(
+                EventSeq(i),
+                SpaceId::new("space-pop"),
+                GoalId::new("goal-pop"),
+                binding.clone(),
+                ActionOp::Echo {
+                    text: format!("cand-{i}"),
+                },
+                100,
+                Some("fixture".to_string()),
+            )
+            .expect("action");
+            CandidateProposal {
+                candidate_id: format!("cand-{i:02}"),
+                strategy: "population".to_string(),
+                actions: vec![action],
+                token_cost: 100 + i * 5,
+                speculative_draft: false,
+            }
+        })
+        .collect();
+
+    let (rejected, _) = cycler.cycle(&proposals, |p| {
+        Ok(CandidateEvaluation {
+            candidate_id: p.candidate_id.clone(),
+            verdict: Verdict::Fail,
+            deterministic: true,
+            mutation_score_bps: 10_000,
+            token_cost: p.token_cost,
+            reason: "failed check".to_string(),
+        })
+    })?;
+    ensure(
+        matches!(rejected, PopulationSelection::RejectedAll { .. }),
+        "population cycler committed an unverified batch",
+    )?;
+
+    let (selected, _) = cycler.cycle(&proposals, |p| {
+        Ok(CandidateEvaluation {
+            candidate_id: p.candidate_id.clone(),
+            verdict: if p.candidate_id == "cand-02" || p.candidate_id == "cand-05" {
+                Verdict::Pass
+            } else {
+                Verdict::Fail
+            },
+            deterministic: true,
+            mutation_score_bps: 9_000,
+            token_cost: p.token_cost,
+            reason: "verified".to_string(),
+        })
+    })?;
+    ensure(
+        matches!(
+            selected,
+            PopulationSelection::Selected { ref winner, .. } if winner.candidate_id == "cand-02"
+        ),
+        "population cycler did not pick lowest-cost verified candidate",
+    )?;
+
+    let harness = evaluate_abc_harness(&[HarnessTaskCase {
+        task_id: "t1".to_string(),
+        arm_a_single_passes: false,
+        arm_b_verified_retry_passes: true,
+        population_candidates_pass_mask: vec![
+            false, false, true, false, false, false, false, false,
+        ],
+        candidate_tokens: 100,
+    }]);
+    ensure(
+        harness.len() == 3 && harness.iter().all(|s| s.performance_claims == "unmeasured"),
+        "A/B/C harness lost arms or performance_claims=unmeasured label",
+    )?;
+    Ok("population=8 rejected_all_when_0_pass=true performance_claims=unmeasured".to_string())
+}
+
+fn check_space_supervisor_bm25_memory(root: &TempRoot) -> Result<String> {
+    let dir = root.join("space-sup");
+    {
+        let mut sup = SpaceSupervisor::open_or_init(&dir)?;
+        sup.add_goal("g1", None, "Verify upload workflow", 5000, "oracle", 4)?;
+        sup.push_steering("st1", "keep mock endpoint only", 2)?;
+        sup.record_fact(
+            "f1",
+            "upload_title",
+            FactKind::Positive,
+            "Title field accepts unicode safely",
+            "ledger:0",
+            5,
+        )?;
+        sup.queue_blocker(
+            "b1",
+            "g1",
+            "publish",
+            "mock-channel",
+            "requires human approval",
+            Taint::UntrustedToolOutput,
+        )?;
+    }
+    let mut reopened = SpaceSupervisor::open_or_init(&dir)?;
+    let rebuilt_docs = reopened.drop_and_rebuild_index();
+    ensure(
+        rebuilt_docs == 3,
+        "BM25 rebuild did not index all live .space records",
+    )?;
+    let hits = reopened.retrieve_memory("unicode upload title", 2);
+    ensure(
+        hits.first().map(|h| h.doc_id.as_str()) == Some("fact:f1"),
+        "BM25 search did not retrieve matching fact",
+    )?;
+    reopened.resolve_blocker("b1", true)?;
+    ensure(
+        reopened.pending_blockers().is_empty(),
+        "resolved blocker stayed pending",
+    )?;
+    Ok("durable_resume=true bm25_rebuild=3 blocker_resolved=true".to_string())
+}
+
+fn check_ring3_policy_vault_redteam() -> Result<String> {
+    let report = run_redteam_suite()?;
+    ensure(
+        report.total == 10 && report.blocked == 10 && report.leaked == 0,
+        "red-team security suite allowed a leak",
+    )?;
+    let env = CortexPromptEnvelope::build(
+        0,
+        "g1",
+        "Upload",
+        vec![],
+        vec![],
+        vec![SemanticView {
+            workspace_id: WorkspaceId::new("ws-upload"),
+            surface_id: SurfaceId::new("s-upload"),
+            fields: vec![SemanticField {
+                name: "upload_password".to_string(),
+                field_type: "password".to_string(),
+                value: "RAW_SECRET_ABC".to_string(),
+                is_secret: true,
+            }],
+            contains_secret_fields: true,
+            raw_screenshot_allowed_for_cortex: true,
+        }],
+    )?;
+    ensure(
+        !env.semantic_views[0].raw_screenshot_allowed_for_cortex
+            && env.semantic_views[0].fields[0].value == "[MASKED]",
+        "CortexPromptEnvelope failed to mask password or block screenshot",
+    )?;
+    Ok(format!(
+        "redteam_total={} redteam_blocked={} redteam_leaked=0",
+        report.total, report.blocked
+    ))
+}
+
+fn check_tier1_wasi_tier2_ark_net_none(root: &TempRoot) -> Result<String> {
+    let spec = WasiWorkerSpec::strict_default("wasi-gate");
+    let worker = ConstrainedWasiWorker;
+    let outcome = worker.execute(
+        &spec,
+        &[
+            WasiInstruction::PushU64(6),
+            WasiInstruction::PushU64(7),
+            WasiInstruction::MulU64,
+        ],
+        b"",
+    )?;
+    ensure(outcome.result_u64 == 42, "WASI math transform mismatch")?;
+    ensure(
+        worker
+            .execute(&spec, &[WasiInstruction::OpenSocket], b"")
+            .is_err(),
+        "WASI worker allowed socket instruction",
+    )?;
+
+    ensure(
+        select_domain(true) == ArkDomain::ArkQuarantine && ArkDomain::ArkWork.shares_kernel(),
+        "Ark domain classification violated isolation rules",
+    )?;
+    let cred = ArkCellSpec::derive_channel_credential("ws-work-1", ArkDomain::ArkWork, 1);
+    let cell = ArkCellSpec {
+        workspace_id: "ws-work-1".to_string(),
+        domain: ArkDomain::ArkWork,
+        channel_credential: cred.clone(),
+        memory_limit_kb: 256 * 1024,
+        cpu_quota_percent: 50,
+        pids_max: 32,
+        ro_base_dir: root.join("ro"),
+        upper_dir: root.join("up"),
+        egress_class: EgressClass::None,
+    };
+    let mut broker = ArkBroker::new();
+    broker.register_cell(&cell)?;
+    ensure(
+        broker.authenticate(&cred, "ws-spoof").is_err(),
+        "ArkBroker accepted forged workspace_id",
+    )?;
+
+    let probe = probe_net_none_denial()?;
+    ensure(
+        !probe.host_listener_received_connection && probe.shim_connect_errno == 13,
+        "net=none listener probe failed",
+    )?;
+    Ok("wasi_confined=true ark_quarantine=true net_none_listener_denied=true".to_string())
+}
+
+fn check_resource_governor_and_surface_broker() -> Result<String> {
+    let governor = ResourceGovernor::new(GovernorPolicy::baseline_4gb_potato());
+    let mut broker = SurfaceBroker::new();
+    for desc in default_mixed_workspace_descriptors() {
+        broker.register_workspace(desc)?;
+    }
+    let eval = governor.evaluate_workspace(
+        broker.reader().descriptor("ws-ai-upload").expect("ai tab"),
+        &GovernorSample {
+            total_rss_kb: 900_000,
+            active_heavy_rendering: 1,
+            running_cells: 2,
+        },
+        true,
+    );
+    ensure(
+        eval.chosen_preview_mode == PreviewMode::SnapshotOnAction
+            && eval.action == GovernorAction::Allow,
+        "ResourceGovernor did not permit SnapshotOnAction",
+    )?;
+    broker.apply_supervisor_field_update(
+        "ws-ai-upload",
+        SemanticField {
+            name: "title".to_string(),
+            field_type: "text".to_string(),
+            value: "Demo Title".to_string(),
+            is_secret: false,
+        },
+        "set title",
+        "hash-a",
+    )?;
+    broker.apply_supervisor_field_update(
+        "ws-ai-upload",
+        SemanticField {
+            name: "token".to_string(),
+            field_type: "password".to_string(),
+            value: "SECRET_DO_NOT_EXFIL".to_string(),
+            is_secret: true,
+        },
+        "masked token",
+        "hash-b",
+    )?;
+    let semantic = broker.cortex_semantic_view("ws-ai-upload")?;
+    ensure(
+        semantic
+            .fields
+            .iter()
+            .any(|f| f.name == "token" && f.value == "[MASKED]"),
+        "SurfaceBroker exposed raw secret to Cortex",
+    )?;
+    let frame = broker
+        .switch_active_tab("ws-ai-upload")?
+        .expect("RAM snapshot frame");
+    ensure(
+        frame.rgba.len() == frame.width * frame.height * 4
+            && broker.reader().disk_writes_performed() == 0
+            && broker.reader().rendering_count() == 1,
+        "SurfaceBroker violated RAM-only or single-rendering invariant",
+    )?;
+    broker.close_workspace("ws-ai-upload")?;
+    Ok("governor_enforced=true ram_only_snapshots=true cortex_secrets_masked=true".to_string())
+}
+
+fn check_quarantine_autopsy_and_leak_audit(root: &TempRoot) -> Result<String> {
+    let base = root.join("q-base");
+    let upper = root.join("q-upper");
+    fs::create_dir_all(&base)?;
+    fs::create_dir_all(&upper)?;
+    fs::write(base.join("orig.txt"), b"v1")?;
+    let base_manifest = snapshot_dir_manifest(&base)?;
+    fs::write(upper.join("dropped.bin"), b"payload")?;
+    fs::write(upper.join(".wh.orig.txt"), b"")?;
+
+    let (autopsy, tombstone) = close_and_tombstone(
+        "ws-q",
+        TrustTier::QuarantineMicroVm,
+        &base_manifest,
+        &upper,
+        vec!["127.0.0.1:8080".to_string()],
+        64_000,
+        0,
+    )?;
+    ensure(
+        tombstone.upperdir_removed && !upper.exists() && autopsy.whiteouts.len() == 1,
+        "quarantine autopsy did not capture whiteouts or delete upperdir",
+    )?;
+
+    let leak = run_leak_audit(Some(root.path.as_path()));
+    ensure(
+        !leak.zero_traces_claimed && leak.no_spacetime_thumbnails_on_disk,
+        "leak audit claimed zero traces or found thumbnails on disk",
+    )?;
+    Ok("autopsy_tombstone=true upperdir_removed=true zero_traces_claimed=false".to_string())
+}
+
+fn check_wavefunction_cas_branch_export(root: &TempRoot) -> Result<String> {
+    let cas = WavefunctionCas::open_or_init(&root.join("cas"))?;
+    let local = cas.put_layer(
+        "tab-scratch",
+        b"local-only",
+        CasProvenanceTier::TabLocal,
+        Some(WorkspaceId::new("ws-a")),
+        None,
+        None,
+    )?;
+    ensure(
+        cas.can_mount_layer(&local.digest, "ws-a")?
+            && !cas.can_mount_layer(&local.digest, "ws-b")?,
+        "TabLocal CAS layer leaked to another workspace",
+    )?;
+
+    let sp_a = root.join("cas-space-a");
+    fs::create_dir_all(&sp_a)?;
+    fs::write(sp_a.join("state.json"), b"{\"ok\":true}")?;
+    let collapsed = cas.collapse_space(&sp_a, "snap-0")?;
+    ensure(collapsed.object_count == 1, "Collapse missed file")?;
+
+    let sp_b = root.join("cas-space-b");
+    let branched = branch_space(&sp_a, &sp_b)?;
+    ensure(branched.files_copied == 1, "branch_space missed file")?;
+
+    let bundle = root.join("export.bundle.json");
+    export_space_bundle(&cas, &sp_a, "snap-0", &bundle)?;
+    let imported = root.join("cas-imported");
+    ensure(
+        import_space_bundle(&bundle, &imported)? == 1
+            && fs::read(imported.join("state.json"))? == b"{\"ok\":true}",
+        "bundle export/import verification failed",
+    )?;
+    Ok("cas_isolation=true collapse=1 branch=1 bundle_roundtrip=verified".to_string())
+}
+
+fn check_egress_airlock_and_distillation(root: &TempRoot) -> Result<String> {
+    let mut egress = EgressBroker::new();
+    let cred = "cred-gate-direct-0001";
+    egress.register_cell(
+        cred,
+        "ws-net",
+        EgressClass::Direct,
+        None,
+        Some("tunnel://dns-pin:53".to_string()),
+    )?;
+    let ws = Some("ws-net");
+    let blocked_loop = !egress.evaluate_connect(cred, ws, "127.0.0.1", 8080).allowed;
+    let conn_meta = egress.evaluate_connect(cred, ws, "169.254.169.254", 80);
+    let dns_res = egress.validate_guest_resolver(cred, "/etc/resolv.conf");
+    ensure(
+        blocked_loop && !conn_meta.allowed && dns_res.is_err(),
+        "EgressBroker failed to deny localhost/metadata/host-resolv.conf",
+    )?;
+
+    let mut vault = HostVault::new();
+    vault.plant_canary("can", "CANARY_AIRLOCK_GATE")?;
+    let mut clip = ClipboardAirlock::new();
+    let canary_txt = "CANARY_AIRLOCK_GATE";
+    let canary_res = clip.stage_copy("ws-a", Taint::TrustedUser, canary_txt, &mut vault);
+    ensure(canary_res.is_err(), "ClipboardAirlock allowed canary leak")?;
+    clip.stage_copy("ws-a", Taint::TrustedUser, "safe snippet", &mut vault)?;
+    ensure(
+        clip.paste_once("ws-b")?.payload == "safe snippet" && clip.paste_once("ws-c").is_err(),
+        "ClipboardAirlock did not enforce one-shot consumption",
+    )?;
+
+    let src = root.join("air-src");
+    let dst = root.join("air-dst");
+    fs::create_dir_all(&src)?;
+    fs::write(src.join("report.txt"), b"ok")?;
+    let receipt = airlock_copy_file(
+        "ws-a",
+        &src,
+        Path::new("report.txt"),
+        "ws-b",
+        &dst,
+        &mut vault,
+    )?;
+    ensure(receipt.size_bytes == 2, "FileAirlock failed copy")?;
+
+    let mut distill = DistillationStore::open_or_init(&root.join("distill"))?;
+    distill.register_operator(OperatorSpec {
+        id: "op-1",
+        precondition: "pre",
+        op_name: "transform",
+        postcondition: "post",
+        verifier_id: "verifier-1",
+        mutation_score_bps: 9_200,
+        differential_inputs: 512,
+        current_turn: 1,
+        provenance: "ledger:1",
+    })?;
+    ensure(
+        distill.audit_operator_drift("op-1", 2, false, 6_000)? == OperatorHealth::Suspect
+            && distill.audit_operator_drift("op-1", 3, false, 6_000)? == OperatorHealth::Dead,
+        "operator drift quarantine did not transition Suspect -> Dead",
+    )?;
+    let skill = distill.distill_skill("sk-1", "test_sk_1", 4, "trace:4", || Ok(()))?;
+    ensure(skill.enabled, "distilled green skill was not enabled")?;
+    Ok("egress_guarded=true airlock_one_shot=true drift_quarantine=true".to_string())
 }
 
 fn render_report(gates: &[Gate], intake: &ResourceGateIntake) -> String {

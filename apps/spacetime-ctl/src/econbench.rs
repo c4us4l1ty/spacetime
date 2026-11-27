@@ -120,10 +120,79 @@ pub fn cmd_bench(args: &[String]) -> Result<()> {
         .ok_or_else(|| SpacetimeError::new("missing bench subcommand"))?;
     match subcommand {
         "run" => cmd_bench_run(&args[1..]),
+        "harness" => cmd_bench_harness(&args[1..]),
         _ => Err(SpacetimeError::new(format!(
             "unknown bench subcommand: {subcommand}"
         ))),
     }
+}
+
+fn cmd_bench_harness(args: &[String]) -> Result<()> {
+    let flags = crate::parse_exact_flags(args, &["--out"])?;
+    let out = &flags["--out"];
+    let cases = vec![
+        spacetime_cortex::population::HarnessTaskCase {
+            task_id: "planted_01".to_string(),
+            arm_a_single_passes: false,
+            arm_b_verified_retry_passes: true,
+            population_candidates_pass_mask: vec![
+                false, false, true, false, false, false, false, false, false, false,
+            ],
+            candidate_tokens: 120,
+        },
+        spacetime_cortex::population::HarnessTaskCase {
+            task_id: "transmutation_08".to_string(),
+            arm_a_single_passes: false,
+            arm_b_verified_retry_passes: false,
+            population_candidates_pass_mask: vec![
+                false, false, false, false, true, false, false, false, false, false,
+            ],
+            candidate_tokens: 150,
+        },
+        spacetime_cortex::population::HarnessTaskCase {
+            task_id: "protocol_15".to_string(),
+            arm_a_single_passes: true,
+            arm_b_verified_retry_passes: true,
+            population_candidates_pass_mask: vec![
+                true, true, false, false, false, false, false, false, false, false,
+            ],
+            candidate_tokens: 100,
+        },
+    ];
+    let summaries = spacetime_cortex::population::evaluate_abc_harness(&cases);
+    let arms_json: Vec<Value> = summaries
+        .iter()
+        .map(|s| {
+            json!({
+                "arm": s.arm.as_str(),
+                "tasks_total": s.tasks_total,
+                "tasks_passed": s.tasks_passed,
+                "unverified_claim_rate_bps": s.unverified_claim_rate_bps,
+                "total_tokens": s.total_tokens,
+                "performance_claims": s.performance_claims,
+            })
+        })
+        .collect();
+    let payload = json!({
+        "schema_version": 1,
+        "report": "abc_offline_harness",
+        "resource_gate": "unmeasured_target_4gb",
+        "performance_claims": "unmeasured",
+        "arms": arms_json,
+    });
+    let mut text = serde_json::to_string_pretty(&payload)?;
+    text.push('\n');
+    let out_path = PathBuf::from(&out);
+    if let Some(parent) = out_path.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)?;
+        }
+    }
+    fs::write(&out_path, text)?;
+    let out_disp = out_path.display();
+    let arm_count = summaries.len();
+    println!("harness_report={out_disp} arms={arm_count}");
+    Ok(())
 }
 
 fn cmd_bench_run(args: &[String]) -> Result<()> {

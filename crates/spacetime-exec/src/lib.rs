@@ -6,6 +6,14 @@
 //! `/dev/urandom` reads remain outside this boundary. Real namespaces, cgroups, Ark cells, and
 //! quarantine microVMs arrive in later blocks.
 
+pub mod ark;
+pub mod autopsy;
+pub mod egress;
+pub mod governor;
+pub mod leak_audit;
+pub mod surface;
+pub mod wasi;
+
 use spacetime_types::{
     canonical_json_bytes, sha256_hex, Action, ActionOp, CapabilityScope, Observation,
     SpacetimeError, Taint, SCHEMA_VERSION,
@@ -367,6 +375,33 @@ impl Runner for ScriptedRunner {
             }
             ActionOp::Sleep { milliseconds } => self.run_sleep(action, *milliseconds),
             ActionOp::Flaky { token } => self.run_flaky(action, token),
+            ActionOp::UiSetField {
+                field,
+                value,
+                secret,
+            } => {
+                let text = if *secret {
+                    format!("{field}=[MASKED]")
+                } else {
+                    format!("{field}={value}")
+                };
+                completed_result(action, text, &self.profile_digest)
+            }
+            ActionOp::IrreversibleEffect { effect, target } => completed_result(
+                action,
+                format!("irreversible:{effect}:{target}"),
+                &self.profile_digest,
+            ),
+            ActionOp::SpendFakeCredits { amount, recipient } => completed_result(
+                action,
+                format!("spend:{amount}:{recipient}"),
+                &self.profile_digest,
+            ),
+            ActionOp::RunOperator { operator_id, input } => completed_result(
+                action,
+                format!("operator:{operator_id}:{input}"),
+                &self.profile_digest,
+            ),
         }
     }
 }
