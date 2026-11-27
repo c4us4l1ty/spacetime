@@ -180,6 +180,7 @@ mod tests {
     fn autopsy_diffs_upperdir_detects_whiteouts_and_deletes_artifacts() -> Result<()> {
         let root =
             std::env::temp_dir().join(format!("spacetime-autopsy-test-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
         let base_dir = root.join("base");
         let upper_dir = root.join("upper");
         fs::create_dir_all(&base_dir)?;
@@ -191,13 +192,6 @@ mod tests {
         fs::write(upper_dir.join("keep.txt"), b"v2-modified")?;
         fs::write(upper_dir.join("payload.bin"), b"dropped")?;
         fs::write(upper_dir.join(".wh.etc-crontab"), b"")?;
-
-        #[cfg(unix)]
-        {
-            std::os::unix::fs::symlink("/bin/sh", upper_dir.join("link"))?;
-            let m = snapshot_dir_manifest(&upper_dir)?;
-            assert_eq!(m.get("link").map(String::as_str), Some("symlink:/bin/sh"));
-        }
 
         let (autopsy, tombstone) = close_and_tombstone(
             "ws-quarantine-1",
@@ -216,6 +210,42 @@ mod tests {
         assert_eq!(autopsy.canary_reads, 1);
         assert!(tombstone.upperdir_removed);
         assert!(!upper_dir.exists());
+
+        let _ = fs::remove_dir_all(&root);
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn manifest_records_symlink_target_and_detects_target_change() -> Result<()> {
+        let root = std::env::temp_dir().join(format!(
+            "spacetime-autopsy-symlink-test-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        let base_dir = root.join("base");
+        let upper_dir = root.join("upper");
+        fs::create_dir_all(&base_dir)?;
+        fs::create_dir_all(&upper_dir)?;
+        std::os::unix::fs::symlink("/bin/sh", base_dir.join("link"))?;
+        std::os::unix::fs::symlink("/bin/false", upper_dir.join("link"))?;
+
+        let base_manifest = snapshot_dir_manifest(&base_dir)?;
+        assert_eq!(
+            base_manifest.get("link").map(String::as_str),
+            Some("symlink:/bin/sh")
+        );
+        let (autopsy, tombstone) = close_and_tombstone(
+            "ws-quarantine-sym",
+            TrustTier::QuarantineMicroVm,
+            &base_manifest,
+            &upper_dir,
+            Vec::new(),
+            100,
+            0,
+        )?;
+        assert_eq!(autopsy.modified_files, vec!["link".to_string()]);
+        assert!(tombstone.upperdir_removed);
 
         let _ = fs::remove_dir_all(&root);
         Ok(())
