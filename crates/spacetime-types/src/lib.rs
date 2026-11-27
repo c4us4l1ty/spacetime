@@ -65,12 +65,6 @@ fn sha256_digest_hex(digest: &[u8]) -> String {
 #[derive(Clone, Default)]
 pub struct StreamingSha256(Sha256);
 
-impl Default for StreamingSha256 {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl StreamingSha256 {
     pub fn new() -> Self {
         Self(Sha256::new())
@@ -140,8 +134,8 @@ pub fn load_json_file_or_default<T: serde::de::DeserializeOwned + Default>(
     };
     let metadata = file.metadata()?;
     if !metadata.is_file() {
-        let disp = path.display();
-        return Err(SpacetimeError::new(format!("expected regular JSON file: {disp}")));
+        let msg = format!("expected regular JSON file: {}", path.display());
+        return Err(SpacetimeError::new(msg));
     }
     Ok(serde_json::from_reader(BufReader::new(file))?)
 }

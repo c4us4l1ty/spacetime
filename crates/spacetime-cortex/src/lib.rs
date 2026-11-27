@@ -41,7 +41,8 @@ impl ScriptedCortex {
             return Err(SpacetimeError::new("task file exceeds 64 KiB resource cap"));
         }
         let mut bytes = Vec::with_capacity(file_meta.len() as usize);
-        file.take(MAX_TASK_BYTES as u64 + 1).read_to_end(&mut bytes)?;
+        let mut limited = file.take(MAX_TASK_BYTES as u64 + 1);
+        limited.read_to_end(&mut bytes)?;
         if bytes.len() > MAX_TASK_BYTES {
             return Err(SpacetimeError::new("task file exceeds 64 KiB resource cap"));
         }
@@ -64,8 +65,10 @@ impl ScriptedCortex {
                 .split_once('=')
                 .ok_or_else(|| SpacetimeError::new(format!("invalid task line: {line}")))?;
             let key = key.trim().to_string();
-            if metadata.insert(key.clone(), value.trim().to_string()).is_some() {
-                return Err(SpacetimeError::new(format!("duplicate task metadata key: {key}")));
+            let val = value.trim().to_string();
+            if metadata.insert(key.clone(), val).is_some() {
+                let msg = format!("duplicate task metadata key: {key}");
+                return Err(SpacetimeError::new(msg));
             }
         }
 
@@ -217,7 +220,8 @@ fn parse_action_line(
             .split_once('=')
             .ok_or_else(|| SpacetimeError::new(format!("invalid action field: {part}")))?;
         if fields.insert(key, value).is_some() {
-            return Err(SpacetimeError::new(format!("duplicate action field: {key}")));
+            let msg = format!("duplicate action field: {key}");
+            return Err(SpacetimeError::new(msg));
         }
     }
 

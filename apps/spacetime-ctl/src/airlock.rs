@@ -139,12 +139,16 @@ pub fn airlock_copy_file(
     }
     let canonical_src = fs::canonicalize(&source_path)?;
     if !canonical_src.starts_with(&canonical_root) {
-        return Err(SpacetimeError::new("file airlock source escaped workspace root"));
+        return Err(SpacetimeError::new(
+            "file airlock source escaped workspace root",
+        ));
     }
     let file = File::open(&canonical_src)?;
     let meta = file.metadata()?;
     if !meta.is_file() {
-        return Err(SpacetimeError::new("file airlock source is not a regular file"));
+        return Err(SpacetimeError::new(
+            "file airlock source is not a regular file",
+        ));
     }
     if meta.len() > MAX_AIRLOCK_FILE_BYTES {
         return Err(SpacetimeError::new(

@@ -516,10 +516,9 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
     let seq = ATOMIC_TMP_SEQ.fetch_add(1, Ordering::Relaxed);
     let tmp = parent.join(format!(".{fname}.tmp.{}.{seq}", std::process::id()));
     let write_res = (|| -> Result<()> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&tmp)?;
+        let mut options = OpenOptions::new();
+        options.write(true).create_new(true);
+        let mut file = options.open(&tmp)?;
         file.write_all(bytes)?;
         file.sync_all()?;
         fs::rename(&tmp, path)?;

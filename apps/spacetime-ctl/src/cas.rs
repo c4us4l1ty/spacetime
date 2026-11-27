@@ -393,7 +393,9 @@ pub fn import_space_bundle(bundle_path: &Path, dest_dir: &Path) -> Result<usize>
     let file = File::open(bundle_path)?;
     let meta = file.metadata()?;
     if !meta.is_file() || meta.len() > MAX_BUNDLE_BYTES {
-        return Err(SpacetimeError::new("space bundle must be a regular file <= 64 MiB"));
+        return Err(SpacetimeError::new(
+            "space bundle must be a regular file <= 64 MiB",
+        ));
     }
     let mut raw = Vec::with_capacity(meta.len() as usize);
     file.take(MAX_BUNDLE_BYTES + 1).read_to_end(&mut raw)?;
