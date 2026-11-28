@@ -192,6 +192,7 @@ jobs:
           grep -q 'name = "target_profile_registry"' target/verify.toml
           grep -q 'name = "econbench_offline"' target/verify.toml
           grep -q 'name = "block3_task_pack_seeded_workspaces"' target/verify.toml
+          grep -q 'protocol_tasks=6 protocol_traces=' target/verify.toml
           grep -q 'name = "static_console_report"' target/verify.toml
           grep -q '^econbench_fixtures = 20$' target/verify.toml
           grep -q '^static_console = "offline_prototype"$' target/verify.toml

@@ -1495,8 +1495,8 @@ fn check_block3_task_pack() -> Result<String> {
     let caught = json_u64(&report, "seeded_bugs_caught")?;
     let candidates = json_u64(&report, "candidates")?;
     ensure(
-        candidates == 14,
-        "the task pack no longer ships fourteen seeded candidates",
+        candidates == 20,
+        "the task pack no longer ships twenty seeded candidates",
     )?;
     ensure(
         caught == candidates,
@@ -1515,8 +1515,19 @@ fn check_block3_task_pack() -> Result<String> {
         corpus_rows >= 2_000,
         "the differential corpus shrank below its floor",
     )?;
+    let protocol_tasks = json_u64(&report, "protocol_tasks")?;
+    let protocol_traces = json_u64(&report, "protocol_traces")?;
+    ensure(
+        protocol_tasks == 6,
+        "the task pack no longer ships six protocol-distillation candidates",
+    )?;
+    ensure(
+        protocol_traces >= 10,
+        "the protocol recording shrank below its floor",
+    )?;
     Ok(format!(
-        "candidates={candidates} planted_bugs_caught={caught} corpus_rows={corpus_rows}"
+        "candidates={candidates} planted_bugs_caught={caught} corpus_rows={corpus_rows} \
+protocol_tasks={protocol_tasks} protocol_traces={protocol_traces}"
     ))
 }
 
