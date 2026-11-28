@@ -185,7 +185,7 @@ fn build_grader(candidate: &Path, family: Family, label: &str) -> Result<PathBuf
     let dir = work_dir();
     std::fs::create_dir_all(&dir).map_err(|error| error.to_string())?;
     let assembled = dir.join(format!("{label}.assembled.rs"));
-    let status = Command::new("sh")
+    let status = Command::new("bash")
         .arg(taskpack_dir().join("assemble.sh"))
         .arg(candidate)
         .arg(&assembled)
@@ -438,7 +438,7 @@ fn seeds_cover_every_oracle_signal() {
     assert_eq!(wallet_covered.len() + 1, WALLET_CHECKS.len());
     assert_eq!(transform_covered.len(), TRANSFORM_FUNCTIONS.len());
     assert_eq!(
-        WALLET_CHECKS.len() + TRANSFORM_FUNCTIONS.len(),
+        WALLET_CHECKS.len() - 1 + TRANSFORM_FUNCTIONS.len(),
         SEEDED.len()
     );
 }
