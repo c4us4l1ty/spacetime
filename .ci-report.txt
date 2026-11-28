@@ -1,293 +1,7 @@
 === run.sh matrix ===
-assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.zrjGilaXBH/assembled.rs
-error[E0425]: cannot find type `CandidateEvent` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:227:21
-    |
-227 |         events: Vec<CandidateEvent>,
-    |                     ^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this struct
-    |
-224 +     use crate::CandidateEvent;
-    |
-
-error[E0425]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:231:64
-    |
-231 |         pub fn new(accounts: &[(&str, u64)]) -> Result<Wallet, WalletError> {
-    |                                                                ^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:234:17
-    |
-234 |                 validate_identifier(account)?;
-    |                 ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::validate_identifier;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:236:32
-    |
-236 |                     return Err(WalletError::DuplicateAccount);
-    |                                ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:241:28
-    |
-241 |                 return Err(WalletError::TooFewAccounts);
-    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find type `TransferOutcome` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:263:21
-    |
-263 |         ) -> Result<TransferOutcome, WalletError> {
-    |                     ^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this enum
-    |
-224 +     use crate::TransferOutcome;
-    |
-
-error[E0425]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:263:38
-    |
-263 |         ) -> Result<TransferOutcome, WalletError> {
-    |                                      ^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:264:13
-    |
-264 |             validate_identifier(transfer_id)?;
-    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::validate_identifier;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:265:13
-    |
-265 |             validate_identifier(from)?;
-    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::validate_identifier;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:266:13
-    |
-266 |             validate_identifier(to)?;
-    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::validate_identifier;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:268:28
-    |
-268 |                 return Err(WalletError::SameAccount);
-    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:271:28
-    |
-271 |                 return Err(WalletError::ZeroAmount);
-    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find function `event_mix` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:274:34
-    |
-274 |             let arguments_hash = event_mix(0, transfer_id, from, to, amount, 0);
-    |                                  ^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::event_mix;
-    |
-
-error[E0433]: cannot find type `TransferOutcome` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:282:24
-    |
-282 |                     Ok(TransferOutcome::Duplicate)
-    |                        ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::TransferOutcome;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:284:25
-    |
-284 |                     Err(WalletError::TransferIdReuse)
-    |                         ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:288:51
-    |
-288 |             let source = self.balance(from).ok_or(WalletError::MissingAccount)?;
-    |                                                   ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:289:54
-    |
-289 |             let destination = self.balance(to).ok_or(WalletError::MissingAccount)?;
-    |                                                      ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:290:64
-    |
-290 |             let next_source = source.checked_sub(amount).ok_or(WalletError::Overdraft)?;
-    |                                                                ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:293:24
-    |
-293 |                 .ok_or(WalletError::DestinationOverflow)?;
-    |                        ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find value `GENESIS_HASH` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:301:28
-    |
-301 |                 .unwrap_or(GENESIS_HASH);
-    |                            ^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this constant
-    |
-224 +     use crate::GENESIS_HASH;
-    |
-
-error[E0425]: cannot find function `make_event` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:305:30
-    |
-305 |             self.events.push(make_event(
-    |                              ^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::make_event;
-    |
-
-error[E0433]: cannot find type `TransferOutcome` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:313:16
-    |
-313 |             Ok(TransferOutcome::Applied)
-    |                ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`
-    |
-help: consider importing this enum
-    |
-224 +     use crate::TransferOutcome;
-    |
-
-error[E0425]: cannot find type `CandidateEvent` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:328:35
-    |
-328 |         pub fn events(&self) -> &[CandidateEvent] {
-    |                                   ^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this struct
-    |
-224 +     use crate::CandidateEvent;
-    |
-
-error[E0425]: cannot find type `CandidateEvent` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:342:40
-    |
-342 |         pub fn verify_events(events: &[CandidateEvent]) -> bool {
-    |                                        ^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this struct
-    |
-224 +     use crate::CandidateEvent;
-    |
-
-error[E0425]: cannot find value `GENESIS_HASH` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:343:37
-    |
-343 |             let mut previous_hash = GENESIS_HASH;
-    |                                     ^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this constant
-    |
-224 +     use crate::GENESIS_HASH;
-    |
-
-error[E0425]: cannot find function `recomputed_event_hash` in this scope
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:352:23
-    |
-352 |                 match recomputed_event_hash(events, index) {
-    |                       ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-224 +     use crate::recomputed_event_hash;
-    |
-
+assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.rJLbjOyo9s/assembled.rs
 error[E0631]: type mismatch in function arguments
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:214:26
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:214:26
     |
  69 |     pub fn as_str(&self) -> &'static str {
     |     ------------------------------------ found signature defined here
@@ -312,107 +26,107 @@ help: consider adjusting the signature so it does not borrow its argument
     |
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:434:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:444:9
     |
-434 |         format!("a clean chain observed as {observation:?}"),
+444 |         format!("a clean chain observed as {observation:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:464:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:474:9
     |
-464 |         format!("spending the whole balance returned {outcome:?}"),
+474 |         format!("spending the whole balance returned {outcome:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:480:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:490:9
     |
-480 |         format!("an overdraft returned {outcome:?}"),
+490 |         format!("an overdraft returned {outcome:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:491:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:501:9
     |
-491 |         format!("an underfunded transfer returned {underfunded:?}"),
+501 |         format!("an underfunded transfer returned {underfunded:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:501:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:511:9
     |
-501 |         format!("the first transfer returned {first:?}"),
+511 |         format!("the first transfer returned {first:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:506:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:516:9
     |
-506 |         format!("the identical retry returned {retry:?}"),
+516 |         format!("the identical retry returned {retry:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:513:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:523:9
     |
-513 | /         format!(
-514 | |             "the duplicate retry appended {} event(s)",
-515 | |             wallet.events().len()
-516 | |         ),
+523 | /         format!(
+524 | |             "the duplicate retry appended {} event(s)",
+525 | |             wallet.events().len()
+526 | |         ),
     | |_________^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:527:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:537:9
     |
-527 |         format!("the first transfer returned {first:?}"),
+537 |         format!("the first transfer returned {first:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:533:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:543:9
     |
-533 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
+543 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:538:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:548:9
     |
-538 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
+548 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:555:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:565:9
     |
-555 |         format!("a destination overflow returned {outcome:?}"),
+565 |         format!("a destination overflow returned {outcome:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:579:51
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:589:51
     |
-579 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
+589 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
     |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:582:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:592:9
     |
-582 |         format!("a self transfer returned {self_transfer:?}"),
+592 |         format!("a self transfer returned {self_transfer:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:586:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:596:9
     |
-586 |         format!("an unknown destination returned {missing:?}"),
+596 |         format!("an unknown destination returned {missing:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:590:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:600:9
     |
-590 |         format!("an empty transfer ID returned {empty_id:?}"),
+600 |         format!("an empty transfer ID returned {empty_id:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /tmp/tmp.zrjGilaXBH/crate.rs:594:9
+   --> /tmp/tmp.rJLbjOyo9s/crate.rs:604:9
     |
-594 |         format!("an oversize transfer ID returned {long_id:?}"),
+604 |         format!("an oversize transfer ID returned {long_id:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
-error: aborting due to 43 previous errors
+error: aborting due to 17 previous errors
 
-Some errors have detailed explanations: E0308, E0425, E0433, E0631.
+Some errors have detailed explanations: E0308, E0631.
 For more information about an error, try `rustc --explain E0308`.
 taskpack: compilation failed for the wallet reference
 matrix exit: 1
@@ -420,43 +134,43 @@ matrix exit: 1
 [1m[92m    Updating[0m crates.io index
 [1m[92m Downloading[0m crates ...
 [1m[92m  Downloaded[0m block-buffer v0.10.4
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m generic-array v0.14.7
 [1m[92m  Downloaded[0m cfg-if v1.0.5
-[1m[92m  Downloaded[0m cpufeatures v0.2.17
 [1m[92m  Downloaded[0m digest v0.10.7
-[1m[92m  Downloaded[0m version_check v0.9.5
 [1m[92m  Downloaded[0m crypto-common v0.1.7
-[1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m unicode-ident v1.0.27
-[1m[92m  Downloaded[0m memchr v2.8.3
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m cpufeatures v0.2.17
 [1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m generic-array v0.14.7
+[1m[92m  Downloaded[0m zmij v1.0.23
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m itoa v1.0.19
+[1m[92m  Downloaded[0m quote v1.0.47
 [1m[92m  Downloaded[0m sha2 v0.10.9
-[1m[92m  Downloaded[0m serde v1.0.229
+[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m unicode-ident v1.0.27
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
 [1m[92m  Downloaded[0m typenum v1.20.1
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m serde v1.0.229
 [1m[92m  Downloaded[0m serde_json v1.0.154
 [1m[92m  Downloaded[0m syn v3.0.10
 [1m[92m   Compiling[0m version_check v0.9.5
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
 [1m[92m   Compiling[0m quote v1.0.47
-[1m[92m   Compiling[0m typenum v1.20.1
 [1m[92m   Compiling[0m unicode-ident v1.0.27
+[1m[92m   Compiling[0m typenum v1.20.1
 [1m[92m   Compiling[0m generic-array v0.14.7
 [1m[92m   Compiling[0m serde_core v1.0.229
 [1m[92m   Compiling[0m zmij v1.0.23
-[1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m serde v1.0.229
+[1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m syn v3.0.10
 [1m[92m   Compiling[0m cpufeatures v0.2.17
-[1m[92m   Compiling[0m memchr v2.8.3
+[1m[92m   Compiling[0m itoa v1.0.19
 [1m[92m   Compiling[0m block-buffer v0.10.4
 [1m[92m   Compiling[0m crypto-common v0.1.7
 [1m[92m   Compiling[0m digest v0.10.7
+[1m[92m   Compiling[0m memchr v2.8.3
 [1m[92m   Compiling[0m cfg-if v1.0.5
-[1m[92m   Compiling[0m itoa v1.0.19
 [1m[92m   Compiling[0m sha2 v0.10.9
 [1m[92m   Compiling[0m spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
 [1m[92m   Compiling[0m serde_derive v1.0.229
@@ -466,7 +180,7 @@ matrix exit: 1
 [1m[92m   Compiling[0m spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
 [1m[92m   Compiling[0m spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
 [1m[92m   Compiling[0m spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 8.96s
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 7.57s
 [1m[92m     Running[0m tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
 
 running 7 tests
@@ -474,283 +188,8 @@ test candidates_are_checked_in_without_a_private_abi_copy ... ok
 test differential_corpus_covers_every_function_and_stays_well_formed ... ok
 test every_seeded_bug_is_caught_by_its_own_signal ... assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
 
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (3019) panicked at apps/spacetime-ctl/tests/taskpack.rs:351:37:
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (2828) panicked at apps/spacetime-ctl/tests/taskpack.rs:351:37:
 seed 01_wallet_overdraft must still compile: rustc rejected 01_wallet_overdraft:
-error[E0425]: cannot find type `CandidateEvent` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:228:21
-    |
-228 |         events: Vec<CandidateEvent>,
-    |                     ^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this struct
-    |
-225 +     use crate::CandidateEvent;
-    |
-
-error[E0425]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:232:64
-    |
-232 |         pub fn new(accounts: &[(&str, u64)]) -> Result<Wallet, WalletError> {
-    |                                                                ^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:235:17
-    |
-235 |                 validate_identifier(account)?;
-    |                 ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::validate_identifier;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:237:32
-    |
-237 |                     return Err(WalletError::DuplicateAccount);
-    |                                ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:242:28
-    |
-242 |                 return Err(WalletError::TooFewAccounts);
-    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find type `TransferOutcome` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:264:21
-    |
-264 |         ) -> Result<TransferOutcome, WalletError> {
-    |                     ^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this enum
-    |
-225 +     use crate::TransferOutcome;
-    |
-
-error[E0425]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:264:38
-    |
-264 |         ) -> Result<TransferOutcome, WalletError> {
-    |                                      ^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:265:13
-    |
-265 |             validate_identifier(transfer_id)?;
-    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::validate_identifier;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:266:13
-    |
-266 |             validate_identifier(from)?;
-    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::validate_identifier;
-    |
-
-error[E0425]: cannot find function `validate_identifier` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:267:13
-    |
-267 |             validate_identifier(to)?;
-    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::validate_identifier;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:269:28
-    |
-269 |                 return Err(WalletError::SameAccount);
-    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:272:28
-    |
-272 |                 return Err(WalletError::ZeroAmount);
-    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find function `event_mix` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:275:34
-    |
-275 |             let arguments_hash = event_mix(0, transfer_id, from, to, amount, 0);
-    |                                  ^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::event_mix;
-    |
-
-error[E0433]: cannot find type `TransferOutcome` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:283:24
-    |
-283 |                     Ok(TransferOutcome::Duplicate)
-    |                        ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::TransferOutcome;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:285:25
-    |
-285 |                     Err(WalletError::TransferIdReuse)
-    |                         ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:289:51
-    |
-289 |             let source = self.balance(from).ok_or(WalletError::MissingAccount)?;
-    |                                                   ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:290:54
-    |
-290 |             let destination = self.balance(to).ok_or(WalletError::MissingAccount)?;
-    |                                                      ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0433]: cannot find type `WalletError` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:297:24
-    |
-297 |                 .ok_or(WalletError::DestinationOverflow)?;
-    |                        ^^^^^^^^^^^ use of undeclared type `WalletError`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::WalletError;
-    |
-
-error[E0425]: cannot find value `GENESIS_HASH` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:304:28
-    |
-304 |                 .unwrap_or(GENESIS_HASH);
-    |                            ^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this constant
-    |
-225 +     use crate::GENESIS_HASH;
-    |
-
-error[E0425]: cannot find function `make_event` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:308:30
-    |
-308 |             self.events.push(make_event(
-    |                              ^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::make_event;
-    |
-
-error[E0433]: cannot find type `TransferOutcome` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:316:16
-    |
-316 |             Ok(TransferOutcome::Applied)
-    |                ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`
-    |
-help: consider importing this enum
-    |
-225 +     use crate::TransferOutcome;
-    |
-
-error[E0425]: cannot find type `CandidateEvent` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:331:35
-    |
-331 |         pub fn events(&self) -> &[CandidateEvent] {
-    |                                   ^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this struct
-    |
-225 +     use crate::CandidateEvent;
-    |
-
-error[E0425]: cannot find type `CandidateEvent` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:345:40
-    |
-345 |         pub fn verify_events(events: &[CandidateEvent]) -> bool {
-    |                                        ^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this struct
-    |
-225 +     use crate::CandidateEvent;
-    |
-
-error[E0425]: cannot find value `GENESIS_HASH` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:346:37
-    |
-346 |             let mut previous_hash = GENESIS_HASH;
-    |                                     ^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this constant
-    |
-225 +     use crate::GENESIS_HASH;
-    |
-
-error[E0425]: cannot find function `recomputed_event_hash` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:355:23
-    |
-355 |                 match recomputed_event_hash(events, index) {
-    |                       ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
-    |
-help: consider importing this function
-    |
-225 +     use crate::recomputed_event_hash;
-    |
-
 error[E0631]: type mismatch in function arguments
    --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:214:26
     |
@@ -777,107 +216,107 @@ help: consider adjusting the signature so it does not borrow its argument
     |
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:438:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:448:9
     |
-438 |         format!("a clean chain observed as {observation:?}"),
+448 |         format!("a clean chain observed as {observation:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:468:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:478:9
     |
-468 |         format!("spending the whole balance returned {outcome:?}"),
+478 |         format!("spending the whole balance returned {outcome:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:484:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:494:9
     |
-484 |         format!("an overdraft returned {outcome:?}"),
+494 |         format!("an overdraft returned {outcome:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:495:9
-    |
-495 |         format!("an underfunded transfer returned {underfunded:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
    --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:505:9
     |
-505 |         format!("the first transfer returned {first:?}"),
+505 |         format!("an underfunded transfer returned {underfunded:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:515:9
+    |
+515 |         format!("the first transfer returned {first:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:510:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:520:9
     |
-510 |         format!("the identical retry returned {retry:?}"),
+520 |         format!("the identical retry returned {retry:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:517:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:527:9
     |
-517 | /         format!(
-518 | |             "the duplicate retry appended {} event(s)",
-519 | |             wallet.events().len()
-520 | |         ),
+527 | /         format!(
+528 | |             "the duplicate retry appended {} event(s)",
+529 | |             wallet.events().len()
+530 | |         ),
     | |_________^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:531:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:541:9
     |
-531 |         format!("the first transfer returned {first:?}"),
+541 |         format!("the first transfer returned {first:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:537:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:547:9
     |
-537 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
+547 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:542:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:552:9
     |
-542 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
+552 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:559:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:569:9
     |
-559 |         format!("a destination overflow returned {outcome:?}"),
+569 |         format!("a destination overflow returned {outcome:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:583:51
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:593:51
     |
-583 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
+593 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
     |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:586:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:596:9
     |
-586 |         format!("a self transfer returned {self_transfer:?}"),
+596 |         format!("a self transfer returned {self_transfer:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:590:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:600:9
     |
-590 |         format!("an unknown destination returned {missing:?}"),
+600 |         format!("an unknown destination returned {missing:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:594:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:604:9
     |
-594 |         format!("an empty transfer ID returned {empty_id:?}"),
+604 |         format!("an empty transfer ID returned {empty_id:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
 error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:598:9
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:608:9
     |
-598 |         format!("an oversize transfer ID returned {long_id:?}"),
+608 |         format!("an oversize transfer ID returned {long_id:?}"),
     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
 
-error: aborting due to 42 previous errors
+error: aborting due to 17 previous errors
 
-Some errors have detailed explanations: E0308, E0425, E0433, E0631.
+Some errors have detailed explanations: E0308, E0631.
 For more information about an error, try `rustc --explain E0308`.
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
@@ -885,8 +324,8 @@ FAILED
 test oracles_never_reference_a_candidate ... ok
 test reference_solutions_pass_every_check ... assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
 
-thread 'reference_solutions_pass_every_check' (3052) panicked at apps/spacetime-ctl/tests/taskpack.rs:294:6:
-the wallet reference must assemble and compile: "rustc rejected reference-wallet:\nerror[E0425]: cannot find type `CandidateEvent` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:227:21\n    |\n227 |         events: Vec<CandidateEvent>,\n    |                     ^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this struct\n    |\n224 +     use crate::CandidateEvent;\n    |\n\nerror[E0425]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:231:64\n    |\n231 |         pub fn new(accounts: &[(&str, u64)]) -> Result<Wallet, WalletError> {\n    |                                                                ^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0425]: cannot find function `validate_identifier` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:234:17\n    |\n234 |                 validate_identifier(account)?;\n    |                 ^^^^^^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::validate_identifier;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:236:32\n    |\n236 |                     return Err(WalletError::DuplicateAccount);\n    |                                ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:241:28\n    |\n241 |                 return Err(WalletError::TooFewAccounts);\n    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0425]: cannot find type `TransferOutcome` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:263:21\n    |\n263 |         ) -> Result<TransferOutcome, WalletError> {\n    |                     ^^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::TransferOutcome;\n    |\n\nerror[E0425]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:263:38\n    |\n263 |         ) -> Result<TransferOutcome, WalletError> {\n    |                                      ^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0425]: cannot find function `validate_identifier` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:264:13\n    |\n264 |             validate_identifier(transfer_id)?;\n    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::validate_identifier;\n    |\n\nerror[E0425]: cannot find function `validate_identifier` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:265:13\n    |\n265 |             validate_identifier(from)?;\n    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::validate_identifier;\n    |\n\nerror[E0425]: cannot find function `validate_identifier` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:266:13\n    |\n266 |             validate_identifier(to)?;\n    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::validate_identifier;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:268:28\n    |\n268 |                 return Err(WalletError::SameAccount);\n    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:271:28\n    |\n271 |                 return Err(WalletError::ZeroAmount);\n    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0425]: cannot find function `event_mix` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:274:34\n    |\n274 |             let arguments_hash = event_mix(0, transfer_id, from, to, amount, 0);\n    |                                  ^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::event_mix;\n    |\n\nerror[E0433]: cannot find type `TransferOutcome` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:282:24\n    |\n282 |                     Ok(TransferOutcome::Duplicate)\n    |                        ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::TransferOutcome;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:284:25\n    |\n284 |                     Err(WalletError::TransferIdReuse)\n    |                         ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:288:51\n    |\n288 |             let source = self.balance(from).ok_or(WalletError::MissingAccount)?;\n    |                                                   ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:289:54\n    |\n289 |             let destination = self.balance(to).ok_or(WalletError::MissingAccount)?;\n    |                                                      ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:290:64\n    |\n290 |             let next_source = source.checked_sub(amount).ok_or(WalletError::Overdraft)?;\n    |                                                                ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0433]: cannot find type `WalletError` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:293:24\n    |\n293 |                 .ok_or(WalletError::DestinationOverflow)?;\n    |                        ^^^^^^^^^^^ use of undeclared type `WalletError`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::WalletError;\n    |\n\nerror[E0425]: cannot find value `GENESIS_HASH` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:301:28\n    |\n301 |                 .unwrap_or(GENESIS_HASH);\n    |                            ^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this constant\n    |\n224 +     use crate::GENESIS_HASH;\n    |\n\nerror[E0425]: cannot find function `make_event` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:305:30\n    |\n305 |             self.events.push(make_event(\n    |                              ^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::make_event;\n    |\n\nerror[E0433]: cannot find type `TransferOutcome` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:313:16\n    |\n313 |             Ok(TransferOutcome::Applied)\n    |                ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`\n    |\nhelp: consider importing this enum\n    |\n224 +     use crate::TransferOutcome;\n    |\n\nerror[E0425]: cannot find type `CandidateEvent` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:328:35\n    |\n328 |         pub fn events(&self) -> &[CandidateEvent] {\n    |                                   ^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this struct\n    |\n224 +     use crate::CandidateEvent;\n    |\n\nerror[E0425]: cannot find type `CandidateEvent` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:342:40\n    |\n342 |         pub fn verify_events(events: &[CandidateEvent]) -> bool {\n    |                                        ^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this struct\n    |\n224 +     use crate::CandidateEvent;\n    |\n\nerror[E0425]: cannot find value `GENESIS_HASH` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:343:37\n    |\n343 |             let mut previous_hash = GENESIS_HASH;\n    |                                     ^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this constant\n    |\n224 +     use crate::GENESIS_HASH;\n    |\n\nerror[E0425]: cannot find function `recomputed_event_hash` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:352:23\n    |\n352 |                 match recomputed_event_hash(events, index) {\n    |                       ^^^^^^^^^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: consider importing this function\n    |\n224 +     use crate::recomputed_event_hash;\n    |\n\nerror[E0631]: type mismatch in function arguments\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:214:26\n    |\n 69 |     pub fn as_str(&self) -> &'static str {\n    |     ------------------------------------ found signature defined here\n...\n214 |         error: error.map(WalletError::as_str),\n    |                      --- ^^^^^^^^^^^^^^^^^^^ expected due to this\n    |                      |\n    |                      required by a bound introduced by this call\n    |\n    = note: expected function signature `fn(WalletError) -> _`\n               found function signature `fn(&WalletError) -> _`\nnote: required by a bound in `Option::<T>::map`\n   --> /rustc/20ddd01716a87c0fcf06ae4752d85a4abc15bcdf/library/core/src/option.rs:1160:4\nhelp: consider wrapping the function in a closure\n    |\n214 |         error: error.map(|arg0: WalletError| WalletError::as_str(&arg0)),\n    |                          +++++++++++++++++++                    +++++++\nhelp: consider adjusting the signature so it does not borrow its argument\n    |\n 69 -     pub fn as_str(&self) -> &'static str {\n 69 +     pub fn as_str(self) -> &'static str {\n    |\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:435:9\n    |\n435 |         format!(\"a clean chain observed as {observation:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:465:9\n    |\n465 |         format!(\"spending the whole balance returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:481:9\n    |\n481 |         format!(\"an overdraft returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:492:9\n    |\n492 |         format!(\"an underfunded transfer returned {underfunded:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:502:9\n    |\n502 |         format!(\"the first transfer returned {first:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:507:9\n    |\n507 |         format!(\"the identical retry returned {retry:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:514:9\n    |\n514 | /         format!(\n515 | |             \"the duplicate retry appended {} event(s)\",\n516 | |             wallet.events().len()\n517 | |         ),\n    | |_________^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:528:9\n    |\n528 |         format!(\"the first transfer returned {first:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:534:9\n    |\n534 |         format!(\"reusing an ID with a new amount returned {changed_amount:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:539:9\n    |\n539 |         format!(\"reusing an ID with a new destination returned {changed_destination:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:556:9\n    |\n556 |         format!(\"a destination overflow returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:580:51\n    |\n580 |     require(zero == Err(WalletError::ZeroAmount), format!(\"a zero transfer returned {zero:?}\"))?;\n    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:583:9\n    |\n583 |         format!(\"a self transfer returned {self_transfer:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:587:9\n    |\n587 |         format!(\"an unknown destination returned {missing:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:591:9\n    |\n591 |         format!(\"an empty transfer ID returned {empty_id:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:595:9\n    |\n595 |         format!(\"an oversize transfer ID returned {long_id:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror: aborting due to 43 previous errors\n\nSome errors have detailed explanations: E0308, E0425, E0433, E0631.\nFor more information about an error, try `rustc --explain E0308`.\n"
+thread 'reference_solutions_pass_every_check' (2861) panicked at apps/spacetime-ctl/tests/taskpack.rs:294:6:
+the wallet reference must assemble and compile: "rustc rejected reference-wallet:\nerror[E0631]: type mismatch in function arguments\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:214:26\n    |\n 69 |     pub fn as_str(&self) -> &'static str {\n    |     ------------------------------------ found signature defined here\n...\n214 |         error: error.map(WalletError::as_str),\n    |                      --- ^^^^^^^^^^^^^^^^^^^ expected due to this\n    |                      |\n    |                      required by a bound introduced by this call\n    |\n    = note: expected function signature `fn(WalletError) -> _`\n               found function signature `fn(&WalletError) -> _`\nnote: required by a bound in `Option::<T>::map`\n   --> /rustc/20ddd01716a87c0fcf06ae4752d85a4abc15bcdf/library/core/src/option.rs:1160:4\nhelp: consider wrapping the function in a closure\n    |\n214 |         error: error.map(|arg0: WalletError| WalletError::as_str(&arg0)),\n    |                          +++++++++++++++++++                    +++++++\nhelp: consider adjusting the signature so it does not borrow its argument\n    |\n 69 -     pub fn as_str(&self) -> &'static str {\n 69 +     pub fn as_str(self) -> &'static str {\n    |\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:445:9\n    |\n445 |         format!(\"a clean chain observed as {observation:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:475:9\n    |\n475 |         format!(\"spending the whole balance returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:491:9\n    |\n491 |         format!(\"an overdraft returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:502:9\n    |\n502 |         format!(\"an underfunded transfer returned {underfunded:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:512:9\n    |\n512 |         format!(\"the first transfer returned {first:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:517:9\n    |\n517 |         format!(\"the identical retry returned {retry:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:524:9\n    |\n524 | /         format!(\n525 | |             \"the duplicate retry appended {} event(s)\",\n526 | |             wallet.events().len()\n527 | |         ),\n    | |_________^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:538:9\n    |\n538 |         format!(\"the first transfer returned {first:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:544:9\n    |\n544 |         format!(\"reusing an ID with a new amount returned {changed_amount:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:549:9\n    |\n549 |         format!(\"reusing an ID with a new destination returned {changed_destination:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:566:9\n    |\n566 |         format!(\"a destination overflow returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:590:51\n    |\n590 |     require(zero == Err(WalletError::ZeroAmount), format!(\"a zero transfer returned {zero:?}\"))?;\n    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:593:9\n    |\n593 |         format!(\"a self transfer returned {self_transfer:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:597:9\n    |\n597 |         format!(\"an unknown destination returned {missing:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:601:9\n    |\n601 |         format!(\"an empty transfer ID returned {empty_id:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:605:9\n    |\n605 |         format!(\"an oversize transfer ID returned {long_id:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror: aborting due to 17 previous errors\n\nSome errors have detailed explanations: E0308, E0631.\nFor more information about an error, try `rustc --explain E0308`.\n"
 FAILED
 test seeded_workspaces_are_bounded_and_offline ... ok
 test seeds_cover_every_oracle_signal ... ok
@@ -897,7 +336,7 @@ failures:
     every_seeded_bug_is_caught_by_its_own_signal
     reference_solutions_pass_every_check
 
-test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
 
 [1m[91merror[0m: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
 tests exit: 101
