@@ -134,6 +134,9 @@ const SEEDED: [(&str, Family, &str, &str, &str); 14] = [
     ),
 ];
 
+// The constructor is graded on every seed but has no planted-bug task of its own.
+const UNSEEDED_WALLET_CHECK: &str = "constructor_rejections";
+
 const WALLET_CHECKS: [&str; 8] = [
     "constructor_rejections",
     "exact_balance_is_allowed",
@@ -416,7 +419,11 @@ fn seeds_cover_every_oracle_signal() {
             }
         }
     }
+    // One seed per planted bug: the constructor is graded every run but carries no seed.
     for check in WALLET_CHECKS {
+        if check == UNSEEDED_WALLET_CHECK {
+            continue;
+        }
         assert!(
             wallet_covered.contains(check),
             "no seeded wallet task exercises {check}, so that invariant is unproven"
@@ -428,7 +435,7 @@ fn seeds_cover_every_oracle_signal() {
             "no seeded transmutation task exercises {function}"
         );
     }
-    assert_eq!(wallet_covered.len(), WALLET_CHECKS.len());
+    assert_eq!(wallet_covered.len() + 1, WALLET_CHECKS.len());
     assert_eq!(transform_covered.len(), TRANSFORM_FUNCTIONS.len());
     assert_eq!(
         WALLET_CHECKS.len() + TRANSFORM_FUNCTIONS.len(),

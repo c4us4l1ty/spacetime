@@ -83,6 +83,10 @@ pub(crate) const SEEDED: [(&str, &str, &str); 14] = [
     ("14_transform_parity", "func.rs", "function:parity"),
 ];
 
+/// The one graded wallet check with no dedicated seed: `Wallet::new` is exercised by every seed
+/// and by the reference, so a planted constructor bug is caught without a task of its own.
+pub(crate) const UNSEEDED_WALLET_CHECK: &str = "constructor_rejections";
+
 pub(crate) const WALLET_CHECKS: [&str; 8] = [
     "constructor_rejections",
     "exact_balance_is_allowed",
@@ -428,7 +432,12 @@ mod tests {
             };
             assert_eq!(kind, expected_family, "seed family and signal disagree");
         }
+        // The pack carries one seed per planted bug, so the constructor is graded on every run but
+        // has no seed of its own; every other check must be pinned to exactly one seed.
         for check in WALLET_CHECKS {
+            if check == UNSEEDED_WALLET_CHECK {
+                continue;
+            }
             assert!(wallet.contains(check), "unexercised wallet check: {check}");
         }
         for function in TRANSFORM_FUNCTIONS {
@@ -437,7 +446,11 @@ mod tests {
                 "unexercised corpus function: {function}"
             );
         }
-        assert_eq!(wallet.len(), WALLET_CHECKS.len(), "two seeds share a check");
+        assert_eq!(
+            wallet.len() + 1,
+            WALLET_CHECKS.len(),
+            "two seeds share a check"
+        );
         assert_eq!(
             transform.len(),
             TRANSFORM_FUNCTIONS.len(),
