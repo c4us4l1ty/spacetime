@@ -1,44 +1,44 @@
 === cargo test -p spacetime-ctl ===
     Updating crates.io index
  Downloading crates ...
-  Downloaded block-buffer v0.10.4
-  Downloaded cpufeatures v0.2.17
-  Downloaded proc-macro2 v1.0.107
-  Downloaded crypto-common v0.1.7
-  Downloaded cfg-if v1.0.5
-  Downloaded generic-array v0.14.7
   Downloaded digest v0.10.7
   Downloaded itoa v1.0.19
-  Downloaded version_check v0.9.5
-  Downloaded zmij v1.0.23
-  Downloaded unicode-ident v1.0.27
-  Downloaded quote v1.0.47
-  Downloaded sha2 v0.10.9
-  Downloaded serde_derive v1.0.229
-  Downloaded memchr v2.8.3
   Downloaded serde_core v1.0.229
-  Downloaded serde v1.0.229
-  Downloaded typenum v1.20.1
+  Downloaded cpufeatures v0.2.17
+  Downloaded crypto-common v0.1.7
+  Downloaded version_check v0.9.5
+  Downloaded memchr v2.8.3
+  Downloaded quote v1.0.47
+  Downloaded proc-macro2 v1.0.107
   Downloaded serde_json v1.0.154
+  Downloaded generic-array v0.14.7
+  Downloaded serde_derive v1.0.229
+  Downloaded unicode-ident v1.0.27
+  Downloaded block-buffer v0.10.4
+  Downloaded typenum v1.20.1
+  Downloaded cfg-if v1.0.5
+  Downloaded serde v1.0.229
+  Downloaded sha2 v0.10.9
   Downloaded syn v3.0.10
+  Downloaded zmij v1.0.23
    Compiling version_check v0.9.5
    Compiling proc-macro2 v1.0.107
    Compiling unicode-ident v1.0.27
-   Compiling typenum v1.20.1
    Compiling quote v1.0.47
-   Compiling generic-array v0.14.7
+   Compiling typenum v1.20.1
    Compiling serde_core v1.0.229
+   Compiling generic-array v0.14.7
    Compiling zmij v1.0.23
-   Compiling serde v1.0.229
    Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
    Compiling syn v3.0.10
-   Compiling block-buffer v0.10.4
-   Compiling crypto-common v0.1.7
-   Compiling digest v0.10.7
    Compiling memchr v2.8.3
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
    Compiling cpufeatures v0.2.17
-   Compiling itoa v1.0.19
    Compiling cfg-if v1.0.5
+   Compiling itoa v1.0.19
    Compiling sha2 v0.10.9
    Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
    Compiling serde_derive v1.0.229
@@ -48,15 +48,15 @@
    Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
    Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
    Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.33s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.52s
      Running unittests src/lib.rs (target/debug/build/spacetime-ctl/c13b477211acb967/out/spacetime_ctl-c13b477211acb967)
 
 running 52 tests
 test console::tests::console_flags_reject_duplicate_unknown_and_missing_values ... ok
 test dashboard::tests::empty_history_is_clear ... ok
 test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
-test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
 test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
+test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
 test econbench::tests::bench_run_flags_are_bounded ... ok
 test console::tests::console_report_reads_checked_in_ledger ... ok
 test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
@@ -96,8 +96,8 @@ test tests::optional_flag_rejects_missing_value ... ok
 test tests::parse_exact_flags_rejects_unknown_duplicate_and_odd_arguments ... ok
 test tests::state_path_preserves_non_utf8_bytes ... ok
 test tests::tamper_and_truncation_are_detected ... ok
-test econbench::tests::econbench_report_runs_twenty_offline_fixtures ... ok
 test tests::timeout_is_a_failure_not_a_pass ... ok
+test econbench::tests::econbench_report_runs_twenty_offline_fixtures ... ok
 test workspace::tests::detects_only_actual_shm_tmpfs_mounts ... ok
 test workspace::tests::run_requires_explicit_experimental_and_unique_inputs ... ok
 test workspace::tests::temporary_workspace_removed_on_drop ... ok
@@ -141,46 +141,13 @@ assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/
 assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/13_transform_checked_mul.assembled.rs
 assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/14_transform_parity.assembled.rs
 assemble: seeded/15_protocol_double_begin/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.assembled.rs
-test every_seeded_bug_is_caught_by_its_own_signal ... FAILED
+assemble: seeded/16_protocol_commit_leaves_open/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/16_protocol_commit_leaves_open.assembled.rs
+assemble: seeded/17_protocol_abort_keeps_records/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/17_protocol_abort_keeps_records.assembled.rs
+assemble: seeded/18_protocol_sequence_unchecked/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/18_protocol_sequence_unchecked.assembled.rs
+assemble: seeded/19_protocol_read_early/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/19_protocol_read_early.assembled.rs
+assemble: seeded/20_protocol_abort_without_transaction/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/20_protocol_abort_without_transaction.assembled.rs
+test every_seeded_bug_is_caught_by_its_own_signal ... ok
 
-failures:
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.99s
 
----- every_seeded_bug_is_caught_by_its_own_signal stdout ----
-
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (3320) panicked at apps/spacetime-ctl/tests/taskpack.rs:510:17:
-assertion `left == right` failed: seed 15_protocol_double_begin (`begin` is accepted without checking that a transaction already ended) should fail exactly its pinned traces:
-trace two_records fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: true, aborted: false, records: ["alpha", "beta"], reads: 1 })
-trace three_records fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: true, aborted: false, records: ["one", "two", "three"], reads: 1 })
-trace read_twice fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: true, aborted: false, records: [], reads: 2 })
-trace out_of_order pass op=- accepted as recorded
-trace put_before_begin pass op=- accepted as recorded
-trace write_after_commit fail op=2 refused at op 1 instead of the recorded op 2 (invalid_operation)
-trace read_after_abort fail op=2 refused at op 1 instead of the recorded op 2 (invalid_operation)
-trace commit_after_abort fail op=2 refused at op 1 instead of the recorded op 2 (invalid_operation)
-trace put_after_abort fail op=2 refused at op 1 instead of the recorded op 2 (invalid_operation)
-trace sequence_gap_after_two fail op=3 refused at op 1 instead of the recorded op 3 (invalid_operation)
-trace gap_sequence pass op=- accepted as recorded
-trace no_operations pass op=- accepted as recorded
-trace long_value fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: true, aborted: false, records: ["xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"], reads: 0 })
-trace abort_without_records fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: false, aborted: true, records: [], reads: 0 })
-trace sequence_zero_is_first fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: true, aborted: false, records: ["zero"], reads: 1 })
-trace begin_after_abort fail op=2 refused at op 1 instead of the recorded op 2 (invalid_operation)
-trace empty_transaction fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: true, aborted: false, records: [], reads: 1 })
-trace abort_discards fail op=- refused op 1 with invalid_operation; the recording accepts every operation (expected ProtocolState { begun: false, committed: false, aborted: true, records: [], reads: 0 })
-trace duplicate_sequence fail op=2 refused at op 1 instead of the recorded op 2 (invalid_operation)
-trace read_before_commit pass op=- accepted as recorded
-trace abort_before_begin pass op=- accepted as recorded
-oracle failed_traces=15 failed=abort_discards,abort_without_records,begin_after_abort,commit_after_abort,duplicate_sequence,empty_transaction,long_value,put_after_abort,read_after_abort,read_twice,sequence_gap_after_two,sequence_zero_is_first,three_records,two_records,write_after_commit
-
-  left: ["abort_discards", "abort_without_records", "begin_after_abort", "commit_after_abort", "duplicate_sequence", "empty_transaction", "long_value", "put_after_abort", "read_after_abort", "read_twice", "sequence_gap_after_two", "sequence_zero_is_first", "three_records", "two_records", "write_after_commit"]
- right: ["begin_after_abort"]
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-
-failures:
-    every_seeded_bug_is_caught_by_its_own_signal
-
-test result: FAILED. 7 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
-
-error: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
-exit: 101
+exit: 0
