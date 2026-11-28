@@ -146,7 +146,7 @@ fn build_grader(candidate: &Path, family: &str, label: &str) -> Result<PathBuf> 
     let dir = work_dir();
     std::fs::create_dir_all(&dir)?;
     let assembled = dir.join(format!("{label}.assembled.rs"));
-    let status = Command::new("sh")
+    let status = Command::new("bash")
         .arg(taskpack_dir().join("assemble.sh"))
         .arg(candidate)
         .arg(&assembled)
@@ -170,7 +170,15 @@ fn build_grader(candidate: &Path, family: &str, label: &str) -> Result<PathBuf> 
     std::fs::write(&crate_path, source)?;
     let binary = dir.join(format!("{label}.grader"));
     let output = Command::new("rustc")
-        .args(["--edition", "2021", "-D", "warnings", "-o"])
+        .args([
+            "--edition",
+            "2021",
+            "--crate-name",
+            "taskpack_grader",
+            "-D",
+            "warnings",
+            "-o",
+        ])
         .arg(&binary)
         .arg(&crate_path)
         .output()

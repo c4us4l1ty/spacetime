@@ -54,8 +54,9 @@ jobs:
         run: |
           {
             echo "=== end-to-end verification ==="
-            cargo run -q -p spacetime-ctl -- verify 2>&1
+            cargo run --release --locked -q -p spacetime-ctl -- verify --out target/verify.toml 2>&1
             echo "verify exit: $?"
+            grep -E '^(gates|status|failed|resource_gate|econbench_fixtures|block3_done) ' target/verify.toml 2>&1
           } >> .ci-report.txt 2>&1 || true
       - name: Commit the transcript
         run: |
