@@ -157,8 +157,11 @@ jobs:
           bash -n bench/taskpack/assemble.sh
           bench/taskpack/run.sh matrix
           target/release/spacetime-ctl bench taskpack --out target/taskpack.json
-          grep -q '"candidates": 14' target/taskpack.json
-          grep -q '"seeded_bugs_caught": 14' target/taskpack.json
+          grep -q '"candidates": 20' target/taskpack.json
+          grep -q '"seeded_bugs_caught": 20' target/taskpack.json
+          grep -q '"planted_invariant_tasks": 7' target/taskpack.json
+          grep -q '"transmutation_tasks": 7' target/taskpack.json
+          grep -q '"protocol_tasks": 6' target/taskpack.json
           grep -q '"block3_done": false' target/taskpack.json
           # The only graded wallet check with no seed of its own is the constructor.
           grep -A1 '"wallet_checks_without_a_seed"' target/taskpack.json | grep -q '"constructor_rejections"' 

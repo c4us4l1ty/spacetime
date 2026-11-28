@@ -18,7 +18,7 @@ use std::process::Command;
 /// Every seeded candidate and the oracle signal its single planted bug must produce.
 ///
 /// Kept in one place so this module, `run.sh`, and the Rust test harness cannot drift apart.
-pub(crate) const SEEDED: [(&str, &str, &str); 14] = [
+pub(crate) const SEEDED: [(&str, &str, &str); 20] = [
     (
         "01_wallet_overdraft",
         "wallet.rs",
@@ -81,6 +81,25 @@ pub(crate) const SEEDED: [(&str, &str, &str); 14] = [
         "function:checked_mul",
     ),
     ("14_transform_parity", "func.rs", "function:parity"),
+    ("15_protocol_double_begin", "protocol.rs", "traces:begin_after_abort"),
+    (
+        "16_protocol_commit_leaves_open",
+        "protocol.rs",
+        "traces:empty_transaction,long_value,read_twice,\
+sequence_zero_is_first,three_records,two_records",
+    ),
+    ("17_protocol_abort_keeps_records", "protocol.rs", "traces:abort_discards"),
+    (
+        "18_protocol_sequence_unchecked",
+        "protocol.rs",
+        "traces:duplicate_sequence,gap_sequence,sequence_gap_after_two",
+    ),
+    ("19_protocol_read_early", "protocol.rs", "traces:read_before_commit"),
+    (
+        "20_protocol_abort_without_transaction",
+        "protocol.rs",
+        "traces:abort_before_begin",
+    ),
 ];
 
 /// The one graded wallet check with no dedicated seed. `Wallet::new` runs at the top of every
@@ -110,10 +129,10 @@ pub(crate) const TRANSFORM_FUNCTIONS: [&str; 7] = [
 ];
 
 fn family_of(source: &str) -> &'static str {
-    if source == "func.rs" {
-        "transform"
-    } else {
-        "wallet"
+    match source {
+        "func.rs" => "transform",
+        "protocol.rs" => "protocol",
+        _ => "wallet",
     }
 }
 
@@ -135,6 +154,7 @@ fn rustc_available() -> bool {
 fn abi_path(family: &str) -> PathBuf {
     taskpack_dir().join(match family {
         "transform" => "abi/transform_abi.rs",
+        "protocol" => "abi/protocol_abi.rs",
         _ => "abi/wallet_abi.rs",
     })
 }
@@ -142,6 +162,7 @@ fn abi_path(family: &str) -> PathBuf {
 fn oracle_path(family: &str) -> PathBuf {
     taskpack_dir().join(match family {
         "transform" => "oracle/transform_oracle.rs",
+        "protocol" => "oracle/protocol_oracle.rs",
         _ => "oracle/wallet_oracle.rs",
     })
 }
@@ -201,13 +222,21 @@ struct GraderRun {
     passed: bool,
     results: Vec<(String, bool)>,
     transform: Vec<(String, (u64, u64))>,
+    /// `trace <name> fail|pass ...` lines from the protocol oracle, in recording order.
+    traces: Vec<(String, bool)>,
     stdout: String,
 }
 
 fn run_grader(binary: &Path, family: &str) -> Result<GraderRun> {
     let mut command = Command::new(binary);
-    if family == "transform" {
-        command.arg(taskpack_dir().join("corpus/transmutation.tsv"));
+    match family {
+        "transform" => {
+            command.arg(taskpack_dir().join("corpus/transmutation.tsv"));
+        }
+        "protocol" => {
+            command.arg(taskpack_dir().join("corpus/protocol_traces.tsv"));
+        }
+        _ => {}
     }
     let output = command
         .output()
@@ -215,6 +244,7 @@ fn run_grader(binary: &Path, family: &str) -> Result<GraderRun> {
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     let mut results = Vec::new();
     let mut transform = Vec::new();
+    let mut traces = Vec::new();
     for line in stdout.lines() {
         let fields: Vec<&str> = line.split(' ').collect();
         match fields.as_slice() {
@@ -233,6 +263,9 @@ fn run_grader(binary: &Path, family: &str) -> Result<GraderRun> {
                     .unwrap_or(0);
                 transform.push(((*name).to_string(), (rows, failures)));
             }
+            ["trace", name, verdict, ..] => {
+                traces.push(((*name).to_string(), verdict.starts_with("pass")));
+            }
             _ => {}
         }
     }
@@ -240,6 +273,7 @@ fn run_grader(binary: &Path, family: &str) -> Result<GraderRun> {
         passed: output.status.success(),
         results,
         transform,
+        traces,
         stdout,
     })
 }
@@ -278,6 +312,19 @@ pub fn taskpack_report() -> Result<Value> {
         )));
     }
 
+    let reference_protocol = build_grader(
+        &taskpack_dir().join("reference/protocol_ref.rs"),
+        "protocol",
+        "reference-protocol",
+    )?;
+    let protocol_run = run_grader(&reference_protocol, "protocol")?;
+    if !protocol_run.passed || protocol_run.traces.iter().any(|(_, passed)| !passed) {
+        return Err(SpacetimeError::new(format!(
+            "the protocol reference solution disagreed with the recording:\n{}",
+            protocol_run.stdout
+        )));
+    }
+
     // 2. Every seeded candidate must fail exactly the signal its planted bug explains.
     let mut seeded = Vec::new();
     let mut caught = 0usize;
@@ -312,6 +359,16 @@ pub fn taskpack_report() -> Result<Value> {
                 .map(|(name, _)| name.as_str())
                 .collect::<Vec<_>>()
                 .join(","),
+            "traces" => {
+                let mut failed: Vec<&str> = run
+                    .traces
+                    .iter()
+                    .filter(|(_, passed)| !passed)
+                    .map(|(name, _)| name.as_str())
+                    .collect();
+                failed.sort_unstable();
+                failed.join(",")
+            }
             other => {
                 return Err(SpacetimeError::new(format!(
                     "unknown expectation kind: {other}"
@@ -365,6 +422,43 @@ pub fn taskpack_report() -> Result<Value> {
         }
     }
 
+    // A trace may be pinned to at most one seed: two seeds claiming the same trace would make
+    // "this seed failed because of its own bug" unprovable. A trace may also be pinned to none —
+    // those are the decoys, which no planted bug touches and every correct candidate must still
+    // accept. A pin that names a trace nobody recorded is a typo and is rejected.
+    let mut pinned: std::collections::BTreeMap<&str, &str> = std::collections::BTreeMap::new();
+    for (seed, _, expectation) in SEEDED {
+        let Some(list) = expectation.strip_prefix("traces:") else {
+            continue;
+        };
+        for trace in list.split(',') {
+            if pinned.insert(trace, seed).is_some() {
+                return Err(SpacetimeError::new(format!(
+                    "trace {trace} is pinned to more than one seed"
+                )));
+            }
+        }
+    }
+    for trace in pinned.keys() {
+        if !protocol_run.traces.iter().any(|(name, _)| name == trace) {
+            return Err(SpacetimeError::new(format!(
+                "seed pins trace {trace}, which the recording does not contain"
+            )));
+        }
+    }
+    // Without unpinned decoys a candidate could pass every pinned trace by rejecting legal
+    // protocol behaviour outright, so the recording must always carry some.
+    let decoys = protocol_run
+        .traces
+        .iter()
+        .filter(|(name, _)| !pinned.contains_key(name.as_str()))
+        .count();
+    if decoys == 0 {
+        return Err(SpacetimeError::new(
+            "the protocol recording has no unpinned decoy traces",
+        ));
+    }
+
     let corpus_rows: u64 = transform_run.transform.iter().map(|(_, rows)| rows.0).sum();
     Ok(json!({
         "schema_version": 1,
@@ -376,11 +470,16 @@ pub fn taskpack_report() -> Result<Value> {
         "wallet_checks_without_a_seed": [UNSEEDED_WALLET_CHECK],
         "corpus_functions": TRANSFORM_FUNCTIONS.len(),
         "corpus_rows": corpus_rows,
+        "protocol_tasks": SEEDED.iter().filter(|(_, s, _)| *s == "protocol.rs").count(),
+        "protocol_traces": protocol_run.traces.len(),
         "seeded_bugs_caught": caught,
-        "reference_checks_passed": wallet_run.results.len() + transform_run.transform.len(),
+        "reference_checks_passed": wallet_run.results.len()
+            + transform_run.transform.len()
+            + protocol_run.traces.len(),
         "build": {"toolchain": "rustc_edition_2021", "dependencies": "none", "network": "none"},
         "reference_wallet_digest": spacetime_types::sha256_hex(wallet_run.stdout.as_bytes()),
         "reference_transform_digest": spacetime_types::sha256_hex(transform_run.stdout.as_bytes()),
+        "reference_protocol_digest": spacetime_types::sha256_hex(protocol_run.stdout.as_bytes()),
         "seeded": seeded,
         "resource_gate": "unmeasured_target_4gb",
         "performance_claims": "unmeasured",
@@ -429,6 +528,7 @@ mod tests {
     fn seeded_signals_cover_every_oracle_surface() {
         let mut wallet = std::collections::BTreeSet::new();
         let mut transform = std::collections::BTreeSet::new();
+        let mut protocol = std::collections::BTreeSet::new();
         for (_, source, expectation) in SEEDED {
             let (kind, target) = expectation.split_once(':').expect("kind:target");
             match kind {
@@ -438,12 +538,17 @@ mod tests {
                 "function" => {
                     transform.insert(target);
                 }
+                "traces" => {
+                    for trace in target.split(',') {
+                        protocol.insert(trace);
+                    }
+                }
                 other => panic!("unknown expectation kind {other}"),
             }
-            let expected_family = if source == "func.rs" {
-                "function"
-            } else {
-                "check"
+            let expected_family = match source {
+                "func.rs" => "function",
+                "protocol.rs" => "traces",
+                _ => "check",
             };
             assert_eq!(kind, expected_family, "seed family and signal disagree");
         }
@@ -471,6 +576,14 @@ mod tests {
             TRANSFORM_FUNCTIONS.len(),
             "two seeds share a function"
         );
+        // Protocol seeds pin exact failure sets; no trace may be claimed twice, because a shared
+        // trace would make "this seed failed because of its own bug" unprovable.
+        let claimed: usize = SEEDED
+            .iter()
+            .filter(|(_, source, _)| *source == "protocol.rs")
+            .map(|(_, _, expectation)| expectation.matches(',').count() + 1)
+            .sum();
+        assert_eq!(protocol.len(), claimed, "two seeds share a trace");
     }
 
     #[test]

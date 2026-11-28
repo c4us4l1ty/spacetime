@@ -1,0 +1,123 @@
+# Captured protocol traces for the Block 3 protocol-distillation task family.
+#
+# Columns: trace <TAB> op <TAB> expect
+#
+# The recording is the expectation, not the candidate's output: every row was captured by an
+# independent auditor replaying the trace against the reference state machine. An operation row
+# leaves `expect` empty; the final row of a trace is either
+#
+#     result <TAB> error <TAB> op=<index> error=<name>
+#     result <TAB> state <TAB> begun=<> committed=<> aborted=<> reads=<> records=<a,b|-|>
+#
+# Traces whose bug is only visible as an accepted-but-wrong state (rather than a wrongly
+# reported error) are graded by the state row.
+#
+# Seeded candidate -> the exact set of traces it must fail. The sets are disjoint, and the
+# reference fails none of them, so a seed cannot be caught by another seed's traces and the
+# reference cannot be caught at all.
+#   15: begin_after_abort
+#   16: empty_transaction,long_value,read_twice,sequence_zero_is_first,three_records,two_records
+#   17: abort_discards
+#   18: duplicate_sequence,gap_sequence,sequence_gap_after_two
+#   19: read_before_commit
+#   20: abort_before_begin
+two_records	begin	
+two_records	put 0 alpha	
+two_records	put 1 beta	
+two_records	commit	
+two_records	read	
+two_records	result	state begun=false committed=true aborted=false reads=1 records=alpha,beta
+
+three_records	begin	
+three_records	put 0 one	
+three_records	put 1 two	
+three_records	put 2 three	
+three_records	commit	
+three_records	read	
+three_records	result	state begun=false committed=true aborted=false reads=1 records=one,two,three
+
+read_twice	begin	
+read_twice	commit	
+read_twice	read	
+read_twice	read	
+read_twice	result	state begun=false committed=true aborted=false reads=2 records=-
+
+out_of_order	commit	
+out_of_order	result	error op=0 error=invalid_operation
+
+put_before_begin	put 0 early	
+put_before_begin	result	error op=0 error=invalid_operation
+
+write_after_commit	begin	
+write_after_commit	commit	
+write_after_commit	put 0 late	
+write_after_commit	result	error op=2 error=invalid_operation
+
+read_after_abort	begin	
+read_after_abort	abort	
+read_after_abort	read	
+read_after_abort	result	error op=2 error=invalid_operation
+
+commit_after_abort	begin	
+commit_after_abort	abort	
+commit_after_abort	commit	
+commit_after_abort	result	error op=2 error=invalid_operation
+
+put_after_abort	begin	
+put_after_abort	abort	
+put_after_abort	put 0 late	
+put_after_abort	result	error op=2 error=invalid_operation
+
+sequence_gap_after_two	begin	
+sequence_gap_after_two	put 0 one	
+sequence_gap_after_two	put 1 two	
+sequence_gap_after_two	put 3 three	
+sequence_gap_after_two	result	error op=3 error=invalid_operation
+
+gap_sequence	begin	
+gap_sequence	put 1 skipped	
+gap_sequence	result	error op=1 error=invalid_operation
+
+no_operations	result	state begun=false committed=false aborted=false reads=0 records=-
+
+long_value	begin	
+long_value	put 0 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx	
+long_value	commit	
+long_value	result	state begun=false committed=true aborted=false reads=0 records=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+abort_without_records	begin	
+abort_without_records	abort	
+abort_without_records	result	state begun=false committed=false aborted=true reads=0 records=-
+
+sequence_zero_is_first	begin	
+sequence_zero_is_first	put 0 zero	
+sequence_zero_is_first	commit	
+sequence_zero_is_first	read	
+sequence_zero_is_first	result	state begun=false committed=true aborted=false reads=1 records=zero
+
+begin_after_abort	begin	
+begin_after_abort	abort	
+begin_after_abort	begin	
+begin_after_abort	result	error op=2 error=invalid_operation
+
+empty_transaction	begin	
+empty_transaction	commit	
+empty_transaction	read	
+empty_transaction	result	state begun=false committed=true aborted=false reads=1 records=-
+
+abort_discards	begin	
+abort_discards	put 0 temporary	
+abort_discards	abort	
+abort_discards	result	state begun=false committed=false aborted=true reads=0 records=-
+
+duplicate_sequence	begin	
+duplicate_sequence	put 0 first	
+duplicate_sequence	put 0 duplicate	
+duplicate_sequence	result	error op=2 error=invalid_operation
+
+read_before_commit	begin	
+read_before_commit	read	
+read_before_commit	result	error op=1 error=invalid_operation
+
+abort_before_begin	abort	
+abort_before_begin	result	error op=0 error=invalid_operation

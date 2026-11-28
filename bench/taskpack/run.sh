@@ -23,6 +23,7 @@ family_of() {
   case "$1" in
     *wallet*) printf 'wallet' ;;
     *transform*) printf 'transform' ;;
+    *protocol*) printf 'protocol' ;;
     *) fail "unknown task family for seed $1" ;;
   esac
 }
@@ -31,6 +32,7 @@ abi_for() {
   case "$1" in
     wallet) printf '%s\n' "$TASKPACK_DIR/abi/wallet_abi.rs" ;;
     transform) printf '%s\n' "$TASKPACK_DIR/abi/transform_abi.rs" ;;
+    protocol) printf '%s\n' "$TASKPACK_DIR/abi/protocol_abi.rs" ;;
     *) fail "unknown task family $1" ;;
   esac
 }
@@ -39,6 +41,7 @@ oracle_for() {
   case "$1" in
     wallet) printf '%s\n' "$TASKPACK_DIR/oracle/wallet_oracle.rs" ;;
     transform) printf '%s\n' "$TASKPACK_DIR/oracle/transform_oracle.rs" ;;
+    protocol) printf '%s\n' "$TASKPACK_DIR/oracle/protocol_oracle.rs" ;;
     *) fail "unknown task family $1" ;;
   esac
 }
@@ -47,6 +50,7 @@ reference_for() {
   case "$1" in
     wallet) printf '%s\n' "$TASKPACK_DIR/reference/wallet_ref.rs" ;;
     transform) printf '%s\n' "$TASKPACK_DIR/reference/transform_ref.rs" ;;
+    protocol) printf '%s\n' "$TASKPACK_DIR/reference/protocol_ref.rs" ;;
     *) fail "unknown task family $1" ;;
   esac
 }
@@ -69,6 +73,12 @@ seeds() {
 12_transform_saturating_add|function:saturating_add|the addition wraps instead of clamping
 13_transform_checked_mul|function:checked_mul|overflow is narrowed away instead of reported
 14_transform_parity|function:parity|the parity predicate is inverted
+15_protocol_double_begin|traces:begin_after_abort|`begin` is accepted without checking that a transaction already ended
+16_protocol_commit_leaves_open|traces:empty_transaction,long_value,read_twice,sequence_zero_is_first,three_records,two_records|`commit` never clears `begun`, so every committed state is wrong
+17_protocol_abort_keeps_records|traces:abort_discards|`abort` discards the transaction but keeps its records
+18_protocol_sequence_unchecked|traces:duplicate_sequence,gap_sequence,sequence_gap_after_two|`put` appends whatever index it is handed
+19_protocol_read_early|traces:read_before_commit|`read` is accepted as soon as a transaction begins
+20_protocol_abort_without_transaction|traces:abort_before_begin|`abort` is accepted outside a transaction
 EOF
 }
 
@@ -103,6 +113,13 @@ wallet_checks() {
     invalid_requests_are_rejected tamper_is_detected
 }
 
+protocol_traces() {
+  grep -v '^#' "$TASKPACK_DIR/corpus/protocol_traces.tsv" |
+    grep -v '^[[:space:]]*$' |
+    cut -f1 |
+    sort -u
+}
+
 transform_functions() {
   printf '%s\n' \
     bit_reverse byte_swap rotate_left rotate_right saturating_add checked_mul parity
@@ -125,6 +142,20 @@ run_reference() {
     printf '%s\n' "$output" | grep -qx 'oracle failed_checks=0 failed=' ||
       fail "unexpected wallet oracle summary for the reference solution"
     printf 'taskpack: wallet reference passes all %s checks\n' "$(wallet_checks | wc -l)"
+  fi
+  if [[ -z "$family" || "$family" == "protocol" ]]; then
+    binary="$OUT_DIR/reference-protocol"
+    build protocol "$(reference_for protocol)" "$binary" "the protocol reference"
+    status=0
+    output="$("$binary" "$TASKPACK_DIR/corpus/protocol_traces.tsv")" || status=$?
+    if [[ "$status" -ne 0 ]]; then
+      printf '%s\n' "$output" >&2
+      fail "the protocol reference disagreed with the captured trace recording"
+    fi
+    printf '%s\n' "$output" | grep -qx 'oracle failed_traces=0 failed=' ||
+      fail "unexpected protocol oracle summary for the reference solution"
+    printf 'taskpack: protocol reference matches all %s captured traces\n' \
+      "$(protocol_traces | wc -l)"
   fi
   if [[ -z "$family" || "$family" == "transform" ]]; then
     binary="$OUT_DIR/reference-transform"
@@ -154,6 +185,7 @@ run_candidate() {
   case "$family" in
     wallet) source="$TASKPACK_DIR/seeded/$seed/wallet.rs" ;;
     transform) source="$TASKPACK_DIR/seeded/$seed/func.rs" ;;
+    protocol) source="$TASKPACK_DIR/seeded/$seed/protocol.rs" ;;
   esac
   [[ -f "$source" ]] || fail "missing seeded candidate $source"
 
@@ -163,11 +195,11 @@ run_candidate() {
 
   local output=""
   local status=0
-  if [[ "$family" == "transform" ]]; then
-    output="$("$binary" "$TASKPACK_DIR/corpus/transmutation.tsv")" || status=$?
-  else
-    output="$("$binary")" || status=$?
-  fi
+  case "$family" in
+    transform) output="$("$binary" "$TASKPACK_DIR/corpus/transmutation.tsv")" || status=$? ;;
+    protocol) output="$("$binary" "$TASKPACK_DIR/corpus/protocol_traces.tsv")" || status=$? ;;
+    *) output="$("$binary")" || status=$? ;;
+  esac
   [[ "$status" -ne 0 ]] || {
     printf '%s\n' "$output" >&2
     fail "seed $seed passed the oracle; the planted bug escaped"
@@ -195,6 +227,24 @@ run_candidate() {
         fail "seed $seed broke a function other than $target"
       }
       ;;
+    traces)
+      # The pinned value is the exact set of traces the planted bug must break. It is written
+      # here, never derived from the run, so a candidate cannot narrow its own failure set.
+      local expected_failed sorted expected
+      expected_failed="$target"
+      sorted="$(printf '%s' "$expected_failed" | tr ',' '\n' | sort | paste -sd, -)"
+      printf '%s\n' "$output" | grep -qx "oracle failed_traces=[0-9][0-9]* failed=$sorted" || {
+        printf '%s\n' "$output" >&2
+        fail "seed $seed did not fail exactly the pinned trace set: $sorted"
+      }
+      local trace
+      for trace in $(printf '%s' "$expected_failed" | tr ',' ' '); do
+        printf '%s\n' "$output" | grep -qx "trace $trace fail op=[-0-9]* .*" || {
+          printf '%s\n' "$output" >&2
+          fail "seed $seed did not report $trace as failing"
+        }
+      done
+      ;;
   esac
   printf 'taskpack: seed %s caught (%s)\n' "$seed" "$target"
 }
@@ -206,8 +256,9 @@ run_matrix() {
     seed="${row%%|*}"
     run_candidate "$seed"
   done < <(seeds)
-  printf 'taskpack: matrix pass — 2 references and %s seeded candidates across %s wallet checks and %s corpus functions\n' \
-    "$(seeds | wc -l)" "$(wallet_checks | wc -l)" "$(transform_functions | wc -l)"
+  printf 'taskpack: matrix pass — 3 references and %s seeded candidates across %s wallet checks, %s corpus functions and %s captured traces\n' \
+    "$(seeds | wc -l)" "$(wallet_checks | wc -l)" "$(transform_functions | wc -l)" \
+    "$(protocol_traces | wc -l)"
 }
 
 main() {
@@ -219,7 +270,7 @@ main() {
       [[ $# -eq 2 ]] || fail "usage: run.sh candidate <seed>"
       run_candidate "$2"
       ;;
-    *) fail "usage: run.sh [matrix|reference [wallet|transform|all]|candidate <seed>]" ;;
+    *) fail "usage: run.sh [matrix|reference [wallet|transform|protocol|all]|candidate <seed>]" ;;
   esac
 }
 

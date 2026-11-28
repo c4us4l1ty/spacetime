@@ -50,6 +50,8 @@ case "$source_path" in
   "$TASKPACK_DIR"/reference/wallet_ref.rs) family=wallet ;;
   "$TASKPACK_DIR"/seeded/*/func.rs) family=transform ;;
   "$TASKPACK_DIR"/reference/transform_ref.rs) family=transform ;;
+  "$TASKPACK_DIR"/seeded/*/protocol.rs) family=protocol ;;
+  "$TASKPACK_DIR"/reference/protocol_ref.rs) family=protocol ;;
   *)
     printf 'assemble: %s is not a seeded candidate or the reference solution\n' "$source_path" >&2
     exit 1
@@ -58,6 +60,7 @@ esac
 
 family_abi="wallet_abi"
 [[ "$family" == "transform" ]] && family_abi="transform_abi"
+[[ "$family" == "protocol" ]] && family_abi="protocol_abi"
 if grep -q '^pub mod wallet {' "$TASKPACK_DIR/abi/$family_abi.rs"; then
   printf 'assemble: the shared ABI must not define pub mod wallet\n' >&2
   exit 1
@@ -73,7 +76,21 @@ if grep -q 'CANDIDATE EVENT ABI' "$source_path"; then
   exit 1
 fi
 
-if [[ "$family" == "wallet" ]]; then
+if [[ "$family" == "protocol" ]]; then
+  if [[ "$(grep -cx 'pub mod protocol {' "$source_path")" -ne 1 ]]; then
+    printf "assemble: %s must define exactly one 'pub mod protocol {'\n" "$source_path" >&2
+    exit 1
+  fi
+  if ! grep -q 'pub fn replay(' "$source_path"; then
+    printf 'assemble: %s is missing the pinned replay function\n' "$source_path" >&2
+    exit 1
+  fi
+  if grep -q '^pub mod wallet {' "$source_path"; then
+    printf 'assemble: %s is a protocol candidate and must not define a wallet module\n' \
+      "$source_path" >&2
+    exit 1
+  fi
+elif [[ "$family" == "wallet" ]]; then
   if ! grep -qx 'pub mod wallet {' "$source_path"; then
     printf "assemble: %s must define exactly one 'pub mod wallet {'\n" "$source_path" >&2
     exit 1

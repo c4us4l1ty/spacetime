@@ -1,13 +1,15 @@
 //! End-to-end gate for the Block 3 offline task pack.
 //!
 //! The shipped EconBench seed declares a `case_id` and runs an in-process verifier. The task pack
-//! in `bench/taskpack/` is the seeded-workspace half that was missing: fourteen candidates, each
+//! in `bench/taskpack/` is the seeded-workspace half that was missing: twenty candidates, each
 //! carrying one planted bug, graded by a hidden independent oracle that never imports them.
 //!
 //!  * seven **planted-invariant** wallet tasks, graded by an in-process model written inside the
 //!    oracle, with no reference implementation available to the candidate;
 //!  * seven **transmutation** tasks, graded by replaying a 2,498-row differential corpus whose
-//!    expected values were computed with Python's arbitrary-precision integers.
+//!    expected values were computed with Python's arbitrary-precision integers;
+//!  * six **protocol-distillation** tasks, graded by replaying captured traces against recordings
+//!    taken from the service itself, so the candidate cannot define what the trace should do.
 //!
 //! These tests are the CI gate. They
 //!
@@ -16,7 +18,8 @@
 //!  2. require both reference solutions to pass every check;
 //!  3. require every seeded candidate to fail the expected check or corpus function, and nothing
 //!     else;
-//!  4. require that the seeds between them exercise every oracle check and every corpus function.
+//!  4. require that the seeds between them exercise every oracle check, every corpus function, and
+//!     every recorded trace, and that no trace is attributed to two seeds.
 //!
 //! Compilation is `rustc --edition 2021 -D warnings` on a single self-contained file: no crate,
 //! network, model, wallet provider, or service. Without `rustc` on `PATH` the tests skip locally
@@ -30,10 +33,11 @@ use std::process::Command;
 enum Family {
     Wallet,
     Transform,
+    Protocol,
 }
 
 /// Every seeded candidate: family, source file, the oracle signal it must produce, and why.
-const SEEDED: [(&str, Family, &str, &str, &str); 14] = [
+const SEEDED: [(&str, Family, &str, &str, &str); 20] = [
     (
         "01_wallet_overdraft",
         Family::Wallet,
@@ -132,6 +136,49 @@ const SEEDED: [(&str, Family, &str, &str, &str); 14] = [
         "function:parity",
         "the parity predicate is inverted",
     ),
+    (
+        "15_protocol_double_begin",
+        Family::Protocol,
+        "protocol.rs",
+        "traces:begin_after_abort",
+        "`begin` is accepted without checking that a transaction already ended",
+    ),
+    (
+        "16_protocol_commit_leaves_open",
+        Family::Protocol,
+        "protocol.rs",
+        "traces:empty_transaction,long_value,read_twice,sequence_zero_is_first,\
+three_records,two_records",
+        "`commit` never clears `begun`, so every committed state is wrong",
+    ),
+    (
+        "17_protocol_abort_keeps_records",
+        Family::Protocol,
+        "protocol.rs",
+        "traces:abort_discards",
+        "`abort` discards the transaction but keeps its records",
+    ),
+    (
+        "18_protocol_sequence_unchecked",
+        Family::Protocol,
+        "protocol.rs",
+        "traces:duplicate_sequence,gap_sequence,sequence_gap_after_two",
+        "`put` appends whatever index it is handed",
+    ),
+    (
+        "19_protocol_read_early",
+        Family::Protocol,
+        "protocol.rs",
+        "traces:read_before_commit",
+        "`read` is accepted as soon as a transaction begins",
+    ),
+    (
+        "20_protocol_abort_without_transaction",
+        Family::Protocol,
+        "protocol.rs",
+        "traces:abort_before_begin",
+        "`abort` is accepted outside a transaction",
+    ),
 ];
 
 // The constructor is graded on every seed but has no planted-bug task of its own.
@@ -177,6 +224,7 @@ fn oracle(family: Family) -> &'static str {
     match family {
         Family::Wallet => "oracle/wallet_oracle.rs",
         Family::Transform => "oracle/transform_oracle.rs",
+        Family::Protocol => "oracle/protocol_oracle.rs",
     }
 }
 
@@ -229,12 +277,15 @@ struct GraderRun {
     passed: bool,
     wallet: BTreeMap<String, bool>,
     transform: BTreeMap<String, (u64, u64)>,
+    /// `trace <name> pass|fail ...` from the protocol oracle.
+    traces: BTreeMap<String, bool>,
     stdout: String,
 }
 
 fn parse_grader_run(passed: bool, stdout: String) -> GraderRun {
     let mut wallet = BTreeMap::new();
     let mut transform = BTreeMap::new();
+    let mut traces = BTreeMap::new();
     for line in stdout.lines() {
         let fields: Vec<&str> = line.split(' ').collect();
         match fields.as_slice() {
@@ -254,6 +305,9 @@ fn parse_grader_run(passed: bool, stdout: String) -> GraderRun {
                     .unwrap_or(0);
                 transform.insert((*name).to_string(), (rows, failures));
             }
+            ["trace", name, verdict, ..] => {
+                traces.insert((*name).to_string(), verdict.starts_with("pass"));
+            }
             _ => {}
         }
     }
@@ -261,14 +315,21 @@ fn parse_grader_run(passed: bool, stdout: String) -> GraderRun {
         passed,
         wallet,
         transform,
+        traces,
         stdout,
     }
 }
 
 fn run_grader(binary: &Path, family: Family) -> Result<GraderRun, String> {
     let mut command = Command::new(binary);
-    if family == Family::Transform {
-        command.arg(taskpack_dir().join("corpus/transmutation.tsv"));
+    match family {
+        Family::Transform => {
+            command.arg(taskpack_dir().join("corpus/transmutation.tsv"));
+        }
+        Family::Protocol => {
+            command.arg(taskpack_dir().join("corpus/protocol_traces.tsv"));
+        }
+        Family::Wallet => {}
     }
     let output = command
         .output()
@@ -331,6 +392,32 @@ fn reference_solutions_pass_every_check() {
             transform_run.stdout
         );
     }
+
+    let protocol = build_grader(
+        &taskpack_dir().join("reference/protocol_ref.rs"),
+        Family::Protocol,
+        "reference-protocol",
+    )
+    .expect("the protocol reference must assemble and compile");
+    let protocol_run =
+        run_grader(&protocol, Family::Protocol).expect("the protocol grader must run");
+    assert!(
+        protocol_run.passed,
+        "the protocol reference disagreed with the recording:\n{}",
+        protocol_run.stdout
+    );
+    assert!(
+        !protocol_run.traces.is_empty(),
+        "the protocol recording contained no traces"
+    );
+    for (trace, passed) in &protocol_run.traces {
+        assert!(
+            *passed,
+            "the protocol reference failed {trace}:\n{}",
+            protocol_run.stdout
+        );
+    }
+    assert!(protocol_run.stdout.contains("oracle failed_traces=0 failed="));
 }
 
 #[test]
@@ -405,6 +492,32 @@ fn every_seeded_bug_is_caught_by_its_own_signal() {
                     run.stdout
                 );
             }
+            "traces" => {
+                let mut broken: Vec<&str> = run
+                    .traces
+                    .iter()
+                    .filter(|(_, passed)| !**passed)
+                    .map(|(name, _)| name.as_str())
+                    .collect();
+                broken.sort_unstable();
+                let mut expected: Vec<&str> = target.split(',').collect();
+                expected.sort_unstable();
+                assert_eq!(
+                    broken, expected,
+                    "seed {seed} ({why}) should fail exactly its pinned traces:\n{}",
+                    run.stdout
+                );
+                let recorded = format!(
+                    "oracle failed_traces={} failed={}",
+                    expected.len(),
+                    expected.join(",")
+                );
+                assert!(
+                    run.stdout.contains(&recorded),
+                    "unexpected protocol oracle summary for seed {seed}:\n{}",
+                    run.stdout
+                );
+            }
             other => panic!("unknown expectation kind: {other}"),
         }
     }
@@ -418,14 +531,30 @@ fn every_seeded_bug_is_caught_by_its_own_signal() {
 fn seeds_cover_every_oracle_signal() {
     let mut wallet_covered: BTreeSet<&str> = BTreeSet::new();
     let mut transform_covered: BTreeSet<&str> = BTreeSet::new();
+    let mut trace_covered: BTreeSet<&str> = BTreeSet::new();
+    let mut protocol_seeds = 0usize;
     for (_, family, _, expectation, _) in SEEDED {
-        let target = expectation.split_once(':').expect("kind:target").1;
+        let (kind, target) = expectation.split_once(':').expect("kind:target");
         match family {
             Family::Wallet => {
+                assert_eq!(kind, "check", "wallet seeds are graded by a named check");
                 wallet_covered.insert(target);
             }
             Family::Transform => {
+                assert_eq!(kind, "function", "transmutation seeds are graded per function");
                 transform_covered.insert(target);
+            }
+            Family::Protocol => {
+                assert_eq!(kind, "traces", "protocol seeds are graded by a pinned trace set");
+                protocol_seeds += 1;
+                for trace in target.split(',') {
+                    // A trace claimed by two seeds would make "this seed failed because of its
+                    // own bug" unprovable, so the insert must always be new.
+                    assert!(
+                        trace_covered.insert(trace),
+                        "trace {trace} is pinned to more than one protocol seed"
+                    );
+                }
             }
         }
     }
@@ -448,9 +577,28 @@ fn seeds_cover_every_oracle_signal() {
     assert_eq!(wallet_covered.len() + 1, WALLET_CHECKS.len());
     assert_eq!(transform_covered.len(), TRANSFORM_FUNCTIONS.len());
     assert_eq!(
-        WALLET_CHECKS.len() - 1 + TRANSFORM_FUNCTIONS.len(),
+        WALLET_CHECKS.len() - 1 + TRANSFORM_FUNCTIONS.len() + protocol_seeds,
         SEEDED.len()
     );
+    // The recording must carry traces that no seed pins, or a candidate could pass every pinned
+    // trace by rejecting legal protocol behaviour outright.
+    let recorded = std::fs::read_to_string(taskpack_dir().join("corpus/protocol_traces.tsv"))
+        .expect("the protocol recording must be checked in");
+    let names: BTreeSet<&str> = recorded
+        .lines()
+        .filter(|line| !line.trim().is_empty() && !line.starts_with('#'))
+        .map(|line| line.split('\t').next().unwrap_or_default())
+        .collect();
+    assert!(
+        names.len() > trace_covered.len(),
+        "the recording has no unpinned decoy traces"
+    );
+    for trace in &trace_covered {
+        assert!(
+            names.contains(trace),
+            "a seed pins {trace}, which the recording does not contain"
+        );
+    }
 }
 
 #[test]
@@ -576,5 +724,65 @@ fn differential_corpus_covers_every_function_and_stays_well_formed() {
     for function in TRANSFORM_FUNCTIONS {
         let count = counts.get(function).copied().unwrap_or(0);
         assert!(count >= 100, "{function} has only {count} corpus rows");
+    }
+}
+
+#[test]
+fn protocol_recording_is_well_formed() {
+    let path = taskpack_dir().join("corpus/protocol_traces.tsv");
+    let text = std::fs::read_to_string(&path).expect("the protocol recording must be checked in");
+    let mut ops: BTreeMap<&str, usize> = BTreeMap::new();
+    let mut outcomes: BTreeMap<&str, usize> = BTreeMap::new();
+    for (index, line) in text.lines().enumerate() {
+        if line.trim().is_empty() || line.starts_with('#') {
+            continue;
+        }
+        let fields: Vec<&str> = line.split('\t').collect();
+        assert_eq!(
+            fields.len(),
+            3,
+            "row {} must have exactly three columns",
+            index + 1
+        );
+        let name = fields[0];
+        *ops.entry(name).or_insert(0) += usize::from(fields[1] != "result");
+        if fields[1] == "result" {
+            *outcomes.entry(name).or_insert(0) += 1;
+            let payload = fields[2].trim();
+            assert!(
+                payload.starts_with("state ") || payload.starts_with("error "),
+                "trace {name} has an unreadable outcome"
+            );
+            if let Some(error) = payload.strip_prefix("error ") {
+                assert!(
+                    error.contains("op=") && error.contains("error="),
+                    "trace {name} records an error without an op index and a name"
+                );
+            } else {
+                for field in ["begun=", "committed=", "aborted=", "reads=", "records="] {
+                    assert!(
+                        payload.contains(field),
+                        "trace {name} state is missing {field}"
+                    );
+                }
+            }
+        }
+    }
+    assert!(
+        !outcomes.is_empty(),
+        "the protocol recording contains no traces"
+    );
+    for (name, count) in &outcomes {
+        assert_eq!(*count, 1, "trace {name} records more than one outcome");
+        assert!(
+            ops.contains_key(name),
+            "trace {name} records an outcome but no operations"
+        );
+    }
+    for name in ops.keys() {
+        assert!(
+            outcomes.contains_key(name),
+            "trace {name} has operations but no recorded outcome"
+        );
     }
 }
