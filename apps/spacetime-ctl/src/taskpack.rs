@@ -19,19 +19,67 @@ use std::process::Command;
 ///
 /// Kept in one place so this module, `run.sh`, and the Rust test harness cannot drift apart.
 pub(crate) const SEEDED: [(&str, &str, &str); 14] = [
-    ("01_wallet_overdraft", "wallet.rs", "check:overdraft_is_rejected"),
-    ("02_wallet_exact_balance", "wallet.rs", "check:exact_balance_is_allowed"),
-    ("03_wallet_idempotent_replay", "wallet.rs", "check:duplicate_retry_is_idempotent"),
-    ("04_wallet_id_reuse", "wallet.rs", "check:transfer_id_reuse_is_rejected"),
-    ("05_wallet_overflow_atomicity", "wallet.rs", "check:overflow_is_atomic"),
-    ("06_wallet_invalid_requests", "wallet.rs", "check:invalid_requests_are_rejected"),
-    ("07_wallet_tamper_detection", "wallet.rs", "check:tamper_is_detected"),
-    ("08_transform_bit_reverse", "func.rs", "function:bit_reverse"),
+    (
+        "01_wallet_overdraft",
+        "wallet.rs",
+        "check:overdraft_is_rejected",
+    ),
+    (
+        "02_wallet_exact_balance",
+        "wallet.rs",
+        "check:exact_balance_is_allowed",
+    ),
+    (
+        "03_wallet_idempotent_replay",
+        "wallet.rs",
+        "check:duplicate_retry_is_idempotent",
+    ),
+    (
+        "04_wallet_id_reuse",
+        "wallet.rs",
+        "check:transfer_id_reuse_is_rejected",
+    ),
+    (
+        "05_wallet_overflow_atomicity",
+        "wallet.rs",
+        "check:overflow_is_atomic",
+    ),
+    (
+        "06_wallet_invalid_requests",
+        "wallet.rs",
+        "check:invalid_requests_are_rejected",
+    ),
+    (
+        "07_wallet_tamper_detection",
+        "wallet.rs",
+        "check:tamper_is_detected",
+    ),
+    (
+        "08_transform_bit_reverse",
+        "func.rs",
+        "function:bit_reverse",
+    ),
     ("09_transform_byte_swap", "func.rs", "function:byte_swap"),
-    ("10_transform_rotate_left", "func.rs", "function:rotate_left"),
-    ("11_transform_rotate_right", "func.rs", "function:rotate_right"),
-    ("12_transform_saturating_add", "func.rs", "function:saturating_add"),
-    ("13_transform_checked_mul", "func.rs", "function:checked_mul"),
+    (
+        "10_transform_rotate_left",
+        "func.rs",
+        "function:rotate_left",
+    ),
+    (
+        "11_transform_rotate_right",
+        "func.rs",
+        "function:rotate_right",
+    ),
+    (
+        "12_transform_saturating_add",
+        "func.rs",
+        "function:saturating_add",
+    ),
+    (
+        "13_transform_checked_mul",
+        "func.rs",
+        "function:checked_mul",
+    ),
     ("14_transform_parity", "func.rs", "function:parity"),
 ];
 
@@ -279,7 +327,10 @@ pub fn taskpack_report() -> Result<Value> {
 
     // 3. The seeds must exercise every oracle check and every corpus function between them.
     for check in WALLET_CHECKS {
-        if !SEEDED.iter().any(|(_, _, expectation)| *expectation == format!("check:{check}")) {
+        if !SEEDED
+            .iter()
+            .any(|(_, _, expectation)| *expectation == format!("check:{check}"))
+        {
             return Err(SpacetimeError::new(format!(
                 "no seeded wallet task exercises the {check} check"
             )));
@@ -316,7 +367,7 @@ pub fn taskpack_report() -> Result<Value> {
         "performance_claims": "unmeasured",
         "block3_done": false,
         "note": "offline functional evidence for seeded candidate workspaces; \
-not a measured resource gate",
+    not a measured resource gate",
     }))
 }
 
@@ -370,7 +421,11 @@ mod tests {
                 }
                 other => panic!("unknown expectation kind {other}"),
             }
-            let expected_family = if source == "func.rs" { "function" } else { "check" };
+            let expected_family = if source == "func.rs" {
+                "function"
+            } else {
+                "check"
+            };
             assert_eq!(kind, expected_family, "seed family and signal disagree");
         }
         for check in WALLET_CHECKS {
@@ -383,7 +438,11 @@ mod tests {
             );
         }
         assert_eq!(wallet.len(), WALLET_CHECKS.len(), "two seeds share a check");
-        assert_eq!(transform.len(), TRANSFORM_FUNCTIONS.len(), "two seeds share a function");
+        assert_eq!(
+            transform.len(),
+            TRANSFORM_FUNCTIONS.len(),
+            "two seeds share a function"
+        );
     }
 
     #[test]

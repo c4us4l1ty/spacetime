@@ -130,7 +130,7 @@ const SEEDED: [(&str, Family, &str, &str, &str); 14] = [
         Family::Transform,
         "func.rs",
         "function:parity",
-        "the parity predicate is inverted"
+        "the parity predicate is inverted",
     ),
 ];
 
@@ -332,7 +332,10 @@ fn every_seeded_bug_is_caught_by_its_own_signal() {
     let mut corpus_rows = 0u64;
     for (seed, family, source, expectation, why) in SEEDED {
         let candidate = taskpack_dir().join(format!("seeded/{seed}/{source}"));
-        assert!(candidate.is_file(), "missing seeded candidate: {candidate:?}");
+        assert!(
+            candidate.is_file(),
+            "missing seeded candidate: {candidate:?}"
+        );
         let binary = build_grader(&candidate, family, seed)
             .unwrap_or_else(|error| panic!("seed {seed} must still compile: {error}"));
         let run = run_grader(&binary, family)
@@ -427,7 +430,10 @@ fn seeds_cover_every_oracle_signal() {
     }
     assert_eq!(wallet_covered.len(), WALLET_CHECKS.len());
     assert_eq!(transform_covered.len(), TRANSFORM_FUNCTIONS.len());
-    assert_eq!(WALLET_CHECKS.len() + TRANSFORM_FUNCTIONS.len(), SEEDED.len());
+    assert_eq!(
+        WALLET_CHECKS.len() + TRANSFORM_FUNCTIONS.len(),
+        SEEDED.len()
+    );
 }
 
 #[test]
@@ -543,7 +549,10 @@ fn differential_corpus_covers_every_function_and_stays_well_formed() {
         if fields[3] != "overflow" {
             fields[3].parse::<u64>().expect("expected is a u64");
         } else {
-            assert_eq!(fields[0], "checked_mul", "only checked_mul reports overflow");
+            assert_eq!(
+                fields[0], "checked_mul",
+                "only checked_mul reports overflow"
+            );
         }
         *counts.entry(fields[0]).or_insert(0) += 1;
     }
