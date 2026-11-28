@@ -295,7 +295,7 @@ pub fn taskpack_report() -> Result<Value> {
         }
     }
 
-    let corpus_rows: u64 = transform_run.transform.values().map(|(rows, _)| *rows).sum();
+    let corpus_rows: u64 = transform_run.transform.iter().map(|(_, rows)| rows.0).sum();
     Ok(json!({
         "schema_version": 1,
         "report": "block3_offline_task_pack",
