@@ -1,79 +1,79 @@
 === run.sh matrix ===
-assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.jE6zWi7234/assembled.rs
+assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.HrSCeUZrET/assembled.rs
 taskpack: wallet reference passes all 8 checks
-assemble: reference/transform_ref.rs + ABI -> /tmp/tmp.iqly58tZQe/assembled.rs
+assemble: reference/transform_ref.rs + ABI -> /tmp/tmp.FLLLRLF6xd/assembled.rs
 taskpack: transform reference matches all 7 corpus functions
-assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /tmp/tmp.kznd7JsJhW/assembled.rs
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /tmp/tmp.olAJibMujU/assembled.rs
 taskpack: seed 01_wallet_overdraft caught (overdraft_is_rejected)
-assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /tmp/tmp.OJ8f0NrXNS/assembled.rs
+assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /tmp/tmp.V2PpCT4J9Y/assembled.rs
 taskpack: seed 02_wallet_exact_balance caught (exact_balance_is_allowed)
-assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /tmp/tmp.wsccWmCHxz/assembled.rs
+assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /tmp/tmp.h5oXUX9wrU/assembled.rs
 taskpack: seed 03_wallet_idempotent_replay caught (duplicate_retry_is_idempotent)
-assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /tmp/tmp.qJU2VrCO8O/assembled.rs
+assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /tmp/tmp.eCjgMHYPQm/assembled.rs
 taskpack: seed 04_wallet_id_reuse caught (transfer_id_reuse_is_rejected)
-assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /tmp/tmp.shbjpCcjOh/assembled.rs
+assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /tmp/tmp.viNJvJhWHA/assembled.rs
 taskpack: seed 05_wallet_overflow_atomicity caught (overflow_is_atomic)
-assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /tmp/tmp.rtuy3MoB1Q/assembled.rs
+assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /tmp/tmp.OvPPY2OUK8/assembled.rs
 taskpack: seed 06_wallet_invalid_requests caught (invalid_requests_are_rejected)
-assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /tmp/tmp.H0o4otW3zw/assembled.rs
+assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /tmp/tmp.TMO8hZJkny/assembled.rs
 taskpack: seed 07_wallet_tamper_detection caught (tamper_is_detected)
-assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /tmp/tmp.JbBypwV0Dq/assembled.rs
+assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /tmp/tmp.rROgqWOw4K/assembled.rs
 taskpack: seed 08_transform_bit_reverse caught (bit_reverse)
-assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /tmp/tmp.0QcHPpWWCG/assembled.rs
+assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /tmp/tmp.qGHmOyChBU/assembled.rs
 taskpack: seed 09_transform_byte_swap caught (byte_swap)
-assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /tmp/tmp.FmWTbmnjRU/assembled.rs
+assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /tmp/tmp.DHv7xHfZJY/assembled.rs
 taskpack: seed 10_transform_rotate_left caught (rotate_left)
-assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /tmp/tmp.y1w0mzPfkY/assembled.rs
+assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /tmp/tmp.4qljPT4hMx/assembled.rs
 taskpack: seed 11_transform_rotate_right caught (rotate_right)
-assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /tmp/tmp.6N2vat5pHu/assembled.rs
+assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /tmp/tmp.8FunxRYo3A/assembled.rs
 taskpack: seed 12_transform_saturating_add caught (saturating_add)
-assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /tmp/tmp.c7XC8DlfzM/assembled.rs
+assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /tmp/tmp.whasuW3cig/assembled.rs
 taskpack: seed 13_transform_checked_mul caught (checked_mul)
-assemble: seeded/14_transform_parity/func.rs + ABI -> /tmp/tmp.o894FakWit/assembled.rs
+assemble: seeded/14_transform_parity/func.rs + ABI -> /tmp/tmp.3RHVwzZhwX/assembled.rs
 taskpack: seed 14_transform_parity caught (parity)
 taskpack: matrix pass — 2 references and 14 seeded candidates across 8 wallet checks and 7 corpus functions
 matrix exit: 0
 === cargo test --test taskpack ===
 [1m[92m    Updating[0m crates.io index
 [1m[92m Downloading[0m crates ...
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m block-buffer v0.10.4
-[1m[92m  Downloaded[0m cfg-if v1.0.5
 [1m[92m  Downloaded[0m digest v0.10.7
-[1m[92m  Downloaded[0m serde_core v1.0.229
 [1m[92m  Downloaded[0m crypto-common v0.1.7
+[1m[92m  Downloaded[0m cfg-if v1.0.5
+[1m[92m  Downloaded[0m block-buffer v0.10.4
+[1m[92m  Downloaded[0m cpufeatures v0.2.17
+[1m[92m  Downloaded[0m serde_derive v1.0.229
+[1m[92m  Downloaded[0m generic-array v0.14.7
+[1m[92m  Downloaded[0m quote v1.0.47
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m itoa v1.0.19
 [1m[92m  Downloaded[0m serde v1.0.229
 [1m[92m  Downloaded[0m sha2 v0.10.9
-[1m[92m  Downloaded[0m unicode-ident v1.0.27
 [1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m cpufeatures v0.2.17
-[1m[92m  Downloaded[0m generic-array v0.14.7
-[1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m serde_json v1.0.154
-[1m[92m  Downloaded[0m typenum v1.20.1
-[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m serde_core v1.0.229
 [1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m unicode-ident v1.0.27
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m typenum v1.20.1
+[1m[92m  Downloaded[0m serde_json v1.0.154
 [1m[92m  Downloaded[0m syn v3.0.10
 [1m[92m   Compiling[0m version_check v0.9.5
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
-[1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m unicode-ident v1.0.27
+[1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m typenum v1.20.1
 [1m[92m   Compiling[0m serde_core v1.0.229
 [1m[92m   Compiling[0m generic-array v0.14.7
 [1m[92m   Compiling[0m zmij v1.0.23
 [1m[92m   Compiling[0m serde v1.0.229
-[1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m syn v3.0.10
-[1m[92m   Compiling[0m itoa v1.0.19
-[1m[92m   Compiling[0m block-buffer v0.10.4
+[1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m crypto-common v0.1.7
-[1m[92m   Compiling[0m cpufeatures v0.2.17
+[1m[92m   Compiling[0m block-buffer v0.10.4
+[1m[92m   Compiling[0m itoa v1.0.19
 [1m[92m   Compiling[0m digest v0.10.7
 [1m[92m   Compiling[0m cfg-if v1.0.5
 [1m[92m   Compiling[0m memchr v2.8.3
+[1m[92m   Compiling[0m cpufeatures v0.2.17
 [1m[92m   Compiling[0m sha2 v0.10.9
 [1m[92m   Compiling[0m spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
 [1m[92m   Compiling[0m serde_derive v1.0.229
@@ -83,7 +83,7 @@ matrix exit: 0
 [1m[92m   Compiling[0m spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
 [1m[92m   Compiling[0m spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
 [1m[92m   Compiling[0m spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 9.37s
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 8.85s
 [1m[92m     Running[0m tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
 
 running 7 tests
@@ -103,11 +103,7 @@ assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /home/runner/work/sp
 assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/12_transform_saturating_add.assembled.rs
 assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/13_transform_checked_mul.assembled.rs
 assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/14_transform_parity.assembled.rs
-
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (4001) panicked at apps/spacetime-ctl/tests/taskpack.rs:409:5:
-the differential corpus shrank to 488 rows per function
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-FAILED
+ok
 test oracles_never_reference_a_candidate ... ok
 test reference_solutions_pass_every_check ... assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
 assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
@@ -115,12 +111,6 @@ ok
 test seeded_workspaces_are_bounded_and_offline ... ok
 test seeds_cover_every_oracle_signal ... ok
 
-failures:
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
 
-failures:
-    every_seeded_bug_is_caught_by_its_own_signal
-
-test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
-
-[1m[91merror[0m: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
-tests exit: 101
+tests exit: 0
