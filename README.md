@@ -144,10 +144,11 @@ boundary. `machine profiles` lists explicit registered targets; `4gb_potato` is 
 release baseline, while `8gb_reference` and `16gb_developer` are optional and additive.
 `machine gate` stays unmeasured until real per-profile evidence and accepted out-of-band provenance
 exist; CI/synthetic host labels are rejected.
-`bench/taskpack/` holds fourteen seeded candidate workspaces — seven planted-invariant wallet tasks
-and seven integer-transmutation tasks, each with exactly one planted bug — graded by hidden
-independent oracles under plain `rustc` with no crates. CI runs `bench/taskpack/run.sh matrix` and
-requires both reference solutions to pass every check while each seed fails exactly its own signal;
+`bench/taskpack/` holds twenty seeded candidate workspaces — seven planted-invariant wallet tasks,
+seven integer-transmutation tasks, and six protocol-distillation tasks replaying captured traces,
+each with exactly one planted bug — graded by hidden independent oracles under plain `rustc` with no
+crates. CI runs `bench/taskpack/run.sh matrix` and requires all three reference solutions to pass
+every check while each seed fails exactly its own signal;
 `spacetime-ctl bench taskpack --out <file>` emits the machine-readable report, and `verify` carries
 the same evidence as its 40th gate. The pack measures nothing, so `block3_done` stays `false`.
 

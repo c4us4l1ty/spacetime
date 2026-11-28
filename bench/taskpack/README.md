@@ -16,7 +16,7 @@ bench/taskpack/
   corpus/transmutation.tsv   2,498 expected values computed with Python big integers
   reference/wallet_ref.rs    post-fix solution for the wallet family
   reference/transform_ref.rs post-fix solution for the transmutation family
-  seeded/<seed>/             fourteen candidates, each with exactly one planted bug
+  seeded/<seed>/             twenty candidates, each with exactly one planted bug
   assemble.sh                ABI + candidate -> one self-contained file
   run.sh                     grade one candidate, or the whole matrix
 ```
@@ -50,18 +50,20 @@ The usual failure mode of a self-graded task is that the grader imports the thin
 
 ## What CI proves
 
-**Verified.** Workflow run `46160941738` passes the whole CI job, including this step. The claim
+**Verified.** Workflow run `46166597322` passes the whole CI job, including this step. The claim
 below is not aspirational: `cargo test --workspace --all-targets` also runs
 `apps/spacetime-ctl/tests/taskpack.rs`, which assembles and grades every seed, and `verify` grades
 `block3_task_pack_seeded_workspaces` with a toolchain present rather than skipping it.
 
 The **Block 3 task pack** step in `.github/workflows/ci.yml` runs `run.sh matrix`, which requires:
 
-1. both reference solutions to pass every check (wallet: 8 checks; transform: 7 functions);
+1. all three reference solutions to pass every check (wallet: 8 checks; transform: 7 functions;
+   protocol: every captured trace);
 2. every seeded candidate to fail *exactly* the check or corpus function its planted bug explains —
    not more, so a seed cannot hide a second defect, and not fewer, so a bug cannot escape;
-3. `spacetime-ctl bench taskpack --out ...` to report `candidates = 14`,
-   `seeded_bugs_caught = 14`, and `block3_done = false`;
+3. `spacetime-ctl bench taskpack --out ...` to report `candidates = 20`,
+   `seeded_bugs_caught = 20`, seven planted-invariant, seven transmutation and six
+   protocol-distillation tasks, and `block3_done = false`;
 4. `assemble.sh` to reject a file that is not a candidate;
 5. the task pack not to smuggle a measured resource gate: `resource_gate` stays
    `"unmeasured_target_4gb"` and `performance_claims` stays `"unmeasured"`.
@@ -72,9 +74,13 @@ so a local run without Rust can never look like a green gate.
 
 ## Honest limits
 
-- **Fourteen of twenty.** These fourteen cover the 7 planted-invariant and 7 transmutation fixtures
-  one-to-one. The six `protocol_*` fixtures still have only the in-process state-machine verifier and
-  no seeded candidate workspace.
+- **Twenty tasks, but not yet a closed loop with EconBench.** The pack covers all three families —
+  7 planted-invariant, 7 transmutation, 6 protocol-distillation — one seeded workspace per fixture.
+  The EconBench fixtures still run their own in-process verifiers, so the two halves agree on count
+  and coverage but are not yet wired to each other. `block3_done` stays `false` for that reason.
+- **The protocol family grades traces, not a service.** A candidate replays a captured recording; it
+  is never started, connected to, or timed. Passing means it reproduces the recorded outcomes, not
+  that it would survive a hostile peer or a concurrent one.
 - **Not the product workload.** This proves the task pack is independently gradeable. It is not the
   native mixed-workspace workload, so it does not feed cold-start, tab-switch, snapshot, or peak-RSS
   measurement.

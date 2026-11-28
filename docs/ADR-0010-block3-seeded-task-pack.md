@@ -28,7 +28,7 @@ Rust/WASM skeleton" could not mean a Wasm build.
 
 ## Decision
 
-Add `bench/taskpack/`: fourteen seeded candidate workspaces graded by a hidden, independent oracle,
+Add `bench/taskpack/`: twenty seeded candidate workspaces graded by a hidden, independent oracle,
 built with plain `rustc` and no crates.
 
 1. **Two pinned ABIs.** `abi/wallet_abi.rs` defines the fake-credit wallet surface
