@@ -1,44 +1,44 @@
 === cargo test -p spacetime-ctl ===
     Updating crates.io index
  Downloading crates ...
-  Downloaded serde_core v1.0.229
-  Downloaded crypto-common v0.1.7
-  Downloaded block-buffer v0.10.4
-  Downloaded digest v0.10.7
-  Downloaded cfg-if v1.0.5
-  Downloaded proc-macro2 v1.0.107
-  Downloaded zmij v1.0.23
-  Downloaded itoa v1.0.19
-  Downloaded serde_derive v1.0.229
-  Downloaded serde_json v1.0.154
   Downloaded generic-array v0.14.7
-  Downloaded quote v1.0.47
+  Downloaded digest v0.10.7
+  Downloaded itoa v1.0.19
+  Downloaded cpufeatures v0.2.17
+  Downloaded block-buffer v0.10.4
+  Downloaded cfg-if v1.0.5
+  Downloaded crypto-common v0.1.7
   Downloaded version_check v0.9.5
+  Downloaded zmij v1.0.23
+  Downloaded quote v1.0.47
+  Downloaded sha2 v0.10.9
   Downloaded unicode-ident v1.0.27
+  Downloaded serde_derive v1.0.229
+  Downloaded serde_core v1.0.229
+  Downloaded proc-macro2 v1.0.107
+  Downloaded serde v1.0.229
   Downloaded typenum v1.20.1
   Downloaded memchr v2.8.3
-  Downloaded cpufeatures v0.2.17
+  Downloaded serde_json v1.0.154
   Downloaded syn v3.0.10
-  Downloaded serde v1.0.229
-  Downloaded sha2 v0.10.9
    Compiling version_check v0.9.5
    Compiling proc-macro2 v1.0.107
    Compiling quote v1.0.47
    Compiling typenum v1.20.1
-   Compiling generic-array v0.14.7
    Compiling unicode-ident v1.0.27
+   Compiling generic-array v0.14.7
    Compiling serde_core v1.0.229
    Compiling zmij v1.0.23
-   Compiling serde_json v1.0.154
    Compiling serde v1.0.229
    Compiling syn v3.0.10
-   Compiling block-buffer v0.10.4
+   Compiling serde_json v1.0.154
    Compiling crypto-common v0.1.7
-   Compiling digest v0.10.7
+   Compiling block-buffer v0.10.4
    Compiling memchr v2.8.3
+   Compiling digest v0.10.7
+   Compiling itoa v1.0.19
    Compiling cpufeatures v0.2.17
    Compiling cfg-if v1.0.5
-   Compiling itoa v1.0.19
    Compiling sha2 v0.10.9
    Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
    Compiling serde_derive v1.0.229
@@ -48,7 +48,7 @@
    Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
    Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
    Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.73s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.60s
      Running unittests src/lib.rs (target/debug/build/spacetime-ctl/c13b477211acb967/out/spacetime_ctl-c13b477211acb967)
 
 running 52 tests
@@ -57,8 +57,8 @@ test dashboard::tests::empty_history_is_clear ... ok
 test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
 test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
 test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
-test console::tests::console_report_reads_checked_in_ledger ... ok
 test econbench::tests::bench_run_flags_are_bounded ... ok
+test console::tests::console_report_reads_checked_in_ledger ... ok
 test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
 test initramfs::tests::archive_headers_describe_bootable_entries ... ok
 test initramfs::tests::optional_app_is_included_and_dynamic_apps_are_rejected ... ok
@@ -97,15 +97,15 @@ test tests::parse_exact_flags_rejects_unknown_duplicate_and_odd_arguments ... ok
 test tests::state_path_preserves_non_utf8_bytes ... ok
 test tests::tamper_and_truncation_are_detected ... ok
 test econbench::tests::econbench_report_runs_twenty_offline_fixtures ... ok
-test tests::timeout_is_a_failure_not_a_pass ... ok
+test tests::verifier_panel_resolves_five_sources ... ok
 test workspace::tests::detects_only_actual_shm_tmpfs_mounts ... ok
 test workspace::tests::run_requires_explicit_experimental_and_unique_inputs ... ok
 test workspace::tests::temporary_workspace_removed_on_drop ... ok
-test tests::verifier_panel_resolves_five_sources ... ok
+test tests::timeout_is_a_failure_not_a_pass ... ok
 test tests::adversarial_corpus_has_twenty_spec_only_fixtures ... ok
 test tests::fixture_population_covers_real_fixtures ... ok
 
-test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.88s
+test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.80s
 
      Running unittests src/main.rs (target/debug/build/spacetime-ctl/efb0edb5051ff77e/out/spacetime_ctl-efb0edb5051ff77e)
 
@@ -147,15 +147,17 @@ failures:
 
 ---- reference_solutions_pass_every_check stdout ----
 
-thread 'reference_solutions_pass_every_check' (3291) panicked at apps/spacetime-ctl/tests/taskpack.rs:404:5:
+thread 'reference_solutions_pass_every_check' (3096) panicked at apps/spacetime-ctl/tests/taskpack.rs:407:5:
 the protocol reference disagreed with the recording:
+[stderr] recording error: row 29 does not have exactly three columns
 
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- every_seeded_bug_is_caught_by_its_own_signal stdout ----
 
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (3287) panicked at apps/spacetime-ctl/tests/taskpack.rs:507:17:
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (3092) panicked at apps/spacetime-ctl/tests/taskpack.rs:510:17:
 assertion `left == right` failed: seed 15_protocol_double_begin (`begin` is accepted without checking that a transaction already ended) should fail exactly its pinned traces:
+[stderr] recording error: row 29 does not have exactly three columns
 
   left: []
  right: ["begin_after_abort"]
@@ -165,7 +167,7 @@ failures:
     every_seeded_bug_is_caught_by_its_own_signal
     reference_solutions_pass_every_check
 
-test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.20s
 
 error: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
 exit: 101
