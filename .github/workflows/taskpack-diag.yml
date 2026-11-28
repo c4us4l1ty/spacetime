@@ -16,9 +16,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: |
           {
-            echo "=== cargo test -p spacetime-ctl ==="
-            cargo test -p spacetime-ctl --all-targets --locked 2>&1
-            echo "exit: $?"
+            echo "=== verify ==="
+            cargo run --release --locked -q -p spacetime-ctl -- verify --out target/verify.toml 2>&1
+            echo "verify exit: $?"
+            grep -E '^(status|failed|gates) ' target/verify.toml
+            grep -B2 -A6 'status = "fail"' target/verify.toml | head -40
           } > .ci-report.txt 2>&1 || true
       - run: |
           git config user.name "spacetime-diagnostic"
