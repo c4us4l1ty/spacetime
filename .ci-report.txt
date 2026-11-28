@@ -1,96 +1,655 @@
-=== run.sh matrix ===
-assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.HrSCeUZrET/assembled.rs
-taskpack: wallet reference passes all 8 checks
-assemble: reference/transform_ref.rs + ABI -> /tmp/tmp.FLLLRLF6xd/assembled.rs
-taskpack: transform reference matches all 7 corpus functions
-assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /tmp/tmp.olAJibMujU/assembled.rs
-taskpack: seed 01_wallet_overdraft caught (overdraft_is_rejected)
-assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /tmp/tmp.V2PpCT4J9Y/assembled.rs
-taskpack: seed 02_wallet_exact_balance caught (exact_balance_is_allowed)
-assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /tmp/tmp.h5oXUX9wrU/assembled.rs
-taskpack: seed 03_wallet_idempotent_replay caught (duplicate_retry_is_idempotent)
-assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /tmp/tmp.eCjgMHYPQm/assembled.rs
-taskpack: seed 04_wallet_id_reuse caught (transfer_id_reuse_is_rejected)
-assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /tmp/tmp.viNJvJhWHA/assembled.rs
-taskpack: seed 05_wallet_overflow_atomicity caught (overflow_is_atomic)
-assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /tmp/tmp.OvPPY2OUK8/assembled.rs
-taskpack: seed 06_wallet_invalid_requests caught (invalid_requests_are_rejected)
-assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /tmp/tmp.TMO8hZJkny/assembled.rs
-taskpack: seed 07_wallet_tamper_detection caught (tamper_is_detected)
-assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /tmp/tmp.rROgqWOw4K/assembled.rs
-taskpack: seed 08_transform_bit_reverse caught (bit_reverse)
-assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /tmp/tmp.qGHmOyChBU/assembled.rs
-taskpack: seed 09_transform_byte_swap caught (byte_swap)
-assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /tmp/tmp.DHv7xHfZJY/assembled.rs
-taskpack: seed 10_transform_rotate_left caught (rotate_left)
-assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /tmp/tmp.4qljPT4hMx/assembled.rs
-taskpack: seed 11_transform_rotate_right caught (rotate_right)
-assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /tmp/tmp.8FunxRYo3A/assembled.rs
-taskpack: seed 12_transform_saturating_add caught (saturating_add)
-assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /tmp/tmp.whasuW3cig/assembled.rs
-taskpack: seed 13_transform_checked_mul caught (checked_mul)
-assemble: seeded/14_transform_parity/func.rs + ABI -> /tmp/tmp.3RHVwzZhwX/assembled.rs
-taskpack: seed 14_transform_parity caught (parity)
-taskpack: matrix pass — 2 references and 14 seeded candidates across 8 wallet checks and 7 corpus functions
-matrix exit: 0
-=== cargo test --test taskpack ===
-[1m[92m    Updating[0m crates.io index
-[1m[92m Downloading[0m crates ...
-[1m[92m  Downloaded[0m digest v0.10.7
-[1m[92m  Downloaded[0m crypto-common v0.1.7
-[1m[92m  Downloaded[0m cfg-if v1.0.5
-[1m[92m  Downloaded[0m block-buffer v0.10.4
-[1m[92m  Downloaded[0m cpufeatures v0.2.17
-[1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m generic-array v0.14.7
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m serde v1.0.229
-[1m[92m  Downloaded[0m sha2 v0.10.9
-[1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m serde_core v1.0.229
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
-[1m[92m  Downloaded[0m unicode-ident v1.0.27
-[1m[92m  Downloaded[0m memchr v2.8.3
-[1m[92m  Downloaded[0m typenum v1.20.1
-[1m[92m  Downloaded[0m serde_json v1.0.154
-[1m[92m  Downloaded[0m syn v3.0.10
-[1m[92m   Compiling[0m version_check v0.9.5
-[1m[92m   Compiling[0m proc-macro2 v1.0.107
-[1m[92m   Compiling[0m unicode-ident v1.0.27
-[1m[92m   Compiling[0m quote v1.0.47
-[1m[92m   Compiling[0m typenum v1.20.1
-[1m[92m   Compiling[0m serde_core v1.0.229
-[1m[92m   Compiling[0m generic-array v0.14.7
-[1m[92m   Compiling[0m zmij v1.0.23
-[1m[92m   Compiling[0m serde v1.0.229
-[1m[92m   Compiling[0m syn v3.0.10
-[1m[92m   Compiling[0m serde_json v1.0.154
-[1m[92m   Compiling[0m crypto-common v0.1.7
-[1m[92m   Compiling[0m block-buffer v0.10.4
-[1m[92m   Compiling[0m itoa v1.0.19
-[1m[92m   Compiling[0m digest v0.10.7
-[1m[92m   Compiling[0m cfg-if v1.0.5
-[1m[92m   Compiling[0m memchr v2.8.3
-[1m[92m   Compiling[0m cpufeatures v0.2.17
-[1m[92m   Compiling[0m sha2 v0.10.9
-[1m[92m   Compiling[0m spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
-[1m[92m   Compiling[0m serde_derive v1.0.229
-[1m[92m   Compiling[0m spacetime-types v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-types)
-[1m[92m   Compiling[0m spacetime-ledger v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-ledger)
-[1m[92m   Compiling[0m spacetime-bench v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-bench)
-[1m[92m   Compiling[0m spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
-[1m[92m   Compiling[0m spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
-[1m[92m   Compiling[0m spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 8.85s
-[1m[92m     Running[0m tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
+=== cargo clippy ===
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded adler2 v2.0.1
+  Downloaded calloop-wayland-source v0.4.1
+  Downloaded ab_glyph_rasterizer v0.1.10
+  Downloaded ab_glyph v0.2.32
+  Downloaded ahash v0.8.12
+  Downloaded allocator-api2 v0.2.21
+  Downloaded libloading v0.8.9
+  Downloaded bitflags v1.3.2
+  Downloaded block-buffer v0.10.4
+  Downloaded cc v1.11.2
+  Downloaded as-raw-xcb-connection v1.0.1
+  Downloaded calloop-wayland-source v0.2.0
+  Downloaded displaydoc v0.2.7
+  Downloaded document-features v0.2.12
+  Downloaded equivalent v1.0.3
+  Downloaded byteorder v1.5.0
+  Downloaded calloop v0.12.4
+  Downloaded cfg_aliases v0.1.1
+  Downloaded color_quant v1.1.0
+  Downloaded crc32fast v1.5.5
+  Downloaded hashbrown v0.14.5
+  Downloaded fdeflate v0.3.7
+  Downloaded flate2 v1.1.11
+  Downloaded egui_glow v0.27.2
+  Downloaded bit-set v0.5.3
+  Downloaded cfg-if v1.0.5
+  Downloaded generic-array v0.14.7
+  Downloaded bitflags v2.13.2
+  Downloaded ecolor v0.27.2
+  Downloaded calloop v0.14.5
+  Downloaded errno v0.3.15
+  Downloaded arrayvec v0.7.8
+  Downloaded glutin_egl_sys v0.6.0
+  Downloaded bit-vec v0.6.3
+  Downloaded gl_generator v0.14.0
+  Downloaded owned_ttf_parser v0.25.1
+  Downloaded rustc-hash v2.1.3
+  Downloaded profiling v1.0.18
+  Downloaded digest v0.10.7
+  Downloaded egui-wgpu v0.27.2
+  Downloaded find-msvc-tools v0.1.15
+  Downloaded nohash-hasher v0.2.0
+  Downloaded renderdoc-sys v1.1.0
+  Downloaded rustc-hash v1.1.0
+  Downloaded scoped-tls v1.0.1
+  Downloaded scopeguard v1.2.0
+  Downloaded wayland-cursor v0.31.14
+  Downloaded percent-encoding v2.3.2
+  Downloaded pkg-config v0.3.34
+  Downloaded potential_utf v0.1.6
+  Downloaded quote v1.0.47
+  Downloaded raw-window-handle v0.5.2
+  Downloaded raw-window-handle v0.6.2
+  Downloaded sha2 v0.10.9
+  Downloaded version_check v0.9.5
+  Downloaded pin-project-lite v0.2.17
+  Downloaded simd-adler32 v0.3.10
+  Downloaded slab v0.4.12
+  Downloaded termcolor v1.4.1
+  Downloaded thiserror v1.0.69
+  Downloaded parking_lot v0.12.5
+  Downloaded parking_lot_core v0.9.12
+  Downloaded idna_adapter v1.2.2
+  Downloaded shlex v2.0.1
+  Downloaded cpufeatures v0.2.17
+  Downloaded crypto-common v0.1.7
+  Downloaded cursor-icon v1.2.0
+  Downloaded gethostname v1.1.0
+  Downloaded glutin_glx_sys v0.5.0
+  Downloaded gpu-alloc-types v0.3.1
+  Downloaded hexf-parse v0.2.1
+  Downloaded bytemuck_derive v1.12.1
+  Downloaded emath v0.27.2
+  Downloaded glutin-winit v0.4.2
+  Downloaded gpu-descriptor v0.2.4
+  Downloaded itoa v1.0.19
+  Downloaded jobserver v0.1.35
+  Downloaded memoffset v0.9.1
+  Downloaded dlib v0.5.3
+  Downloaded downcast-rs v1.2.1
+  Downloaded form_urlencoded v1.2.2
+  Downloaded gpu-descriptor-types v0.1.2
+  Downloaded home v0.5.12
+  Downloaded egui-winit v0.27.2
+  Downloaded khronos-egl v6.0.0
+  Downloaded libloading v0.7.4
+  Downloaded lock_api v0.4.14
+  Downloaded zmij v1.0.23
+  Downloaded autocfg v1.5.1
+  Downloaded getrandom v0.3.4
+  Downloaded gpu-alloc v0.6.2
+  Downloaded litrs v1.0.1
+  Downloaded memmap2 v0.9.12
+  Downloaded num-traits v0.2.19
+  Downloaded once_cell v1.21.4
+  Downloaded smol_str v0.2.2
+  Downloaded tinystr v0.8.5
+  Downloaded type-map v0.5.1
+  Downloaded wayland-sys v0.31.11
+  Downloaded arboard v3.7.0
+  Downloaded codespan-reporting v0.11.1
+  Downloaded icu_normalizer_data v2.4.0
+  Downloaded icu_provider v2.4.0
+  Downloaded litemap v0.8.3
+  Downloaded log v0.4.35
+  Downloaded miniz_oxide v0.8.9
+  Downloaded bytemuck v1.25.2
+  Downloaded eframe v0.27.2
+  Downloaded memchr v2.8.3
+  Downloaded miniz_oxide v0.9.1
+  Downloaded icu_locale_core v2.4.0
+  Downloaded smallvec v1.16.5
+  Downloaded stable_deref_trait v1.2.1
+  Downloaded wayland-csd-frame v0.3.0
+  Downloaded glutin v0.31.3
+  Downloaded icu_collections v2.4.0
+  Downloaded icu_properties v2.4.0
+  Downloaded idna v1.1.0
+  Downloaded indexmap v2.14.2
+  Downloaded polling v3.11.0
+  Downloaded proc-macro2 v1.0.107
+  Downloaded serde_core v1.0.229
+  Downloaded serde_derive v1.0.229
+  Downloaded yoke-derive v0.8.4
+  Downloaded zerofrom v0.1.8
+  Downloaded glow v0.13.1
+  Downloaded vte_generate_state_changes v0.1.2
+  Downloaded wayland-protocols-misc v0.3.12
+  Downloaded xcursor v0.3.11
+  Downloaded zerofrom-derive v0.1.8
+  Downloaded hashbrown v0.17.1
+  Downloaded icu_properties_data v2.4.0
+  Downloaded utf8_iter v1.1.0
+  Downloaded unicode-xid v0.2.6
+  Downloaded utf8parse v0.2.2
+  Downloaded web-time v0.2.4
+  Downloaded smithay-clipboard v0.7.3
+  Downloaded spirv v0.3.0+sdk-1.3.268.0
+  Downloaded xkbcommon-dl v0.4.2
+  Downloaded static_assertions v1.1.0
+  Downloaded thiserror v2.0.21
+  Downloaded utf_types v1.0.0
+  Downloaded vt100 v0.15.2
+  Downloaded wayland-protocols-experimental v20250721.0.1
+  Downloaded wayland-protocols-wlr v0.2.0
+  Downloaded wayland-protocols-wlr v0.3.12
+  Downloaded writeable v0.6.4
+  Downloaded zerovec-derive v0.11.7
+  Downloaded synstructure v0.14.0
+  Downloaded thiserror-impl v1.0.69
+  Downloaded vte v0.11.1
+  Downloaded wayland-scanner v0.31.11
+  Downloaded webbrowser v0.8.15
+  Downloaded yoke v0.8.4
+  Downloaded egui v0.27.2
+  Downloaded serde v1.0.229
+  Downloaded thiserror-impl v2.0.21
+  Downloaded unicode-ident v1.0.27
+  Downloaded wayland-client v0.31.15
+  Downloaded wayland-protocols-plasma v0.2.0
+  Downloaded wgpu-types v0.19.2
+  Downloaded xml-rs v0.8.29
+  Downloaded png v0.17.16
+  Downloaded tracing-core v0.1.36
+  Downloaded wayland-backend v0.3.17
+  Downloaded x11-dl v2.21.0
+  Downloaded zerotrie v0.2.5
+  Downloaded typenum v1.20.1
+  Downloaded url v2.5.8
+  Downloaded xkeysym v0.2.1
+  Downloaded zerovec v0.11.9
+  Downloaded smithay-client-toolkit v0.18.1
+  Downloaded wgpu v0.19.4
+  Downloaded serde_json v1.0.154
+  Downloaded smithay-client-toolkit v0.20.0
+  Downloaded wayland-protocols v0.31.2
+  Downloaded wayland-protocols v0.32.13
+  Downloaded quick-xml v0.41.0
+  Downloaded wgpu-core v0.19.4
+  Downloaded zlib-rs v0.6.8
+  Downloaded ttf-parser v0.25.1
+  Downloaded ash v0.37.3+1.3.251
+  Downloaded x11rb v0.13.2
+  Downloaded icu_normalizer v2.4.0
+  Downloaded naga v0.19.2
+  Downloaded wgpu-hal v0.19.5
+  Downloaded syn v2.0.119
+  Downloaded syn v3.0.10
+  Downloaded unicode-width v0.1.14
+  Downloaded rustix v0.38.44
+  Downloaded zerocopy v0.8.63
+  Downloaded khronos_api v3.1.0
+  Downloaded rustix v1.1.6
+  Downloaded tracing v0.1.44
+  Downloaded x11rb-protocol v0.13.2
+  Downloaded winit v0.29.15
+  Downloaded libc v0.2.191
+  Downloaded epaint v0.27.2
+  Downloaded linux-raw-sys v0.4.15
+  Downloaded linux-raw-sys v0.12.1
+  Downloaded image v0.24.9
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+    Checking cfg-if v1.0.5
+   Compiling version_check v0.9.5
+    Checking log v0.4.35
+    Checking smallvec v1.16.5
+    Checking once_cell v1.21.4
+    Checking bitflags v2.13.2
+   Compiling pkg-config v0.3.34
+   Compiling rustix v1.1.6
+    Checking linux-raw-sys v0.12.1
+    Checking libloading v0.8.9
+    Checking dlib v0.5.3
+   Compiling generic-array v0.14.7
+   Compiling wayland-sys v0.31.11
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.15
+   Compiling syn v3.0.10
+   Compiling cc v1.11.2
+   Compiling libc v0.2.191
+    Checking typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling wayland-backend v0.3.17
+   Compiling memchr v2.8.3
+   Compiling zmij v1.0.23
+    Checking scoped-tls v1.0.1
+    Checking downcast-rs v1.2.1
+   Compiling quick-xml v0.41.0
+   Compiling synstructure v0.14.0
+    Checking block-buffer v0.10.4
+    Checking crypto-common v0.1.7
+   Compiling wayland-client v0.31.15
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+    Checking itoa v1.0.19
+   Compiling wayland-scanner v0.31.11
+    Checking digest v0.10.7
+   Compiling serde_derive v1.0.229
+    Checking cpufeatures v0.2.17
+    Checking sha2 v0.10.9
+   Compiling zerofrom-derive v0.1.8
+    Checking zerofrom v0.1.8
+   Compiling yoke-derive v0.8.4
+    Checking stable_deref_trait v1.2.1
+   Compiling zerovec-derive v0.11.7
+   Compiling displaydoc v0.2.7
+    Checking yoke v0.8.4
+   Compiling khronos_api v3.1.0
+    Checking polling v3.11.0
+   Compiling bytemuck_derive v1.12.1
+   Compiling cfg_aliases v0.1.1
+    Checking zerovec v0.11.9
+   Compiling zerocopy v0.8.63
+   Compiling xml-rs v0.8.29
+    Checking spacetime-types v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-types)
+    Checking tinystr v0.8.5
+    Checking utf_types v1.0.0
+    Checking litemap v0.8.3
+    Checking bytemuck v1.25.2
+    Checking writeable v0.6.4
+   Compiling getrandom v0.3.4
+   Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
+    Checking icu_locale_core v2.4.0
+   Compiling gl_generator v0.14.0
+    Checking utf8_iter v1.1.0
+    Checking spacetime-ledger v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-ledger)
+    Checking potential_utf v0.1.6
+    Checking zerotrie v0.2.5
+   Compiling syn v2.0.119
+   Compiling ahash v0.8.12
+   Compiling icu_properties_data v2.4.0
+   Compiling parking_lot_core v0.9.12
+   Compiling icu_normalizer_data v2.4.0
+   Compiling rustix v0.38.44
+   Compiling thiserror v1.0.69
+   Compiling autocfg v1.5.1
+    Checking icu_provider v2.4.0
+    Checking icu_collections v2.4.0
+   Compiling x11-dl v2.21.0
+    Checking scopeguard v1.2.0
+    Checking percent-encoding v2.3.2
+    Checking xcursor v0.3.11
+    Checking xkeysym v0.2.1
+    Checking cursor-icon v1.2.0
+    Checking linux-raw-sys v0.4.15
+   Compiling thiserror-impl v1.0.69
+    Checking wayland-csd-frame v0.3.0
+    Checking wayland-cursor v0.31.14
+    Checking lock_api v0.4.14
+    Checking wayland-protocols v0.32.13
+    Checking wayland-protocols v0.31.2
+    Checking memmap2 v0.9.12
+    Checking pin-project-lite v0.2.17
+    Checking tracing-core v0.1.36
+    Checking slab v0.4.12
+    Checking simd-adler32 v0.3.10
+    Checking ttf-parser v0.25.1
+    Checking calloop v0.12.4
+    Checking tracing v0.1.44
+    Checking parking_lot v0.12.5
+    Checking icu_normalizer v2.4.0
+    Checking icu_properties v2.4.0
+    Checking owned_ttf_parser v0.25.1
+    Checking gethostname v1.1.0
+    Checking x11rb-protocol v0.13.2
+    Checking as-raw-xcb-connection v1.0.1
+   Compiling smithay-client-toolkit v0.18.1
+   Compiling crc32fast v1.5.5
+   Compiling thiserror v2.0.21
+    Checking ab_glyph_rasterizer v0.1.10
+    Checking adler2 v2.0.1
+    Checking ab_glyph v0.2.32
+    Checking wayland-protocols-wlr v0.2.0
+    Checking idna_adapter v1.2.2
+    Checking calloop v0.14.5
+    Checking calloop-wayland-source v0.2.0
+    Checking spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
+    Checking spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
+    Checking spacetime-bench v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-bench)
+   Compiling glutin_glx_sys v0.5.0
+   Compiling glutin_egl_sys v0.6.0
+    Checking ecolor v0.27.2
+    Checking emath v0.27.2
+   Compiling winit v0.29.15
+   Compiling thiserror-impl v2.0.21
+    Checking nohash-hasher v0.2.0
+   Compiling smithay-client-toolkit v0.20.0
+    Checking raw-window-handle v0.5.2
+    Checking epaint v0.27.2
+    Checking calloop-wayland-source v0.4.1
+    Checking idna v1.1.0
+    Checking wayland-protocols-misc v0.3.12
+    Checking wayland-protocols-wlr v0.3.12
+    Checking wayland-protocols-experimental v20250721.0.1
+    Checking miniz_oxide v0.9.1
+    Checking wayland-protocols-plasma v0.2.0
+    Checking xkbcommon-dl v0.4.2
+    Checking form_urlencoded v1.2.2
+   Compiling num-traits v0.2.19
+   Compiling memoffset v0.9.1
+   Compiling glutin v0.31.3
+    Checking smol_str v0.2.2
+    Checking raw-window-handle v0.6.2
+    Checking url v2.5.8
+    Checking flate2 v1.1.11
+    Checking egui v0.27.2
+    Checking spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
+    Checking miniz_oxide v0.8.9
+    Checking fdeflate v0.3.7
+   Compiling glutin-winit v0.4.2
+    Checking home v0.5.12
+    Checking bitflags v1.3.2
+    Checking png v0.17.16
+    Checking webbrowser v0.8.15
+    Checking smithay-clipboard v0.7.3
+   Compiling vte_generate_state_changes v0.1.2
+    Checking utf8parse v0.2.2
+   Compiling litrs v1.0.1
+    Checking glow v0.13.1
+    Checking arrayvec v0.7.8
+    Checking byteorder v1.5.0
+    Checking color_quant v1.1.0
+    Checking web-time v0.2.4
+   Compiling document-features v0.2.12
+    Checking image v0.24.9
+    Checking x11rb v0.13.2
+    Checking vte v0.11.1
+    Checking egui_glow v0.27.2
+    Checking unicode-width v0.1.14
+    Checking static_assertions v1.1.0
+    Checking vt100 v0.15.2
+    Checking arboard v3.7.0
+    Checking egui-winit v0.27.2
+    Checking eframe v0.27.2
+    Checking spacetime-gui v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-gui)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 25.30s
+clippy exit: 0
+=== cargo test --workspace ===
+   Compiling cfg-if v1.0.5
+   Compiling log v0.4.35
+   Compiling smallvec v1.16.5
+   Compiling once_cell v1.21.4
+   Compiling bitflags v2.13.2
+   Compiling linux-raw-sys v0.12.1
+   Compiling libloading v0.8.9
+   Compiling typenum v1.20.1
+   Compiling libc v0.2.191
+   Compiling dlib v0.5.3
+   Compiling wayland-sys v0.31.11
+   Compiling downcast-rs v1.2.1
+   Compiling scoped-tls v1.0.1
+   Compiling serde_core v1.0.229
+   Compiling generic-array v0.14.7
+   Compiling itoa v1.0.19
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling zmij v1.0.23
+   Compiling digest v0.10.7
+   Compiling rustix v1.1.6
+   Compiling memchr v2.8.3
+   Compiling cpufeatures v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling zerofrom v0.1.8
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.4
+   Compiling zerovec v0.11.9
+   Compiling bytemuck v1.25.2
+   Compiling utf_types v1.0.0
+   Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
+   Compiling tinystr v0.8.5
+   Compiling litemap v0.8.3
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling writeable v0.6.4
+   Compiling icu_locale_core v2.4.0
+   Compiling potential_utf v0.1.6
+   Compiling spacetime-types v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-types)
+   Compiling utf8_iter v1.1.0
+   Compiling zerotrie v0.2.5
+   Compiling zerocopy v0.8.63
+   Compiling icu_provider v2.4.0
+   Compiling getrandom v0.3.4
+   Compiling icu_collections v2.4.0
+   Compiling wayland-backend v0.3.17
+   Compiling polling v3.11.0
+   Compiling spacetime-ledger v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-ledger)
+   Compiling wayland-client v0.31.15
+   Compiling scopeguard v1.2.0
+   Compiling xcursor v0.3.11
+   Compiling xkeysym v0.2.1
+   Compiling cursor-icon v1.2.0
+   Compiling linux-raw-sys v0.4.15
+   Compiling percent-encoding v2.3.2
+   Compiling rustix v0.38.44
+   Compiling wayland-protocols v0.32.13
+   Compiling ahash v0.8.12
+   Compiling wayland-cursor v0.31.14
+   Compiling wayland-protocols v0.31.2
+   Compiling wayland-csd-frame v0.3.0
+   Compiling lock_api v0.4.14
+   Compiling thiserror v1.0.69
+   Compiling icu_normalizer_data v2.4.0
+   Compiling parking_lot_core v0.9.12
+   Compiling icu_properties_data v2.4.0
+   Compiling memmap2 v0.9.12
+   Compiling slab v0.4.12
+   Compiling simd-adler32 v0.3.10
+   Compiling pin-project-lite v0.2.17
+   Compiling tracing-core v0.1.36
+   Compiling ttf-parser v0.25.1
+   Compiling tracing v0.1.44
+   Compiling calloop v0.12.4
+   Compiling icu_properties v2.4.0
+   Compiling owned_ttf_parser v0.25.1
+   Compiling parking_lot v0.12.5
+   Compiling icu_normalizer v2.4.0
+   Compiling x11-dl v2.21.0
+   Compiling gethostname v1.1.0
+   Compiling adler2 v2.0.1
+   Compiling x11rb-protocol v0.13.2
+   Compiling ab_glyph_rasterizer v0.1.10
+   Compiling as-raw-xcb-connection v1.0.1
+   Compiling ab_glyph v0.2.32
+   Compiling idna_adapter v1.2.2
+   Compiling calloop-wayland-source v0.2.0
+   Compiling wayland-protocols-wlr v0.2.0
+   Compiling calloop v0.14.5
+   Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
+   Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
+   Compiling spacetime-bench v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-bench)
+   Compiling ecolor v0.27.2
+   Compiling emath v0.27.2
+   Compiling nohash-hasher v0.2.0
+   Compiling raw-window-handle v0.5.2
+   Compiling epaint v0.27.2
+   Compiling thiserror v2.0.21
+   Compiling calloop-wayland-source v0.4.1
+   Compiling smithay-client-toolkit v0.18.1
+   Compiling idna v1.1.0
+   Compiling crc32fast v1.5.5
+   Compiling miniz_oxide v0.9.1
+   Compiling wayland-protocols-misc v0.3.12
+   Compiling wayland-protocols-wlr v0.3.12
+   Compiling wayland-protocols-experimental v20250721.0.1
+   Compiling wayland-protocols-plasma v0.2.0
+   Compiling xkbcommon-dl v0.4.2
+   Compiling form_urlencoded v1.2.2
+   Compiling smol_str v0.2.2
+   Compiling raw-window-handle v0.6.2
+   Compiling url v2.5.8
+   Compiling smithay-client-toolkit v0.20.0
+   Compiling flate2 v1.1.11
+   Compiling egui v0.27.2
+   Compiling glutin_glx_sys v0.5.0
+   Compiling glutin_egl_sys v0.6.0
+   Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling home v0.5.12
+   Compiling x11rb v0.13.2
+   Compiling winit v0.29.15
+   Compiling bitflags v1.3.2
+   Compiling png v0.17.16
+   Compiling arboard v3.7.0
+   Compiling webbrowser v0.8.15
+   Compiling glutin v0.31.3
+   Compiling smithay-clipboard v0.7.3
+   Compiling memoffset v0.9.1
+   Compiling num-traits v0.2.19
+   Compiling arrayvec v0.7.8
+   Compiling byteorder v1.5.0
+   Compiling color_quant v1.1.0
+   Compiling glow v0.13.1
+   Compiling web-time v0.2.4
+   Compiling utf8parse v0.2.2
+   Compiling vte v0.11.1
+   Compiling egui-winit v0.27.2
+   Compiling image v0.24.9
+   Compiling glutin-winit v0.4.2
+   Compiling egui_glow v0.27.2
+   Compiling static_assertions v1.1.0
+   Compiling unicode-width v0.1.14
+   Compiling vt100 v0.15.2
+   Compiling eframe v0.27.2
+   Compiling spacetime-gui v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 33.52s
+     Running unittests src/lib.rs (target/debug/build/spacetime-bench/5340a0f0d17b912d/out/spacetime_bench-5340a0f0d17b912d)
+
+running 24 tests
+test econbench::tests::unknown_case_is_rejected ... ok
+test econbench::tests::bounties_manifest_matches_sum_and_verifier_sources ... ok
+test economy::tests::destination_overflow_does_not_debit_source ... ok
+test economy::tests::duplicate_and_unsafe_initial_accounts_are_rejected ... ok
+test economy::tests::exact_balance_transfer_succeeds_and_is_hash_chained ... ok
+test economy::tests::invalid_transfers_are_rejected_without_events ... ok
+test economy::tests::transfer_is_atomic_and_never_allows_a_negative_balance ... ok
+test economy::tests::hash_chain_detects_tampering_and_reordering ... ok
+test economy::tests::transfer_replay_is_idempotent_but_id_reuse_is_rejected ... ok
+test tests::bounded_resource_gate_rejects_oversize_file ... ok
+test tests::intake_marks_unreadable_digest_unavailable ... ok
+test tests::intake_is_bounded_and_shape_pass_is_not_a_measurement ... ok
+test tests::provenance_gate_requires_matching_digest_and_attestation ... ok
+test tests::quote_escapes_toml_basic_strings ... ok
+test tests::resource_gate_fails_over_budget ... ok
+test tests::resource_gate_is_unmeasured_without_measurements ... ok
+test tests::resource_gate_passes_only_with_explicit_target_measurements ... ok
+test tests::resource_gate_rejects_ci_host_and_wrong_profile ... ok
+test tests::resource_gate_rejects_duplicate_metadata_keys ... ok
+test tests::resource_gate_rejects_synthetic_host_label ... ok
+test tests::resource_gate_uses_selected_public_profile_budget ... ok
+test tests::target_profile_registry_has_one_baseline_and_public_profiles ... ok
+test tests::baseline_keeps_performance_claims_unmeasured ... ok
+test econbench::tests::all_twenty_domain_cases_accept_passing_and_reject_planted_bugs ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/build/spacetime-cortex/339fd112ff7b068c/out/spacetime_cortex-339fd112ff7b068c)
+
+running 8 tests
+test population::tests::abc_harness_tracks_unverified_claims_and_keeps_performance_claims_unmeasured ... ok
+test adapters::tests::prompt_envelope_masks_secrets_and_blocks_raw_screenshots ... ok
+test population::tests::population_cycler_enforces_8_to_12_bounds_and_rejects_unverified_batches ... ok
+test tests::parses_block2_expected_verdict ... ok
+test tests::oversized_task_is_rejected_before_reading ... ok
+test tests::parses_block2_metadata_controls ... ok
+test tests::parses_happy_path_fixture ... ok
+test tests::rejects_duplicate_keys_and_non_files ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/build/spacetime-ctl/cec63c2d99ae27fd/out/spacetime_ctl-cec63c2d99ae27fd)
+
+running 52 tests
+test console::tests::console_flags_reject_duplicate_unknown_and_missing_values ... ok
+test dashboard::tests::empty_history_is_clear ... ok
+test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
+test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
+test console::tests::console_report_reads_checked_in_ledger ... ok
+test econbench::tests::bench_run_flags_are_bounded ... ok
+test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
+test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
+test initramfs::tests::archive_headers_describe_bootable_entries ... ok
+test initramfs::tests::optional_app_is_included_and_dynamic_apps_are_rejected ... ok
+test initramfs::tests::parser_requires_unique_flags ... ok
+test initramfs::tests::refuses_to_overwrite_output ... ok
+test initramfs::tests::rejects_dynamic_wrong_arch_and_truncated_images ... ok
+test distill::tests::operator_drift_quarantines_and_skills_require_green_selftest ... ok
+test security::tests::approved_untrusted_spend_consumes_budget_and_longest_secret_redacts_first ... ok
+test security::tests::redteam_suite_blocks_all_ten_adversarial_vectors ... ok
+test space::tests::doctor_rejects_unknown_arguments ... ok
+test space::tests::monitor_sandbox_is_mandatory_and_offline ... ok
+test space::tests::qemu_configuration_is_offline_and_has_no_host_share ... ok
+test space::tests::refuses_non_files ... ok
+test space::tests::requires_explicit_acknowledgement_and_both_images ... ok
+test space::tests::sandboxed_guest_boots_without_network ... ignored, requires QEMU, bubblewrap, user namespaces and CI-supplied guest images
+test taskpack::tests::families_resolve_to_their_pinned_files ... ok
+test taskpack::tests::seeded_signals_cover_every_oracle_surface ... ok
+test taskpack::tests::seeded_sources_stay_minimal ... ok
+test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
+test tests::cli_commands_reject_invalid_inputs ... ok
+test tests::cli_input_validation_rejects_unsafe_ranges ... ok
+test tests::crucible_verify_passes_on_deterministic_fixture ... ok
+test tests::crucible_verify_rejects_expected_verdict_mismatch ... ok
+test tests::crucible_verify_rejects_flaky_fixture ... ok
+test tests::false_claim_does_not_advance_goal ... ok
+test memory::tests::space_supervisor_persists_resumes_and_rebuilds_bm25_memory ... ok
+test tests::flag_rejects_duplicate_and_unsafe_values ... ok
+test tests::happy_path_verifies_and_replays_identically ... ok
+test tests::incomplete_goal_is_not_reported_as_success ... ok
+test tests::machine_gate_never_labels_shape_pass_as_measured ... ok
+test tests::machine_profiles_lists_registry_and_rejects_arguments ... ok
+test tests::non_canonical_ledger_line_is_rejected ... ok
+test tests::optional_flag_rejects_duplicate_unknown_and_unsafe_values ... ok
+test tests::optional_flag_rejects_missing_value ... ok
+test tests::parse_exact_flags_rejects_unknown_duplicate_and_odd_arguments ... ok
+test tests::state_path_preserves_non_utf8_bytes ... ok
+test tests::tamper_and_truncation_are_detected ... ok
+test econbench::tests::econbench_report_runs_twenty_offline_fixtures ... ok
+test tests::timeout_is_a_failure_not_a_pass ... ok
+test workspace::tests::detects_only_actual_shm_tmpfs_mounts ... ok
+test workspace::tests::run_requires_explicit_experimental_and_unique_inputs ... ok
+test workspace::tests::temporary_workspace_removed_on_drop ... ok
+test tests::verifier_panel_resolves_five_sources ... ok
+test tests::adversarial_corpus_has_twenty_spec_only_fixtures ... ok
+test tests::fixture_population_covers_real_fixtures ... ok
+
+test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.83s
+
+     Running unittests src/main.rs (target/debug/build/spacetime-ctl/aa1a470a283a57b2/out/spacetime_ctl-aa1a470a283a57b2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/taskpack.rs (target/debug/build/spacetime-ctl/9c35c6a8ab6ea60d/out/taskpack-9c35c6a8ab6ea60d)
 
 running 7 tests
+test oracles_never_reference_a_candidate ... ok
 test candidates_are_checked_in_without_a_private_abi_copy ... ok
+test seeded_workspaces_are_bounded_and_offline ... ok
+test seeds_cover_every_oracle_signal ... ok
 test differential_corpus_covers_every_function_and_stays_well_formed ... ok
-test every_seeded_bug_is_caught_by_its_own_signal ... assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
+assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
 assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/02_wallet_exact_balance.assembled.rs
+assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
+test reference_solutions_pass_every_check ... ok
 assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/03_wallet_idempotent_replay.assembled.rs
 assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/04_wallet_id_reuse.assembled.rs
 assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/05_wallet_overflow_atomicity.assembled.rs
@@ -103,14 +662,139 @@ assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /home/runner/work/sp
 assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/12_transform_saturating_add.assembled.rs
 assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/13_transform_checked_mul.assembled.rs
 assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/14_transform_parity.assembled.rs
-ok
-test oracles_never_reference_a_candidate ... ok
-test reference_solutions_pass_every_check ... assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
-assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
-ok
-test seeded_workspaces_are_bounded_and_offline ... ok
-test seeds_cover_every_oracle_signal ... ok
+test every_seeded_bug_is_caught_by_its_own_signal ... ok
 
-test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.24s
 
-tests exit: 0
+     Running unittests src/lib.rs (target/debug/build/spacetime-exec/06cf7e117bca4cb5/out/spacetime_exec-06cf7e117bca4cb5)
+
+running 20 tests
+test ark::tests::unknown_repo_always_routes_to_quarantine_and_labels_shared_kernel ... ok
+test ark::tests::ark_broker_rejects_workspace_id_forgery ... ok
+test autopsy::tests::manifest_records_symlink_target_and_detects_target_change ... ok
+test egress::tests::net_none_cell_denies_all_destinations ... ok
+test egress::tests::broker_blocks_host_local_lan_metadata_and_forged_credentials ... ok
+test governor::tests::governor_downgrades_live_damage_and_enforces_single_heavy_surface ... ok
+test autopsy::tests::autopsy_diffs_upperdir_detects_whiteouts_and_deletes_artifacts ... ok
+test governor::tests::governor_kills_runaway_over_budget_and_pauses_only_rendering_on_switch ... ok
+test governor::tests::intent_ribbon_formats_concise_summary ... ok
+test leak_audit::tests::leak_audit_never_claims_zero_traces ... ok
+test tests::capability_allow_list_denies_tampered_actions ... ok
+test tests::determinism_profile_is_fixed_and_recorded ... ok
+test tests::echo_is_deterministic ... ok
+test tests::flaky_action_disagrees_on_two_calls ... ok
+test tests::control_probe_validates_cheap_controls ... ok
+test tests::zero_sleep_completes ... ok
+test wasi::tests::wasi_worker_executes_deterministic_transform_and_denies_undeclared_access ... ok
+test surface::tests::switching_tabs_preserves_background_running_and_masks_cortex_secrets ... ok
+test ark::tests::net_none_probe_never_reaches_host_listener ... ok
+test tests::timeout_is_an_error_not_a_pass ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/main.rs (target/debug/build/spacetime-gui/0118b2f6813cc225/out/spacetime_gui-0118b2f6813cc225)
+
+running 6 tests
+test tests::guest_terminal_escape_sequences_are_not_passed_to_the_host_terminal ... ok
+test tests::input_is_bounded_and_never_waits_for_a_busy_guest ... ok
+test tests::output_reader_forwards_data_and_closes ... ok
+test tests::requires_guest_inputs_before_starting ... ok
+test tests::session_exchanges_input_and_cleans_its_guest_image ... ok
+test tests::mixed_workspace_app_runs_ai_background_masks_secrets_and_queues_blockers ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/debug/build/spacetime-ledger/972d0a07c73381f3/out/spacetime_ledger-972d0a07c73381f3)
+
+running 4 tests
+test tests::head_path_preserves_non_utf8_bytes ... ok
+test tests::head_json_is_canonical ... ok
+test tests::empty_state_serializes_compactly ... ok
+test tests::genesis_is_deterministic ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/build/spacetime-types/33d45c2fbe072b7c/out/spacetime_types-33d45c2fbe072b7c)
+
+running 8 tests
+test tests::preview_mode_is_data_not_a_hardcoded_ui_decision ... ok
+test tests::canonical_json_sorts_object_keys ... ok
+test tests::policy_and_surface_types_enforce_invariants ... ok
+test tests::sha256_known_vectors ... ok
+test tests::verdict_round_trips_through_strings ... ok
+test tests::streaming_sha256_matches_canonical_json_bytes ... ok
+test tests::verifier_source_priority_is_stable ... ok
+test tests::workspace_binding_round_trips_with_stable_ids ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/build/spacetime-verifier/11e28e3143eec30f/out/spacetime_verifier-11e28e3143eec30f)
+
+running 17 tests
+test tests::deterministic_candidate_passes_two_runs ... ok
+test tests::differential_oracle_covers_wraparound_edges_and_mutations ... ok
+test tests::checked_wrappers_reject_invalid_ranges ... ok
+test tests::deterministic_candidate_has_zero_false_pass_leaks ... ok
+test tests::empty_panel_is_unverified ... ok
+test tests::panel_conflict_is_not_promoted ... ok
+test tests::flaky_candidate_is_an_error_not_a_promotion ... ok
+test tests::panel_pass_requires_all_sources ... ok
+test tests::population_report_is_deterministic_and_detects_unstable_operators ... ok
+test tests::population_report_with_zero_runs_accepts_nothing ... ok
+test tests::unstable_operator_is_detected_by_flip_rate ... ok
+test tests::flaky_candidate_has_no_false_pass_leaks ... ok
+test tests::trivial_adversarial_candidate_is_mutation_gated ... ok
+test tests::unverified_source_blocks_promotion ... ok
+test tests::validators_reject_unsafe_cli_inputs ... ok
+test tests::verifier_source_priority_matches_plan ... ok
+test tests::differential_equality_and_mutation_gate_work ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+workspace tests exit: 0
+=== task pack step ===
+assemble syntax: 0
+run syntax: 0
+assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.Rm60trjJN8/assembled.rs
+taskpack: wallet reference passes all 8 checks
+assemble: reference/transform_ref.rs + ABI -> /tmp/tmp.09RFnrPugR/assembled.rs
+taskpack: transform reference matches all 7 corpus functions
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /tmp/tmp.7BPbIcUsUm/assembled.rs
+taskpack: seed 01_wallet_overdraft caught (overdraft_is_rejected)
+assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /tmp/tmp.t4cac04Ugv/assembled.rs
+taskpack: seed 02_wallet_exact_balance caught (exact_balance_is_allowed)
+assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /tmp/tmp.DeJtDfxrs6/assembled.rs
+taskpack: seed 03_wallet_idempotent_replay caught (duplicate_retry_is_idempotent)
+assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /tmp/tmp.zjuO2ItjsO/assembled.rs
+taskpack: seed 04_wallet_id_reuse caught (transfer_id_reuse_is_rejected)
+assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /tmp/tmp.zLpOTN82pd/assembled.rs
+taskpack: seed 05_wallet_overflow_atomicity caught (overflow_is_atomic)
+assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /tmp/tmp.fXsgzYfGFK/assembled.rs
+taskpack: seed 06_wallet_invalid_requests caught (invalid_requests_are_rejected)
+assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /tmp/tmp.2ga3WgUiR7/assembled.rs
+taskpack: seed 07_wallet_tamper_detection caught (tamper_is_detected)
+assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /tmp/tmp.yNAQdBbFN6/assembled.rs
+taskpack: seed 08_transform_bit_reverse caught (bit_reverse)
+assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /tmp/tmp.BuZiX2SAuR/assembled.rs
+taskpack: seed 09_transform_byte_swap caught (byte_swap)
+assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /tmp/tmp.X6StC4XhWr/assembled.rs
+taskpack: seed 10_transform_rotate_left caught (rotate_left)
+assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /tmp/tmp.QFToDmRj9Z/assembled.rs
+taskpack: seed 11_transform_rotate_right caught (rotate_right)
+assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /tmp/tmp.b2aWud149Q/assembled.rs
+taskpack: seed 12_transform_saturating_add caught (saturating_add)
+assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /tmp/tmp.9JrPR1QIWQ/assembled.rs
+taskpack: seed 13_transform_checked_mul caught (checked_mul)
+assemble: seeded/14_transform_parity/func.rs + ABI -> /tmp/tmp.PGjthWq6dE/assembled.rs
+taskpack: seed 14_transform_parity caught (parity)
+taskpack: matrix pass — 2 references and 14 seeded candidates across 8 wallet checks and 7 corpus functions
+matrix exit: 0
+/home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/assemble.sh: 18: Bad substitution
+/home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/assemble.sh: 20: [[: not found
+usage: assemble.sh <source.rs> <destination.rs>
+error: assemble.sh rejected the candidate reference-wallet
+ctl exit: 1
+cat: target/taskpack.json: No such file or directory
+=== end-to-end verification ===
+error: missing flag --out
+verify exit: 1
