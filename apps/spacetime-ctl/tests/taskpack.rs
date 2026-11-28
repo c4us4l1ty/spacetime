@@ -935,7 +935,7 @@ fn grading_shell_folds_grader_stderr_into_the_capture() {
         "run_candidate no longer redirects grader stderr to a file"
     );
     assert!(
-        body.contains("\"[stderr] \""),
+        body.contains("\"[stderr] "),
         "run_candidate no longer folds stderr into the captured output, so a silent grader looks \
          like a wrong answer"
     );
