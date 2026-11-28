@@ -340,7 +340,9 @@ fn every_seeded_bug_is_caught_by_its_own_signal() {
         return;
     }
 
-    let mut corpus_rows = 0u64;
+    // Each transmutation seed owns one corpus function, so summing the row count of every seed's
+    // target counts the whole corpus exactly once.
+    let mut covered_rows = 0u64;
     for (seed, family, source, expectation, why) in SEEDED {
         let candidate = taskpack_dir().join(format!("seeded/{seed}/{source}"));
         assert!(
@@ -395,20 +397,21 @@ fn every_seeded_bug_is_caught_by_its_own_signal() {
                 let (rows, failures) = run.transform[target];
                 assert!(rows > 0, "seed {seed}: {target} had no corpus rows");
                 assert!(failures > 0, "seed {seed}: {target} failed no rows");
+                covered_rows += rows;
                 assert!(
                     run.stdout
                         .contains(&format!("grader failed_functions=1 failed={target}")),
                     "unexpected grader summary for seed {seed}:\n{}",
                     run.stdout
                 );
-                corpus_rows = corpus_rows.max(rows);
+
             }
             other => panic!("unknown expectation kind: {other}"),
         }
     }
     assert!(
-        corpus_rows >= 2_000,
-        "the differential corpus shrank to {corpus_rows} rows per function"
+        covered_rows >= 2_000,
+        "the differential corpus shrank to {covered_rows} rows"
     );
 }
 
