@@ -334,10 +334,13 @@ fn run_grader(binary: &Path, family: Family) -> Result<GraderRun, String> {
     let output = command
         .output()
         .map_err(|error| format!("cannot run the grader: {error}"))?;
-    Ok(parse_grader_run(
-        output.status.success(),
-        String::from_utf8_lossy(&output.stdout).to_string(),
-    ))
+    let mut stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    if stdout.trim().is_empty() {
+        // A grader that exits before printing anything explains itself on stderr.
+        stdout.push_str("[stderr] ");
+        stdout.push_str(&String::from_utf8_lossy(&output.stderr));
+    }
+    Ok(parse_grader_run(output.status.success(), stdout))
 }
 
 #[test]
