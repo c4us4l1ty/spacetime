@@ -892,6 +892,12 @@ fn grading_shell_does_not_pipe_grep_into_pipefail() {
     let script = std::fs::read_to_string(taskpack_dir().join("run.sh"))
         .expect("the grading script must be readable");
     for (index, line) in script.lines().enumerate() {
+        // The comment above the helper quotes the forbidden form to explain why it is forbidden,
+        // so only executable lines can violate it.
+        let code = line.trim_start();
+        if code.starts_with('#') {
+            continue;
+        }
         let verdict_check = line.contains("grep -qx");
         let piped = line.contains("| grep");
         assert!(
@@ -918,13 +924,20 @@ fn grading_shell_does_not_pipe_grep_into_pipefail() {
 fn grading_shell_folds_grader_stderr_into_the_capture() {
     let script = std::fs::read_to_string(taskpack_dir().join("run.sh"))
         .expect("the grading script must be readable");
+    // Both halves must appear in the same `run_candidate` body: a redirect with no fold would
+    // capture the diagnostics and then throw them away, which is the defect this guards.
+    let body = script
+        .split("run_candidate()")
+        .nth(1)
+        .expect("run.sh must still define run_candidate");
     assert!(
-        script.contains("2>\"$diagnostics\""),
-        "run.sh no longer redirects grader stderr to a file"
+        body.contains("2>\"$diagnostics\""),
+        "run_candidate no longer redirects grader stderr to a file"
     );
     assert!(
-        script.contains("\"[stderr] \""),
-        "run.sh no longer marks folded stderr, so a silent grader looks like a wrong answer"
+        body.contains("\"[stderr] \""),
+        "run_candidate no longer folds stderr into the captured output, so a silent grader looks \
+         like a wrong answer"
     );
 }
 
