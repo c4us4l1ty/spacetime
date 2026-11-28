@@ -207,12 +207,26 @@ fn load_recording(text: &str) -> Result<Vec<Trace>, String> {
     let mut outcomes: BTreeMap<String, TraceExpectation> = BTreeMap::new();
 
     for (index, line) in text.lines().enumerate() {
-        let line = line.trim_end();
+        // Only carriage returns are stripped: an operation row ends with an empty third column,
+        // and trimming that tab would turn three columns into two.
+        let line = line.trim_end_matches('\r');
         if line.trim().is_empty() || line.starts_with('#') {
             continue;
         }
-        let (name, column) = split_recording_line(line)
+        let (name, payload) = split_recording_line(line)
             .ok_or_else(|| format!("row {} does not have exactly three columns", index + 1))?;
+        // Column 2 selects the row kind; the payload is column 3.
+        let kind = line
+            .split('\t')
+            .nth(1)
+            .ok_or_else(|| format!("row {} has no kind column", index + 1))?
+            .trim()
+            .to_string();
+        let column = if kind == "result" {
+            format!("result {payload}")
+        } else {
+            kind.clone()
+        };
         if name.is_empty() {
             return Err(format!("row {} has no trace name", index + 1));
         }

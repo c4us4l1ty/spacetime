@@ -99,18 +99,23 @@ pub enum TraceExpectation {
     Final { state: ProtocolState },
 }
 
-/// Split a recording into its operation lines and its single outcome line.
+/// Split one recording row into its trace name and its payload column.
 ///
-/// Blank lines and `#` comments are skipped by the caller. Returns the raw `op` column and the raw
-/// `expect` column so a recording can be rejected before any of it is trusted.
+/// A recording row has three tab-separated columns: `trace`, the operation or `result`, and the
+/// payload. Operation rows leave the payload empty. Blank lines and `#` comments are skipped by the
+/// caller. Anything that is not three columns is rejected here, before any of it is trusted, so a
+/// truncated line cannot silently become an operation.
 pub fn split_recording_line(line: &str) -> Option<(String, String)> {
-    let mut fields = line.split('\t');
-    let op = fields.next()?.trim().to_string();
-    let expect = fields.next()?.trim().to_string();
-    if fields.next().is_some() {
+    let fields: Vec<&str> = line.split('\t').collect();
+    if fields.len() != 3 {
         return None;
     }
-    Some((op, expect))
+    let name = fields[0].trim();
+    let payload = fields[2].trim();
+    if name.is_empty() {
+        return None;
+    }
+    Some((name.to_string(), payload.to_string()))
 }
 
 /// Parse one operation column such as `put 0 alpha`.
