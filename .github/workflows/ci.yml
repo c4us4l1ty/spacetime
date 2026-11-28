@@ -164,7 +164,8 @@ jobs:
           grep -q '"protocol_tasks": 6' target/taskpack.json
           grep -q '"block3_done": false' target/taskpack.json
           # The only graded wallet check with no seed of its own is the constructor.
-          grep -A1 '"wallet_checks_without_a_seed"' target/taskpack.json | grep -q '"constructor_rejections"' 
+          grep -q '"constructor_rejections"' target/taskpack.json
+          grep -q '"wallet_checks_without_a_seed"' target/taskpack.json
           # A seeded candidate must be rejected as malformed if it ships its own ABI copy.
           ! bench/taskpack/assemble.sh bench/taskpack/abi/wallet_abi.rs target/should-not-exist.rs
           ! bench/taskpack/run.sh candidate 99_not_a_seed

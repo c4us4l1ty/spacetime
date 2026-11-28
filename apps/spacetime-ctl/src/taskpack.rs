@@ -215,6 +215,9 @@ fn build_grader(candidate: &Path, family: &str, label: &str) -> Result<PathBuf> 
             "taskpack_grader",
             "-D",
             "warnings",
+            // The workspace forbids unsafe code; the pack build must not be a loophole.
+            "-F",
+            "unsafe_code",
             "-o",
         ])
         .arg(&binary)
@@ -254,6 +257,10 @@ fn run_grader(binary: &Path, family: &str) -> Result<GraderRun> {
         .output()
         .map_err(|error| SpacetimeError::new(format!("cannot run the oracle: {error}")))?;
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let summary_lines = stdout
+        .lines()
+        .filter(|line| line.starts_with("oracle failed_") || line.starts_with("grader failed_"))
+        .count();
     let mut results = Vec::new();
     let mut transform = Vec::new();
     let mut traces = Vec::new();
@@ -280,6 +287,15 @@ fn run_grader(binary: &Path, family: &str) -> Result<GraderRun> {
             }
             _ => {}
         }
+    }
+    // The candidate shares this process's stdout with the oracle. The oracle emits exactly one
+    // summary line, so more than one means the candidate wrote text shaped like a verdict; the
+    // parsed results cannot be trusted and the run is rejected rather than graded.
+    if summary_lines != 1 {
+        return Err(SpacetimeError::new(format!(
+            "the {family} grader emitted {summary_lines} summary lines; the candidate wrote into \
+             the verdict stream:\n{stdout}"
+        )));
     }
     Ok(GraderRun {
         passed: output.status.success(),

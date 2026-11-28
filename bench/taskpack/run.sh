@@ -19,6 +19,18 @@ fail() {
   exit 1
 }
 
+# Match one line of the grader output against an anchored pattern.
+#
+# This must not be `printf ... | grep -qx`: with `set -o pipefail`, `grep -q` exits as soon as it
+# finds a match, the writer then dies of SIGPIPE (141), and pipefail promotes that to a failure --
+# so a *successful* match is reported as a miss. The output is small enough today that the write
+# fits the pipe buffer and the bug is latent, but it would surface the moment the corpus or the
+# recording grew. Here-string form keeps the match on a single command's status.
+matched() {
+  local pattern="$1" text="$2"
+  grep -qx -- "$pattern" <<<"$text"
+}
+
 family_of() {
   case "$1" in
     *wallet*) printf 'wallet' ;;
@@ -99,7 +111,10 @@ build() {
   fi
   cat "$work/assembled.rs" >"$work/crate.rs"
   cat "$(oracle_for "$family")" >>"$work/crate.rs"
-  if ! rustc --edition 2021 --crate-name taskpack_grader -D warnings -o "$out" "$work/crate.rs"; then
+  # `-F unsafe_code` mirrors the workspace lint policy (Cargo.toml `unsafe_code = "forbid"`):
+  # a candidate must be solved in the same language subset the product builds under.
+  if ! rustc --edition 2021 --crate-name taskpack_grader -D warnings -F unsafe_code \
+    -o "$out" "$work/crate.rs"; then
     rm -rf "$work"
     fail "compilation failed for $label"
   fi
@@ -139,8 +154,10 @@ run_reference() {
       printf '%s\n' "$output" >&2
       fail "the wallet reference solution failed the hidden oracle"
     fi
-    printf '%s\n' "$output" | grep -qx 'oracle failed_checks=0 failed=' ||
+    matched 'oracle failed_checks=0 failed=' "$output" ||
       fail "unexpected wallet oracle summary for the reference solution"
+    [[ "$(printf '%s\n' "$output" | grep -c '^check ' || true)" -eq "$(wallet_checks | wc -l)" ]] ||
+      fail "the wallet reference wrote its own verdict lines"
     printf 'taskpack: wallet reference passes all %s checks\n' "$(wallet_checks | wc -l)"
   fi
   if [[ -z "$family" || "$family" == "protocol" ]]; then
@@ -152,8 +169,17 @@ run_reference() {
       printf '%s\n' "$output" >&2
       fail "the protocol reference disagreed with the captured trace recording"
     fi
-    printf '%s\n' "$output" | grep -qx 'oracle failed_traces=0 failed=' ||
+    matched 'oracle failed_traces=0 failed=' "$output" ||
       fail "unexpected protocol oracle summary for the reference solution"
+    # The reference shares the oracle's stdout too: it must not have written a verdict of its own.
+    local reference_traces reference_lines reference_summaries
+    reference_traces="$(protocol_traces | wc -l)"
+    reference_lines="$(printf '%s\n' "$output" | grep -c '^trace ' || true)"
+    reference_summaries="$(printf '%s\n' "$output" | grep -c '^oracle failed_traces=' || true)"
+    if [[ "$reference_lines" -ne "$reference_traces" || "$reference_summaries" -ne 1 ]]; then
+      printf '%s\n' "$output" >&2
+      fail "the protocol reference wrote its own verdict: expected $reference_traces trace lines and one summary, got $reference_lines and $reference_summaries"
+    fi
     printf 'taskpack: protocol reference matches all %s captured traces\n' \
       "$(protocol_traces | wc -l)"
   fi
@@ -166,8 +192,10 @@ run_reference() {
       printf '%s\n' "$output" >&2
       fail "the transform reference solution disagreed with the differential corpus"
     fi
-    printf '%s\n' "$output" | grep -qx 'grader failed_functions=0 failed=' ||
+    matched 'grader failed_functions=0 failed=' "$output" ||
       fail "unexpected transform grader summary for the reference solution"
+    [[ "$(printf '%s\n' "$output" | grep -c '^function ' || true)" -eq "$(transform_functions | wc -l)" ]] ||
+      fail "the transform reference wrote its own verdict lines"
     printf 'taskpack: transform reference matches all %s corpus functions\n' \
       "$(transform_functions | wc -l)"
   fi
@@ -195,11 +223,19 @@ run_candidate() {
 
   local output=""
   local status=0
+  local diagnostics
+  diagnostics="$(mktemp)"
   case "$family" in
-    transform) output="$("$binary" "$TASKPACK_DIR/corpus/transmutation.tsv")" || status=$? ;;
-    protocol) output="$("$binary" "$TASKPACK_DIR/corpus/protocol_traces.tsv")" || status=$? ;;
-    *) output="$("$binary")" || status=$? ;;
+    transform) output="$("$binary" "$TASKPACK_DIR/corpus/transmutation.tsv" 2>"$diagnostics")" || status=$? ;;
+    protocol) output="$("$binary" "$TASKPACK_DIR/corpus/protocol_traces.tsv" 2>"$diagnostics")" || status=$? ;;
+    *) output="$("$binary" 2>"$diagnostics")" || status=$? ;;
   esac
+  # A grader that exits before printing a verdict explains itself on stderr. Without this, a
+  # recording the oracle rejected looks identical to a candidate that failed the wrong check.
+  if [[ -z "${output//[[:space:]]/}" && -s "$diagnostics" ]]; then
+    output="[stderr] $(cat "$diagnostics")"
+  fi
+  rm -f "$diagnostics"
   [[ "$status" -ne 0 ]] || {
     printf '%s\n' "$output" >&2
     fail "seed $seed passed the oracle; the planted bug escaped"
@@ -208,21 +244,21 @@ run_candidate() {
   local target="${expectation#*:}"
   case "${expectation%%:*}" in
     check)
-      printf '%s\n' "$output" | grep -qx "check $target fail.*" || {
+      matched "check $target fail.*" "$output" || {
         printf '%s\n' "$output" >&2
         fail "seed $seed failed the wrong check; expected $target"
       }
-      printf '%s\n' "$output" | grep -qx 'oracle failed_checks=1 failed=.*' || {
+      matched 'oracle failed_checks=1 failed=.*' "$output" || {
         printf '%s\n' "$output" >&2
         fail "seed $seed failed more checks than its single planted bug explains"
       }
       ;;
     function)
-      printf '%s\n' "$output" | grep -qx "function $target rows=[0-9]* failures=[1-9][0-9]* .*" || {
+      matched "function $target rows=[0-9]* failures=[1-9][0-9]* .*" "$output" || {
         printf '%s\n' "$output" >&2
         fail "seed $seed did not fail the $target corpus rows"
       }
-      printf '%s\n' "$output" | grep -qx "grader failed_functions=1 failed=$target" || {
+      matched "grader failed_functions=1 failed=$target" "$output" || {
         printf '%s\n' "$output" >&2
         fail "seed $seed broke a function other than $target"
       }
@@ -230,20 +266,57 @@ run_candidate() {
     traces)
       # The pinned value is the exact set of traces the planted bug must break. It is written
       # here, never derived from the run, so a candidate cannot narrow its own failure set.
-      local expected_failed sorted expected
+      local expected_failed sorted
       expected_failed="$target"
       sorted="$(printf '%s' "$expected_failed" | tr ',' '\n' | sort | paste -sd, -)"
-      printf '%s\n' "$output" | grep -qx "oracle failed_traces=[0-9][0-9]* failed=$sorted" || {
+      matched "oracle failed_traces=[0-9][0-9]* failed=$sorted" "$output" || {
         printf '%s\n' "$output" >&2
         fail "seed $seed did not fail exactly the pinned trace set: $sorted"
       }
       local trace
       for trace in $(printf '%s' "$expected_failed" | tr ',' ' '); do
-        printf '%s\n' "$output" | grep -qx "trace $trace fail op=[-0-9]* .*" || {
+        matched "trace $trace fail op=[-0-9]* .*" "$output" || {
           printf '%s\n' "$output" >&2
           fail "seed $seed did not report $trace as failing"
         }
       done
+      ;;
+  esac
+
+  # The candidate shares this process's stdout with the oracle, so it can print text shaped like
+  # a verdict, and `matched` would accept a forged line the candidate never earned. The oracle
+  # prints exactly one `trace <name>` line per recorded trace and exactly one summary line, so any
+  # surplus is candidate output impersonating the grader -- reject the whole run.
+  case "$family" in
+    protocol)
+      local recorded_traces verdict_lines summary_lines
+      recorded_traces="$(protocol_traces | wc -l)"
+      verdict_lines="$(printf '%s\n' "$output" | grep -c '^trace ' || true)"
+      summary_lines="$(printf '%s\n' "$output" | grep -c '^oracle failed_traces=' || true)"
+      if [[ "$verdict_lines" -ne "$recorded_traces" || "$summary_lines" -ne 1 ]]; then
+        printf '%s\n' "$output" >&2
+        fail "seed $seed forged its verdict: expected $recorded_traces trace lines and one summary, got $verdict_lines and $summary_lines"
+      fi
+      ;;
+    wallet)
+      local recorded_checks check_lines check_summaries
+      recorded_checks="$(wallet_checks | wc -l)"
+      check_lines="$(printf '%s\n' "$output" | grep -c '^check ' || true)"
+      check_summaries="$(printf '%s\n' "$output" | grep -c '^oracle failed_checks=' || true)"
+      if [[ "$check_lines" -ne "$recorded_checks" || "$check_summaries" -ne 1 ]]; then
+        printf '%s\n' "$output" >&2
+        fail "seed $seed forged its verdict: expected $recorded_checks check lines and one summary, got $check_lines and $check_summaries"
+      fi
+      ;;
+    transform)
+      local recorded_functions function_lines function_summaries
+      recorded_functions="$(transform_functions | wc -l)"
+      function_lines="$(printf '%s\n' "$output" | grep -c '^function ' || true)"
+      function_summaries="$(printf '%s\n' "$output" | grep -c '^grader failed_functions=' || true)"
+      if [[ "$function_lines" -ne "$recorded_functions" || "$function_summaries" -ne 1 ]]; then
+        printf '%s\n' "$output" >&2
+        fail "seed $seed forged its verdict: expected $recorded_functions function lines and one summary, got $function_lines and $function_summaries"
+      fi
       ;;
   esac
   printf 'taskpack: seed %s caught (%s)\n' "$seed" "$target"

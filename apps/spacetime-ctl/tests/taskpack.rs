@@ -275,6 +275,13 @@ fn build_grader(candidate: &Path, family: Family, label: &str) -> Result<PathBuf
 
 struct GraderRun {
     passed: bool,
+    /// How many `<kind> <name> ...` verdict lines the grader actually emitted, per kind.
+    ///
+    /// The candidate runs in the same process as the oracle and shares its stdout, so a candidate
+    /// that prints a line shaped like a verdict can satisfy a naive per-line check without earning
+    /// it. Counting lines lets a caller require exactly the number the oracle owes.
+    verdict_lines: usize,
+    summary_lines: usize,
     wallet: BTreeMap<String, bool>,
     transform: BTreeMap<String, (u64, u64)>,
     /// `trace <name> pass|fail ...` from the protocol oracle.
@@ -283,18 +290,25 @@ struct GraderRun {
 }
 
 fn parse_grader_run(passed: bool, stdout: String) -> GraderRun {
+    let mut verdict_lines = 0;
+    let mut summary_lines = 0;
     let mut wallet = BTreeMap::new();
     let mut transform = BTreeMap::new();
     let mut traces = BTreeMap::new();
     for line in stdout.lines() {
         let fields: Vec<&str> = line.split(' ').collect();
+        if line.starts_with("oracle failed_") || line.starts_with("grader failed_") {
+            summary_lines += 1;
+        }
         match fields.as_slice() {
             ["check", name, verdict, ..] => {
+                verdict_lines += 1;
                 wallet.insert((*name).to_string(), verdict.starts_with("pass"));
             }
             // `grader failed_functions=1 failed=...` also starts with a bare word; only a
             // `function <name> rows=... failures=...` line has a name without an `=`.
             ["function", name, rows, failures, ..] if !name.contains('=') => {
+                verdict_lines += 1;
                 let rows = rows
                     .strip_prefix("rows=")
                     .and_then(|value| value.parse().ok())
@@ -306,6 +320,7 @@ fn parse_grader_run(passed: bool, stdout: String) -> GraderRun {
                 transform.insert((*name).to_string(), (rows, failures));
             }
             ["trace", name, verdict, ..] => {
+                verdict_lines += 1;
                 traces.insert((*name).to_string(), verdict.starts_with("pass"));
             }
             _ => {}
@@ -313,6 +328,8 @@ fn parse_grader_run(passed: bool, stdout: String) -> GraderRun {
     }
     GraderRun {
         passed,
+        verdict_lines,
+        summary_lines,
         wallet,
         transform,
         traces,
@@ -372,6 +389,22 @@ fn reference_solutions_pass_every_check() {
         );
     }
     assert!(wallet_run.stdout.contains("oracle failed_checks=0 failed="));
+    // The candidate shares the oracle's stdout, so the run must contain exactly the lines the
+    // oracle itself owes: one per check and one summary. Anything else was written by the
+    // candidate and could have satisfied a verdict check it never earned.
+    assert_eq!(
+        wallet_run.verdict_lines,
+        WALLET_CHECKS.len(),
+        "the wallet grader emitted {} verdict lines for {} checks:\n{}",
+        wallet_run.verdict_lines,
+        WALLET_CHECKS.len(),
+        wallet_run.stdout
+    );
+    assert_eq!(
+        wallet_run.summary_lines, 1,
+        "the wallet grader must emit exactly one summary line:\n{}",
+        wallet_run.stdout
+    );
 
     let transform = build_grader(
         &taskpack_dir().join("reference/transform_ref.rs"),
@@ -387,6 +420,19 @@ fn reference_solutions_pass_every_check() {
         transform_run.stdout
     );
     assert_eq!(transform_run.transform.len(), TRANSFORM_FUNCTIONS.len());
+    assert_eq!(
+        transform_run.verdict_lines,
+        TRANSFORM_FUNCTIONS.len(),
+        "the transform grader emitted {} verdict lines for {} functions:\n{}",
+        transform_run.verdict_lines,
+        TRANSFORM_FUNCTIONS.len(),
+        transform_run.stdout
+    );
+    assert_eq!(
+        transform_run.summary_lines, 1,
+        "the transform grader must emit exactly one summary line:\n{}",
+        transform_run.stdout
+    );
     for (function, (rows, failures)) in &transform_run.transform {
         assert!(*rows > 0, "{function} had no corpus rows");
         assert_eq!(
@@ -412,6 +458,19 @@ fn reference_solutions_pass_every_check() {
     assert!(
         !protocol_run.traces.is_empty(),
         "the protocol recording contained no traces"
+    );
+    assert_eq!(
+        protocol_run.verdict_lines,
+        protocol_run.traces.len(),
+        "the protocol grader emitted {} verdict lines for {} traces:\n{}",
+        protocol_run.verdict_lines,
+        protocol_run.traces.len(),
+        protocol_run.stdout
+    );
+    assert_eq!(
+        protocol_run.summary_lines, 1,
+        "the protocol grader must emit exactly one summary line:\n{}",
+        protocol_run.stdout
     );
     for (trace, passed) in &protocol_run.traces {
         assert!(
@@ -819,4 +878,77 @@ fn protocol_recording_is_well_formed() {
             "trace {name} has operations but no recorded outcome"
         );
     }
+}
+
+/// The grading shell must not route its verdict checks through a pipeline.
+///
+/// `run.sh` runs under `set -euo pipefail`. `printf ... | grep -qx` looks harmless, but `grep -q`
+/// exits as soon as it matches, the writer then dies of `SIGPIPE` (141), and `pipefail` promotes
+/// that to the command's status — so a *successful* match is reported as a miss. The oracle output
+/// is small enough today that the write fits the pipe buffer and the flaw stays latent, which is
+/// exactly why it needs a regression test rather than an incident.
+#[test]
+fn grading_shell_does_not_pipe_grep_into_pipefail() {
+    let script = std::fs::read_to_string(taskpack_dir().join("run.sh"))
+        .expect("the grading script must be readable");
+    for (index, line) in script.lines().enumerate() {
+        let verdict_check = line.contains("grep -qx");
+        let piped = line.contains("| grep");
+        assert!(
+            !(verdict_check && piped),
+            "run.sh:{} feeds a verdict check through a pipeline; under `set -o pipefail` a \
+             successful `grep -q` can be reported as a miss when the writer is killed by SIGPIPE: \
+             {line}",
+            index + 1
+        );
+    }
+    // The helper that replaced the pipelines must actually be defined and used.
+    assert!(
+        script.contains("matched() {"),
+        "run.sh no longer defines the SIGPIPE-safe `matched` helper"
+    );
+}
+
+/// A grader's stderr must survive into the graded output.
+///
+/// `output="$(...)"` captures stdout only. An oracle that rejects a malformed recording exits
+/// before printing any verdict, so without folding stderr in, "the recording is malformed" and
+/// "the candidate failed the wrong check" produce the same empty string.
+#[test]
+fn grading_shell_folds_grader_stderr_into_the_capture() {
+    let script = std::fs::read_to_string(taskpack_dir().join("run.sh"))
+        .expect("the grading script must be readable");
+    assert!(
+        script.contains("2>\"$diagnostics\""),
+        "run.sh no longer redirects grader stderr to a file"
+    );
+    assert!(
+        script.contains("\"[stderr] \""),
+        "run.sh no longer marks folded stderr, so a silent grader looks like a wrong answer"
+    );
+}
+
+/// A candidate shares the grader's stdout, so it can print text shaped like a verdict.
+///
+/// `run.sh` decides each pin with `grep -qx`, which accepts *any* matching line. A candidate that
+/// cannot fail the pinned traces can still print `trace <name> fail ...` lines for them and a
+/// summary naming exactly that set, and satisfy every pin without earning one. The oracle emits
+/// exactly one `trace` line per recorded trace and exactly one summary, so surplus lines are
+/// candidate impersonation and the whole run must be rejected rather than graded.
+#[test]
+fn grading_shell_detects_a_forged_protocol_verdict() {
+    let script = std::fs::read_to_string(taskpack_dir().join("run.sh"))
+        .expect("the grading script must be readable");
+    assert!(
+        script.contains("forged its verdict"),
+        "run.sh no longer rejects a protocol run that wrote its own verdict lines"
+    );
+    assert!(
+        script.contains("grep -c '^trace '"),
+        "run.sh no longer counts trace verdict lines against the recording"
+    );
+    assert!(
+        script.contains("grep -c '^oracle failed_traces='"),
+        "run.sh no longer requires exactly one oracle summary line"
+    );
 }
