@@ -1,176 +1,79 @@
 === run.sh matrix ===
-assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.rJLbjOyo9s/assembled.rs
-error[E0631]: type mismatch in function arguments
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:214:26
-    |
- 69 |     pub fn as_str(&self) -> &'static str {
-    |     ------------------------------------ found signature defined here
-...
-214 |         error: error.map(WalletError::as_str),
-    |                      --- ^^^^^^^^^^^^^^^^^^^ expected due to this
-    |                      |
-    |                      required by a bound introduced by this call
-    |
-    = note: expected function signature `fn(WalletError) -> _`
-               found function signature `fn(&WalletError) -> _`
-note: required by a bound in `Option::<T>::map`
-   --> /rustc/20ddd01716a87c0fcf06ae4752d85a4abc15bcdf/library/core/src/option.rs:1160:4
-help: consider wrapping the function in a closure
-    |
-214 |         error: error.map(|arg0: WalletError| WalletError::as_str(&arg0)),
-    |                          +++++++++++++++++++                    +++++++
-help: consider adjusting the signature so it does not borrow its argument
-    |
- 69 -     pub fn as_str(&self) -> &'static str {
- 69 +     pub fn as_str(self) -> &'static str {
-    |
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:444:9
-    |
-444 |         format!("a clean chain observed as {observation:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:474:9
-    |
-474 |         format!("spending the whole balance returned {outcome:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:490:9
-    |
-490 |         format!("an overdraft returned {outcome:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:501:9
-    |
-501 |         format!("an underfunded transfer returned {underfunded:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:511:9
-    |
-511 |         format!("the first transfer returned {first:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:516:9
-    |
-516 |         format!("the identical retry returned {retry:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:523:9
-    |
-523 | /         format!(
-524 | |             "the duplicate retry appended {} event(s)",
-525 | |             wallet.events().len()
-526 | |         ),
-    | |_________^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:537:9
-    |
-537 |         format!("the first transfer returned {first:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:543:9
-    |
-543 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:548:9
-    |
-548 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:565:9
-    |
-565 |         format!("a destination overflow returned {outcome:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:589:51
-    |
-589 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
-    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:592:9
-    |
-592 |         format!("a self transfer returned {self_transfer:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:596:9
-    |
-596 |         format!("an unknown destination returned {missing:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:600:9
-    |
-600 |         format!("an empty transfer ID returned {empty_id:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /tmp/tmp.rJLbjOyo9s/crate.rs:604:9
-    |
-604 |         format!("an oversize transfer ID returned {long_id:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error: aborting due to 17 previous errors
-
-Some errors have detailed explanations: E0308, E0631.
-For more information about an error, try `rustc --explain E0308`.
-taskpack: compilation failed for the wallet reference
-matrix exit: 1
+assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.jE6zWi7234/assembled.rs
+taskpack: wallet reference passes all 8 checks
+assemble: reference/transform_ref.rs + ABI -> /tmp/tmp.iqly58tZQe/assembled.rs
+taskpack: transform reference matches all 7 corpus functions
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /tmp/tmp.kznd7JsJhW/assembled.rs
+taskpack: seed 01_wallet_overdraft caught (overdraft_is_rejected)
+assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /tmp/tmp.OJ8f0NrXNS/assembled.rs
+taskpack: seed 02_wallet_exact_balance caught (exact_balance_is_allowed)
+assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /tmp/tmp.wsccWmCHxz/assembled.rs
+taskpack: seed 03_wallet_idempotent_replay caught (duplicate_retry_is_idempotent)
+assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /tmp/tmp.qJU2VrCO8O/assembled.rs
+taskpack: seed 04_wallet_id_reuse caught (transfer_id_reuse_is_rejected)
+assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /tmp/tmp.shbjpCcjOh/assembled.rs
+taskpack: seed 05_wallet_overflow_atomicity caught (overflow_is_atomic)
+assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /tmp/tmp.rtuy3MoB1Q/assembled.rs
+taskpack: seed 06_wallet_invalid_requests caught (invalid_requests_are_rejected)
+assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /tmp/tmp.H0o4otW3zw/assembled.rs
+taskpack: seed 07_wallet_tamper_detection caught (tamper_is_detected)
+assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /tmp/tmp.JbBypwV0Dq/assembled.rs
+taskpack: seed 08_transform_bit_reverse caught (bit_reverse)
+assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /tmp/tmp.0QcHPpWWCG/assembled.rs
+taskpack: seed 09_transform_byte_swap caught (byte_swap)
+assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /tmp/tmp.FmWTbmnjRU/assembled.rs
+taskpack: seed 10_transform_rotate_left caught (rotate_left)
+assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /tmp/tmp.y1w0mzPfkY/assembled.rs
+taskpack: seed 11_transform_rotate_right caught (rotate_right)
+assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /tmp/tmp.6N2vat5pHu/assembled.rs
+taskpack: seed 12_transform_saturating_add caught (saturating_add)
+assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /tmp/tmp.c7XC8DlfzM/assembled.rs
+taskpack: seed 13_transform_checked_mul caught (checked_mul)
+assemble: seeded/14_transform_parity/func.rs + ABI -> /tmp/tmp.o894FakWit/assembled.rs
+taskpack: seed 14_transform_parity caught (parity)
+taskpack: matrix pass — 2 references and 14 seeded candidates across 8 wallet checks and 7 corpus functions
+matrix exit: 0
 === cargo test --test taskpack ===
 [1m[92m    Updating[0m crates.io index
 [1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m quote v1.0.47
 [1m[92m  Downloaded[0m block-buffer v0.10.4
 [1m[92m  Downloaded[0m cfg-if v1.0.5
 [1m[92m  Downloaded[0m digest v0.10.7
-[1m[92m  Downloaded[0m crypto-common v0.1.7
-[1m[92m  Downloaded[0m cpufeatures v0.2.17
-[1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m generic-array v0.14.7
-[1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m quote v1.0.47
-[1m[92m  Downloaded[0m sha2 v0.10.9
 [1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m crypto-common v0.1.7
+[1m[92m  Downloaded[0m serde v1.0.229
+[1m[92m  Downloaded[0m sha2 v0.10.9
 [1m[92m  Downloaded[0m unicode-ident v1.0.27
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m zmij v1.0.23
+[1m[92m  Downloaded[0m itoa v1.0.19
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m cpufeatures v0.2.17
+[1m[92m  Downloaded[0m generic-array v0.14.7
+[1m[92m  Downloaded[0m serde_derive v1.0.229
+[1m[92m  Downloaded[0m serde_json v1.0.154
 [1m[92m  Downloaded[0m typenum v1.20.1
 [1m[92m  Downloaded[0m memchr v2.8.3
-[1m[92m  Downloaded[0m serde v1.0.229
-[1m[92m  Downloaded[0m serde_json v1.0.154
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
 [1m[92m  Downloaded[0m syn v3.0.10
 [1m[92m   Compiling[0m version_check v0.9.5
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
 [1m[92m   Compiling[0m quote v1.0.47
 [1m[92m   Compiling[0m unicode-ident v1.0.27
 [1m[92m   Compiling[0m typenum v1.20.1
-[1m[92m   Compiling[0m generic-array v0.14.7
 [1m[92m   Compiling[0m serde_core v1.0.229
+[1m[92m   Compiling[0m generic-array v0.14.7
 [1m[92m   Compiling[0m zmij v1.0.23
 [1m[92m   Compiling[0m serde v1.0.229
 [1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m syn v3.0.10
-[1m[92m   Compiling[0m cpufeatures v0.2.17
 [1m[92m   Compiling[0m itoa v1.0.19
 [1m[92m   Compiling[0m block-buffer v0.10.4
 [1m[92m   Compiling[0m crypto-common v0.1.7
+[1m[92m   Compiling[0m cpufeatures v0.2.17
 [1m[92m   Compiling[0m digest v0.10.7
-[1m[92m   Compiling[0m memchr v2.8.3
 [1m[92m   Compiling[0m cfg-if v1.0.5
+[1m[92m   Compiling[0m memchr v2.8.3
 [1m[92m   Compiling[0m sha2 v0.10.9
 [1m[92m   Compiling[0m spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
 [1m[92m   Compiling[0m serde_derive v1.0.229
@@ -180,153 +83,35 @@ matrix exit: 1
 [1m[92m   Compiling[0m spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
 [1m[92m   Compiling[0m spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
 [1m[92m   Compiling[0m spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 7.57s
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 9.37s
 [1m[92m     Running[0m tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
 
 running 7 tests
 test candidates_are_checked_in_without_a_private_abi_copy ... ok
 test differential_corpus_covers_every_function_and_stays_well_formed ... ok
 test every_seeded_bug_is_caught_by_its_own_signal ... assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
+assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/02_wallet_exact_balance.assembled.rs
+assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/03_wallet_idempotent_replay.assembled.rs
+assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/04_wallet_id_reuse.assembled.rs
+assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/05_wallet_overflow_atomicity.assembled.rs
+assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/06_wallet_invalid_requests.assembled.rs
+assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/07_wallet_tamper_detection.assembled.rs
+assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/08_transform_bit_reverse.assembled.rs
+assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/09_transform_byte_swap.assembled.rs
+assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/10_transform_rotate_left.assembled.rs
+assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/11_transform_rotate_right.assembled.rs
+assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/12_transform_saturating_add.assembled.rs
+assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/13_transform_checked_mul.assembled.rs
+assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/14_transform_parity.assembled.rs
 
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (2828) panicked at apps/spacetime-ctl/tests/taskpack.rs:351:37:
-seed 01_wallet_overdraft must still compile: rustc rejected 01_wallet_overdraft:
-error[E0631]: type mismatch in function arguments
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:214:26
-    |
- 69 |     pub fn as_str(&self) -> &'static str {
-    |     ------------------------------------ found signature defined here
-...
-214 |         error: error.map(WalletError::as_str),
-    |                      --- ^^^^^^^^^^^^^^^^^^^ expected due to this
-    |                      |
-    |                      required by a bound introduced by this call
-    |
-    = note: expected function signature `fn(WalletError) -> _`
-               found function signature `fn(&WalletError) -> _`
-note: required by a bound in `Option::<T>::map`
-   --> /rustc/20ddd01716a87c0fcf06ae4752d85a4abc15bcdf/library/core/src/option.rs:1160:4
-help: consider wrapping the function in a closure
-    |
-214 |         error: error.map(|arg0: WalletError| WalletError::as_str(&arg0)),
-    |                          +++++++++++++++++++                    +++++++
-help: consider adjusting the signature so it does not borrow its argument
-    |
- 69 -     pub fn as_str(&self) -> &'static str {
- 69 +     pub fn as_str(self) -> &'static str {
-    |
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:448:9
-    |
-448 |         format!("a clean chain observed as {observation:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:478:9
-    |
-478 |         format!("spending the whole balance returned {outcome:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:494:9
-    |
-494 |         format!("an overdraft returned {outcome:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:505:9
-    |
-505 |         format!("an underfunded transfer returned {underfunded:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:515:9
-    |
-515 |         format!("the first transfer returned {first:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:520:9
-    |
-520 |         format!("the identical retry returned {retry:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:527:9
-    |
-527 | /         format!(
-528 | |             "the duplicate retry appended {} event(s)",
-529 | |             wallet.events().len()
-530 | |         ),
-    | |_________^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:541:9
-    |
-541 |         format!("the first transfer returned {first:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:547:9
-    |
-547 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:552:9
-    |
-552 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:569:9
-    |
-569 |         format!("a destination overflow returned {outcome:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:593:51
-    |
-593 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
-    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:596:9
-    |
-596 |         format!("a self transfer returned {self_transfer:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:600:9
-    |
-600 |         format!("an unknown destination returned {missing:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:604:9
-    |
-604 |         format!("an empty transfer ID returned {empty_id:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error[E0308]: mismatched types
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:608:9
-    |
-608 |         format!("an oversize transfer ID returned {long_id:?}"),
-    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
-
-error: aborting due to 17 previous errors
-
-Some errors have detailed explanations: E0308, E0631.
-For more information about an error, try `rustc --explain E0308`.
-
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (4001) panicked at apps/spacetime-ctl/tests/taskpack.rs:409:5:
+the differential corpus shrank to 488 rows per function
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 FAILED
 test oracles_never_reference_a_candidate ... ok
 test reference_solutions_pass_every_check ... assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
-
-thread 'reference_solutions_pass_every_check' (2861) panicked at apps/spacetime-ctl/tests/taskpack.rs:294:6:
-the wallet reference must assemble and compile: "rustc rejected reference-wallet:\nerror[E0631]: type mismatch in function arguments\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:214:26\n    |\n 69 |     pub fn as_str(&self) -> &'static str {\n    |     ------------------------------------ found signature defined here\n...\n214 |         error: error.map(WalletError::as_str),\n    |                      --- ^^^^^^^^^^^^^^^^^^^ expected due to this\n    |                      |\n    |                      required by a bound introduced by this call\n    |\n    = note: expected function signature `fn(WalletError) -> _`\n               found function signature `fn(&WalletError) -> _`\nnote: required by a bound in `Option::<T>::map`\n   --> /rustc/20ddd01716a87c0fcf06ae4752d85a4abc15bcdf/library/core/src/option.rs:1160:4\nhelp: consider wrapping the function in a closure\n    |\n214 |         error: error.map(|arg0: WalletError| WalletError::as_str(&arg0)),\n    |                          +++++++++++++++++++                    +++++++\nhelp: consider adjusting the signature so it does not borrow its argument\n    |\n 69 -     pub fn as_str(&self) -> &'static str {\n 69 +     pub fn as_str(self) -> &'static str {\n    |\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:445:9\n    |\n445 |         format!(\"a clean chain observed as {observation:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:475:9\n    |\n475 |         format!(\"spending the whole balance returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:491:9\n    |\n491 |         format!(\"an overdraft returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:502:9\n    |\n502 |         format!(\"an underfunded transfer returned {underfunded:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:512:9\n    |\n512 |         format!(\"the first transfer returned {first:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:517:9\n    |\n517 |         format!(\"the identical retry returned {retry:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:524:9\n    |\n524 | /         format!(\n525 | |             \"the duplicate retry appended {} event(s)\",\n526 | |             wallet.events().len()\n527 | |         ),\n    | |_________^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:538:9\n    |\n538 |         format!(\"the first transfer returned {first:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:544:9\n    |\n544 |         format!(\"reusing an ID with a new amount returned {changed_amount:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:549:9\n    |\n549 |         format!(\"reusing an ID with a new destination returned {changed_destination:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:566:9\n    |\n566 |         format!(\"a destination overflow returned {outcome:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:590:51\n    |\n590 |     require(zero == Err(WalletError::ZeroAmount), format!(\"a zero transfer returned {zero:?}\"))?;\n    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:593:9\n    |\n593 |         format!(\"a self transfer returned {self_transfer:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:597:9\n    |\n597 |         format!(\"an unknown destination returned {missing:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:601:9\n    |\n601 |         format!(\"an empty transfer ID returned {empty_id:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror[E0308]: mismatched types\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:605:9\n    |\n605 |         format!(\"an oversize transfer ID returned {long_id:?}\"),\n    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`\n\nerror: aborting due to 17 previous errors\n\nSome errors have detailed explanations: E0308, E0631.\nFor more information about an error, try `rustc --explain E0308`.\n"
-FAILED
+assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
+ok
 test seeded_workspaces_are_bounded_and_offline ... ok
 test seeds_cover_every_oracle_signal ... ok
 
@@ -334,9 +119,8 @@ failures:
 
 failures:
     every_seeded_bug_is_caught_by_its_own_signal
-    reference_solutions_pass_every_check
 
-test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.97s
 
 [1m[91merror[0m: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
 tests exit: 101
