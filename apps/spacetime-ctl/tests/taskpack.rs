@@ -417,7 +417,9 @@ fn reference_solutions_pass_every_check() {
             protocol_run.stdout
         );
     }
-    assert!(protocol_run.stdout.contains("oracle failed_traces=0 failed="));
+    assert!(protocol_run
+        .stdout
+        .contains("oracle failed_traces=0 failed="));
 }
 
 #[test]
@@ -541,11 +543,17 @@ fn seeds_cover_every_oracle_signal() {
                 wallet_covered.insert(target);
             }
             Family::Transform => {
-                assert_eq!(kind, "function", "transmutation seeds are graded per function");
+                assert_eq!(
+                    kind, "function",
+                    "transmutation seeds are graded per function"
+                );
                 transform_covered.insert(target);
             }
             Family::Protocol => {
-                assert_eq!(kind, "traces", "protocol seeds are graded by a pinned trace set");
+                assert_eq!(
+                    kind, "traces",
+                    "protocol seeds are graded by a pinned trace set"
+                );
                 protocol_seeds += 1;
                 for trace in target.split(',') {
                     // A trace claimed by two seeds would make "this seed failed because of its

@@ -81,20 +81,32 @@ pub(crate) const SEEDED: [(&str, &str, &str); 20] = [
         "function:checked_mul",
     ),
     ("14_transform_parity", "func.rs", "function:parity"),
-    ("15_protocol_double_begin", "protocol.rs", "traces:begin_after_abort"),
+    (
+        "15_protocol_double_begin",
+        "protocol.rs",
+        "traces:begin_after_abort",
+    ),
     (
         "16_protocol_commit_leaves_open",
         "protocol.rs",
         "traces:empty_transaction,long_value,read_twice,\
 sequence_zero_is_first,three_records,two_records",
     ),
-    ("17_protocol_abort_keeps_records", "protocol.rs", "traces:abort_discards"),
+    (
+        "17_protocol_abort_keeps_records",
+        "protocol.rs",
+        "traces:abort_discards",
+    ),
     (
         "18_protocol_sequence_unchecked",
         "protocol.rs",
         "traces:duplicate_sequence,gap_sequence,sequence_gap_after_two",
     ),
-    ("19_protocol_read_early", "protocol.rs", "traces:read_before_commit"),
+    (
+        "19_protocol_read_early",
+        "protocol.rs",
+        "traces:read_before_commit",
+    ),
     (
         "20_protocol_abort_without_transaction",
         "protocol.rs",
