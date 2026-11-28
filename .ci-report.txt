@@ -1,44 +1,44 @@
 === cargo test -p spacetime-ctl ===
     Updating crates.io index
  Downloading crates ...
-  Downloaded serde v1.0.229
-  Downloaded cpufeatures v0.2.17
-  Downloaded crypto-common v0.1.7
-  Downloaded cfg-if v1.0.5
-  Downloaded block-buffer v0.10.4
-  Downloaded itoa v1.0.19
-  Downloaded generic-array v0.14.7
-  Downloaded version_check v0.9.5
-  Downloaded digest v0.10.7
-  Downloaded quote v1.0.47
-  Downloaded zmij v1.0.23
-  Downloaded sha2 v0.10.9
-  Downloaded unicode-ident v1.0.27
   Downloaded serde_core v1.0.229
-  Downloaded serde_derive v1.0.229
-  Downloaded memchr v2.8.3
+  Downloaded crypto-common v0.1.7
+  Downloaded block-buffer v0.10.4
+  Downloaded digest v0.10.7
+  Downloaded cfg-if v1.0.5
   Downloaded proc-macro2 v1.0.107
-  Downloaded typenum v1.20.1
+  Downloaded zmij v1.0.23
+  Downloaded itoa v1.0.19
+  Downloaded serde_derive v1.0.229
   Downloaded serde_json v1.0.154
+  Downloaded generic-array v0.14.7
+  Downloaded quote v1.0.47
+  Downloaded version_check v0.9.5
+  Downloaded unicode-ident v1.0.27
+  Downloaded typenum v1.20.1
+  Downloaded memchr v2.8.3
+  Downloaded cpufeatures v0.2.17
   Downloaded syn v3.0.10
+  Downloaded serde v1.0.229
+  Downloaded sha2 v0.10.9
    Compiling version_check v0.9.5
    Compiling proc-macro2 v1.0.107
-   Compiling unicode-ident v1.0.27
    Compiling quote v1.0.47
    Compiling typenum v1.20.1
-   Compiling serde_core v1.0.229
    Compiling generic-array v0.14.7
+   Compiling unicode-ident v1.0.27
+   Compiling serde_core v1.0.229
    Compiling zmij v1.0.23
-   Compiling serde v1.0.229
    Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
    Compiling syn v3.0.10
-   Compiling cpufeatures v0.2.17
-   Compiling itoa v1.0.19
    Compiling block-buffer v0.10.4
    Compiling crypto-common v0.1.7
    Compiling digest v0.10.7
-   Compiling cfg-if v1.0.5
    Compiling memchr v2.8.3
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling itoa v1.0.19
    Compiling sha2 v0.10.9
    Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
    Compiling serde_derive v1.0.229
@@ -48,17 +48,17 @@
    Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
    Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
    Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.06s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.73s
      Running unittests src/lib.rs (target/debug/build/spacetime-ctl/c13b477211acb967/out/spacetime_ctl-c13b477211acb967)
 
 running 52 tests
 test console::tests::console_flags_reject_duplicate_unknown_and_missing_values ... ok
 test dashboard::tests::empty_history_is_clear ... ok
 test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
+test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
 test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
 test console::tests::console_report_reads_checked_in_ledger ... ok
 test econbench::tests::bench_run_flags_are_bounded ... ok
-test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
 test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
 test initramfs::tests::archive_headers_describe_bootable_entries ... ok
 test initramfs::tests::optional_app_is_included_and_dynamic_apps_are_rejected ... ok
@@ -75,8 +75,8 @@ test space::tests::refuses_non_files ... ok
 test space::tests::requires_explicit_acknowledgement_and_both_images ... ok
 test space::tests::sandboxed_guest_boots_without_network ... ignored, requires QEMU, bubblewrap, user namespaces and CI-supplied guest images
 test taskpack::tests::families_resolve_to_their_pinned_files ... ok
-test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
 test taskpack::tests::seeded_signals_cover_every_oracle_surface ... ok
+test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
 test taskpack::tests::seeded_sources_stay_minimal ... ok
 test tests::cli_commands_reject_invalid_inputs ... ok
 test tests::cli_input_validation_rejects_unsafe_ranges ... ok
@@ -105,7 +105,7 @@ test tests::verifier_panel_resolves_five_sources ... ok
 test tests::adversarial_corpus_has_twenty_spec_only_fixtures ... ok
 test tests::fixture_population_covers_real_fixtures ... ok
 
-test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.91s
+test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.88s
 
      Running unittests src/main.rs (target/debug/build/spacetime-ctl/efb0edb5051ff77e/out/spacetime_ctl-efb0edb5051ff77e)
 
@@ -147,36 +147,25 @@ failures:
 
 ---- reference_solutions_pass_every_check stdout ----
 
-thread 'reference_solutions_pass_every_check' (3112) panicked at apps/spacetime-ctl/tests/taskpack.rs:401:6:
-the protocol reference must assemble and compile: "rustc rejected reference-protocol:\nerror: field `raw_ops` is never read\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:297:5\n    |\n292 | struct Trace {\n    |        ----- field in this struct\n...\n297 |     raw_ops: Vec<String>,\n    |     ^^^^^^^\n    |\n    = note: `-D dead-code` implied by `-D warnings`\n    = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`\n\nerror: aborting due to 1 previous error\n\n"
+thread 'reference_solutions_pass_every_check' (3291) panicked at apps/spacetime-ctl/tests/taskpack.rs:404:5:
+the protocol reference disagreed with the recording:
+
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- every_seeded_bug_is_caught_by_its_own_signal stdout ----
 
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (3108) panicked at apps/spacetime-ctl/tests/taskpack.rs:442:37:
-seed 15_protocol_double_begin must still compile: rustc rejected 15_protocol_double_begin:
-error: field `raw_ops` is never read
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:266:5
-    |
-261 | struct Trace {
-    |        ----- field in this struct
-...
-266 |     raw_ops: Vec<String>,
-    |     ^^^^^^^
-    |
-    = note: `-D dead-code` implied by `-D warnings`
-    = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (3287) panicked at apps/spacetime-ctl/tests/taskpack.rs:507:17:
+assertion `left == right` failed: seed 15_protocol_double_begin (`begin` is accepted without checking that a transaction already ended) should fail exactly its pinned traces:
 
-error: aborting due to 1 previous error
-
-
+  left: []
+ right: ["begin_after_abort"]
 
 
 failures:
     every_seeded_bug_is_caught_by_its_own_signal
     reference_solutions_pass_every_check
 
-test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.32s
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.93s
 
 error: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
 exit: 101
