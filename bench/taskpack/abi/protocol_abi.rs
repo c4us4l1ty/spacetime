@@ -11,22 +11,30 @@
 //
 // ## Required candidate surface
 //
-// A candidate `protocol` module must expose exactly these items:
+// A candidate `protocol` module must expose exactly this item:
 //
 // ```text
-// pub struct ProtocolState {
-//     pub began: bool,
-//     pub committed: bool,
-//     pub aborted: bool,
-//     pub records: Vec<String>,
-//     pub reads: u64,
-// }
-//
 // pub fn replay(operations: &[ProtocolOp]) -> Result<ProtocolState, ProtocolError>
 // ```
 //
-// `ProtocolState` must also derive `Debug`, `Clone`, `PartialEq` and `Eq`: the grader compares a
-// replayed state with a state parsed from the trace recording using those traits.
+// `ProtocolState` is pinned here rather than by the candidate, because the grader parses a state
+// out of the recording and compares it with the replayed one. Pinning it also stops a candidate
+// from widening the state so that a wrong replay still compares equal.
+
+/// The state a replayed trace reaches. Pinned, not candidate-defined.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProtocolState {
+    /// A transaction is open.
+    pub begun: bool,
+    /// A transaction has committed.
+    pub committed: bool,
+    /// A transaction has aborted.
+    pub aborted: bool,
+    /// Records appended by the open or committed transaction, in sequence order.
+    pub records: Vec<String>,
+    /// How many committed reads the trace performed.
+    pub reads: u64,
+}
 
 /// One protocol operation, exactly as captured in a trace recording.
 #[derive(Debug, Clone, PartialEq, Eq)]

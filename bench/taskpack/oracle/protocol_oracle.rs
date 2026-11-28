@@ -237,28 +237,6 @@ fn load_recording(text: &str) -> Result<Vec<Trace>, String> {
     Ok(traces)
 }
 
-/// Split one recording row into `(trace name, payload)`.
-///
-/// Operation rows are `trace <TAB> op <TAB>` and outcome rows are
-/// `trace <TAB> result <TAB> error <TAB> op=<n> error=<name>` or
-/// `trace <TAB> result <TAB> state <TAB> begun=...`. Everything after the second column is joined
-/// back into one payload, so a malformed row cannot be silently truncated.
-fn split_recording_line(line: &str) -> Option<(String, String)> {
-    let mut fields = line.split('\t');
-    let name = fields.next()?.trim().to_string();
-    let kind = fields.next()?.trim().to_string();
-    let rest: Vec<&str> = fields.map(str::trim).filter(|part| !part.is_empty()).collect();
-    if kind.is_empty() {
-        return None;
-    }
-    let payload = if rest.is_empty() {
-        kind
-    } else {
-        format!("{kind} {}", rest.join(" "))
-    };
-    Some((name, payload))
-}
-
 fn parse_outcome(column: &str) -> Option<TraceExpectation> {
     let payload = column.strip_prefix("result ")?;
     if let Some(error) = payload.strip_prefix("error ") {
