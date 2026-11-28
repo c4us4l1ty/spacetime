@@ -82,43 +82,6 @@ impl WalletError {
     }
 }
 
-/// One request the independent oracle can issue against a candidate wallet.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum WalletOp {
-    Transfer {
-        transfer_id: String,
-        from: String,
-        to: String,
-        amount: u64,
-    },
-    /// Transfer once, then repeat the identical request under the same transfer ID.
-    TransferTwice {
-        transfer_id: String,
-        from: String,
-        to: String,
-        amount: u64,
-    },
-    /// Transfer once, then reuse the same transfer ID with a different amount.
-    TransferThenReuse {
-        transfer_id: String,
-        from: String,
-        to: String,
-        amount: u64,
-        reuse_amount: u64,
-    },
-    /// Transfer once, then repeat it to a different destination under the same transfer ID.
-    TransferThenReroute {
-        transfer_id: String,
-        from: String,
-        to: String,
-        amount: u64,
-        other_to: String,
-    },
-    /// Rewrite the hash of the last recorded event, then re-verify the chain. The last event has no
-    /// successor, so only hash recomputation inside `verify_events` can detect this.
-    TamperLastEvent,
-}
-
 /// Normalized, comparable observation after one operation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WalletObservation {

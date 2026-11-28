@@ -203,7 +203,15 @@ fn build_grader(candidate: &Path, family: Family, label: &str) -> Result<PathBuf
     std::fs::write(&crate_path, source).map_err(|error| error.to_string())?;
     let binary = dir.join(format!("{label}.grader"));
     let output = Command::new("rustc")
-        .args(["--edition", "2021", "-D", "warnings", "-o"])
+        .args([
+            "--edition",
+            "2021",
+            "--crate-name",
+            "taskpack_grader",
+            "-D",
+            "warnings",
+            "-o",
+        ])
         .arg(&binary)
         .arg(&crate_path)
         .output()

@@ -1,11 +1,11 @@
-//! SEEDED CANDIDATE — planted bug `bit-reverse-63-steps`.
-//!
-//! The reversal runs 63 steps instead of 64, so every result is missing the value's final bit
-//! and is off by a factor of two from the correct reversal.
-//!
-//! Do not "fix" this file before running the grader: the seeded state is the point. The
-//! candidate compiles against the pinned transform ABI, so the defect only shows up when the
-//! differential corpus is replayed.
+// SEEDED CANDIDATE — planted bug `bit-reverse-63-steps`.
+//
+// The reversal runs 63 steps instead of 64, so every result is missing the value's final bit
+// and is off by a factor of two from the correct reversal.
+//
+// Do not "fix" this file before running the grader: the seeded state is the point. The
+// candidate compiles against the pinned transform ABI, so the defect only shows up when the
+// differential corpus is replayed.
 
 pub fn bit_reverse(value: u64) -> u64 {
     // Planted bug: 63 steps instead of 64, so the last bit is never folded in.

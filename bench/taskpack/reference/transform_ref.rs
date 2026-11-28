@@ -1,7 +1,7 @@
-//! Reference solution for the Block 3 integer-transmutation tasks.
-//!
-//! Written independently of the corpus: the implementations below are structural (bit loops,
-//! widen-then-narrow arithmetic), not copied from any expected value.
+// Reference solution for the Block 3 integer-transmutation tasks.
+//
+// Written independently of the corpus: the implementations below are structural (bit loops,
+// widen-then-narrow arithmetic), not copied from any expected value.
 
 pub fn bit_reverse(value: u64) -> u64 {
     let mut result = 0_u64;

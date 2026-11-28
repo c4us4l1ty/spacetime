@@ -1,7 +1,7 @@
-//! Reference fake-credit wallet for the Block 3 EconBench task pack.
-//!
-//! This is the post-fix solution. It implements the ABI specification exactly, is written without
-//! relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.
+// Reference fake-credit wallet for the Block 3 EconBench task pack.
+//
+// This is the post-fix solution. It implements the ABI specification exactly, is written without
+// relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.
 
 pub mod wallet {
     pub struct Wallet {

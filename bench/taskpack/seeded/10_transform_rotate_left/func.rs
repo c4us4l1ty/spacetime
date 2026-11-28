@@ -1,11 +1,11 @@
-//! SEEDED CANDIDATE — planted bug `rotate-left-modulo-32`.
-//!
-//! The rotation amount is reduced modulo 32 instead of 64, so half of the declared rotation
-//! amounts are applied incorrectly.
-//!
-//! Do not "fix" this file before running the grader: the seeded state is the point. The
-//! candidate compiles against the pinned transform ABI, so the defect only shows up when the
-//! differential corpus is replayed.
+// SEEDED CANDIDATE — planted bug `rotate-left-modulo-32`.
+//
+// The rotation amount is reduced modulo 32 instead of 64, so half of the declared rotation
+// amounts are applied incorrectly.
+//
+// Do not "fix" this file before running the grader: the seeded state is the point. The
+// candidate compiles against the pinned transform ABI, so the defect only shows up when the
+// differential corpus is replayed.
 
 pub fn bit_reverse(value: u64) -> u64 {
     let mut result = 0_u64;

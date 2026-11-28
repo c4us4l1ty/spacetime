@@ -1,16 +1,16 @@
-//! Hidden differential grader for the Block 3 integer-transmutation tasks.
-//!
-//! The expectation is never derived from the candidate. It comes exclusively from
-//! `bench/taskpack/corpus/transmutation.tsv`, whose 2,498 expected values were computed with
-//! Python's arbitrary-precision integers. `run.sh` passes the corpus path as `argv[1]` so the
-//! concatenated crate needs no `include_str!`.
-//!
-//! Output per function, then a summary:
-//!
-//! ```text
-//! function <name> rows=<n> failures=<m> first=<detail or ->
-//! grader failed_functions=<n> failed=<comma-separated names>
-//! ```
+// Hidden differential grader for the Block 3 integer-transmutation tasks.
+//
+// The expectation is never derived from the candidate. It comes exclusively from
+// `bench/taskpack/corpus/transmutation.tsv`, whose 2,498 expected values were computed with
+// Python's arbitrary-precision integers. `run.sh` passes the corpus path as `argv[1]` so the
+// concatenated crate needs no `include_str!`.
+//
+// Output per function, then a summary:
+//
+// ```text
+// function <name> rows=<n> failures=<m> first=<detail or ->
+// grader failed_functions=<n> failed=<comma-separated names>
+// ```
 
 use std::collections::BTreeMap;
 

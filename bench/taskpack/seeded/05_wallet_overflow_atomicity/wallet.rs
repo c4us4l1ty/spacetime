@@ -1,9 +1,9 @@
-//! SEEDED CANDIDATE — planted bug `debit-before-overflow-check`.
-//!
-//! Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
-//! compiles and its public surface matches the pinned ABI, so the defect only shows up under the
-//! hidden oracle. This one is a non-atomicity bug: the source is debited before the destination
-//! overflow is checked, so a rejected request still leaves state behind.
+// SEEDED CANDIDATE — planted bug `debit-before-overflow-check`.
+//
+// Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
+// compiles and its public surface matches the pinned ABI, so the defect only shows up under the
+// hidden oracle. This one is a non-atomicity bug: the source is debited before the destination
+// overflow is checked, so a rejected request still leaves state behind.
 
 pub mod wallet {
     pub struct Wallet {

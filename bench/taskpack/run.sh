@@ -89,7 +89,7 @@ build() {
   fi
   cat "$work/assembled.rs" >"$work/crate.rs"
   cat "$(oracle_for "$family")" >>"$work/crate.rs"
-  if ! rustc --edition 2021 -D warnings -o "$out" "$work/crate.rs"; then
+  if ! rustc --edition 2021 --crate-name taskpack_grader -D warnings -o "$out" "$work/crate.rs"; then
     rm -rf "$work"
     fail "compilation failed for $label"
   fi

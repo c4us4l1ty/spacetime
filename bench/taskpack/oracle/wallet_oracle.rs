@@ -1,19 +1,19 @@
-//! Hidden independent oracle for the Block 3 fake-credit wallet task family.
-//!
-//! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
-//! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
-//! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
-//! cannot influence the expectation it is graded against.
-//!
-//! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
-//! another. Output is machine-readable:
-//!
-//! ```text
-//! check <name> pass|fail <detail>
-//! oracle failed_checks=<n> failed=<comma-separated names>
-//! ```
-//!
-//! Exit status is zero only when every check passes.
+// Hidden independent oracle for the Block 3 fake-credit wallet task family.
+//
+// This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+// pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+// drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+// cannot influence the expectation it is graded against.
+//
+// Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+// another. Output is machine-readable:
+//
+// ```text
+// check <name> pass|fail <detail>
+// oracle failed_checks=<n> failed=<comma-separated names>
+// ```
+//
+// Exit status is zero only when every check passes.
 
 use crate::wallet::Wallet;
 use std::panic::{catch_unwind, AssertUnwindSafe};

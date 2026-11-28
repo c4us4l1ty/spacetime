@@ -1,8 +1,8 @@
-//! SEEDED CANDIDATE — planted bug `verify-events-never-checks-hash`.
-//!
-//! Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
-//! compiles and its public surface matches the pinned ABI, so the defect only shows up under the
-//! hidden oracle. `tamper_event_hash` behaves correctly here; only chain validation is too weak.
+// SEEDED CANDIDATE — planted bug `verify-events-never-checks-hash`.
+//
+// Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
+// compiles and its public surface matches the pinned ABI, so the defect only shows up under the
+// hidden oracle. `tamper_event_hash` behaves correctly here; only chain validation is too weak.
 
 pub mod wallet {
     pub struct Wallet {

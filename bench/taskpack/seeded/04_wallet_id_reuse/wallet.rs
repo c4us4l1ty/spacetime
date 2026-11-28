@@ -1,8 +1,8 @@
-//! SEEDED CANDIDATE — planted bug `reuse-check-accepts-any-known-id`.
-//!
-//! Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
-//! compiles and its public surface matches the pinned ABI, so the defect only shows up under the
-//! hidden oracle.
+// SEEDED CANDIDATE — planted bug `reuse-check-accepts-any-known-id`.
+//
+// Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
+// compiles and its public surface matches the pinned ABI, so the defect only shows up under the
+// hidden oracle.
 
 pub mod wallet {
     pub struct Wallet {
