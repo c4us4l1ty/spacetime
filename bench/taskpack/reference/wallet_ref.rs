@@ -4,6 +4,16 @@
 // relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.
 
 pub mod wallet {
+    use crate::{
+        event_mix,
+        make_event,
+        recomputed_event_hash,
+        validate_identifier,
+        CandidateEvent,
+        TransferOutcome,
+        WalletError,
+        GENESIS_HASH,
+    };
     pub struct Wallet {
         balances: Vec<(String, u64)>,
         applied: Vec<(String, u64)>,

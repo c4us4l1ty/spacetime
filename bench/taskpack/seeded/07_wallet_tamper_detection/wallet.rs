@@ -5,6 +5,15 @@
 // hidden oracle. `tamper_event_hash` behaves correctly here; only chain validation is too weak.
 
 pub mod wallet {
+    use crate::{
+        event_mix,
+        make_event,
+        validate_identifier,
+        CandidateEvent,
+        TransferOutcome,
+        WalletError,
+        GENESIS_HASH,
+    };
     pub struct Wallet {
         balances: Vec<(String, u64)>,
         applied: Vec<(String, u64)>,
