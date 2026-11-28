@@ -24,9 +24,20 @@ TASKPACK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source_path="$1"
 destination_path="$2"
 
-# Accept both an absolute path and a path relative to the task pack.
-if [[ ! -f "$source_path" ]]; then
+# Accept both an absolute path and a path relative to the task pack. Callers may reach this
+# script through a path containing `..` (Cargo test binaries run from the manifest directory), so
+# resolve to a canonical absolute path before matching the layouts below.
+if [[ -f "$source_path" ]]; then
+  source_path="$(cd "$(dirname "$source_path")" && pwd -P)/$(basename "$source_path")"
+else
   source_path="$TASKPACK_DIR/$source_path"
+fi
+
+if [[ -f "$source_path" ]]; then
+  resolved_dir="$(cd "$(dirname "$source_path")" && pwd -P)"
+  case "$resolved_dir" in
+    "$TASKPACK_DIR"/*) source_path="$TASKPACK_DIR/${resolved_dir#"$TASKPACK_DIR"/}/$(basename "$source_path")" ;;
+  esac
 fi
 
 [[ -f "$source_path" ]] || {

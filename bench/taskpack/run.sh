@@ -83,7 +83,7 @@ build() {
   local work
   work="$(mktemp -d)"
   # assemble.sh owns the ABI-prepending and the structural checks on a candidate source.
-  if ! sh "$TASKPACK_DIR/assemble.sh" "$source" "$work/assembled.rs"; then
+  if ! bash "$TASKPACK_DIR/assemble.sh" "$source" "$work/assembled.rs"; then
     rm -rf "$work"
     fail "assemble.sh rejected $label"
   fi
