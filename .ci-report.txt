@@ -1,32 +1,713 @@
 === run.sh matrix ===
-/home/runner/work/spacetime/spacetime/bench/taskpack/assemble.sh: 18: Bad substitution
-/home/runner/work/spacetime/spacetime/bench/taskpack/assemble.sh: 20: [[: not found
-usage: assemble.sh <source.rs> <destination.rs>
-taskpack: assemble.sh rejected the wallet reference
+assemble: reference/wallet_ref.rs + ABI -> /tmp/tmp.xDKOR6z4RV/assembled.rs
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:255:1
+    |
+255 | //! Reference fake-credit wallet for the Block 3 EconBench task pack.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+255 - //! Reference fake-credit wallet for the Block 3 EconBench task pack.
+255 + // Reference fake-credit wallet for the Block 3 EconBench task pack.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:256:1
+    |
+256 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+256 - //!
+256 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:257:1
+    |
+257 | //! This is the post-fix solution. It implements the ABI specification exactly, is written without
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+257 - //! This is the post-fix solution. It implements the ABI specification exactly, is written without
+257 + // This is the post-fix solution. It implements the ABI specification exactly, is written without
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:258:1
+    |
+258 |   //! relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+259 |
+260 | / pub mod wallet {
+261 | |     pub struct Wallet {
+262 | |         balances: Vec<(String, u64)>,
+263 | |         applied: Vec<(String, u64)>,
+...   |
+399 | | }
+    | |_- the inner doc comment doesn't annotate this module
+    |
+help: to annotate the module, change the doc comment from inner to outer style
+    |
+258 - //! relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.
+258 + /// relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:400:1
+    |
+400 | //! Hidden independent oracle for the Block 3 fake-credit wallet task family.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+400 - //! Hidden independent oracle for the Block 3 fake-credit wallet task family.
+400 + // Hidden independent oracle for the Block 3 fake-credit wallet task family.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:401:1
+    |
+401 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+401 - //!
+401 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:402:1
+    |
+402 | //! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+402 - //! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+402 + // This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:403:1
+    |
+403 | //! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+403 - //! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+403 + // pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:404:1
+    |
+404 | //! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+404 - //! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+404 + // drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:405:1
+    |
+405 | //! cannot influence the expectation it is graded against.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+405 - //! cannot influence the expectation it is graded against.
+405 + // cannot influence the expectation it is graded against.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:406:1
+    |
+406 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+406 - //!
+406 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:407:1
+    |
+407 | //! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+407 - //! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+407 + // Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:408:1
+    |
+408 | //! another. Output is machine-readable:
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+408 - //! another. Output is machine-readable:
+408 + // another. Output is machine-readable:
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:409:1
+    |
+409 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+409 - //!
+409 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:410:1
+    |
+410 | //! ```text
+    | ^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+410 - //! ```text
+410 + // ```text
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:411:1
+    |
+411 | //! check <name> pass|fail <detail>
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+411 - //! check <name> pass|fail <detail>
+411 + // check <name> pass|fail <detail>
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:412:1
+    |
+412 | //! oracle failed_checks=<n> failed=<comma-separated names>
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+412 - //! oracle failed_checks=<n> failed=<comma-separated names>
+412 + // oracle failed_checks=<n> failed=<comma-separated names>
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:413:1
+    |
+413 | //! ```
+    | ^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+413 - //! ```
+413 + // ```
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:414:1
+    |
+414 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+414 - //!
+414 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:415:1
+    |
+415 | //! Exit status is zero only when every check passes.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+416 |
+417 | use crate::wallet::Wallet;
+    | -------------------------- the inner doc comment doesn't annotate this `use` import
+    |
+help: to annotate the `use` import, change the doc comment from inner to outer style
+    |
+415 - //! Exit status is zero only when every check passes.
+415 + /// Exit status is zero only when every check passes.
+    |
+
+error[E0425]: cannot find type `CandidateEvent` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:264:21
+    |
+264 |         events: Vec<CandidateEvent>,
+    |                     ^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+261 +     use crate::CandidateEvent;
+    |
+
+error[E0425]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:268:64
+    |
+268 |         pub fn new(accounts: &[(&str, u64)]) -> Result<Wallet, WalletError> {
+    |                                                                ^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0425]: cannot find function `validate_identifier` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:271:17
+    |
+271 |                 validate_identifier(account)?;
+    |                 ^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::validate_identifier;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:273:32
+    |
+273 |                     return Err(WalletError::DuplicateAccount);
+    |                                ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:278:28
+    |
+278 |                 return Err(WalletError::TooFewAccounts);
+    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0425]: cannot find type `TransferOutcome` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:300:21
+    |
+300 |         ) -> Result<TransferOutcome, WalletError> {
+    |                     ^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this enum
+    |
+261 +     use crate::TransferOutcome;
+    |
+
+error[E0425]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:300:38
+    |
+300 |         ) -> Result<TransferOutcome, WalletError> {
+    |                                      ^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0425]: cannot find function `validate_identifier` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:301:13
+    |
+301 |             validate_identifier(transfer_id)?;
+    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::validate_identifier;
+    |
+
+error[E0425]: cannot find function `validate_identifier` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:302:13
+    |
+302 |             validate_identifier(from)?;
+    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::validate_identifier;
+    |
+
+error[E0425]: cannot find function `validate_identifier` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:303:13
+    |
+303 |             validate_identifier(to)?;
+    |             ^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::validate_identifier;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:305:28
+    |
+305 |                 return Err(WalletError::SameAccount);
+    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:308:28
+    |
+308 |                 return Err(WalletError::ZeroAmount);
+    |                            ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0425]: cannot find function `event_mix` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:311:34
+    |
+311 |             let arguments_hash = event_mix(0, transfer_id, from, to, amount, 0);
+    |                                  ^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::event_mix;
+    |
+
+error[E0433]: cannot find type `TransferOutcome` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:319:24
+    |
+319 |                     Ok(TransferOutcome::Duplicate)
+    |                        ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::TransferOutcome;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:321:25
+    |
+321 |                     Err(WalletError::TransferIdReuse)
+    |                         ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:325:51
+    |
+325 |             let source = self.balance(from).ok_or(WalletError::MissingAccount)?;
+    |                                                   ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:326:54
+    |
+326 |             let destination = self.balance(to).ok_or(WalletError::MissingAccount)?;
+    |                                                      ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:327:64
+    |
+327 |             let next_source = source.checked_sub(amount).ok_or(WalletError::Overdraft)?;
+    |                                                                ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0433]: cannot find type `WalletError` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:330:24
+    |
+330 |                 .ok_or(WalletError::DestinationOverflow)?;
+    |                        ^^^^^^^^^^^ use of undeclared type `WalletError`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::WalletError;
+    |
+
+error[E0425]: cannot find value `GENESIS_HASH` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:338:28
+    |
+338 |                 .unwrap_or(GENESIS_HASH);
+    |                            ^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this constant
+    |
+261 +     use crate::GENESIS_HASH;
+    |
+
+error[E0425]: cannot find function `make_event` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:342:30
+    |
+342 |             self.events.push(make_event(
+    |                              ^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::make_event;
+    |
+
+error[E0433]: cannot find type `TransferOutcome` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:350:16
+    |
+350 |             Ok(TransferOutcome::Applied)
+    |                ^^^^^^^^^^^^^^^ use of undeclared type `TransferOutcome`
+    |
+help: consider importing this enum
+    |
+261 +     use crate::TransferOutcome;
+    |
+
+error[E0425]: cannot find type `CandidateEvent` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:365:35
+    |
+365 |         pub fn events(&self) -> &[CandidateEvent] {
+    |                                   ^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+261 +     use crate::CandidateEvent;
+    |
+
+error[E0425]: cannot find type `CandidateEvent` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:379:40
+    |
+379 |         pub fn verify_events(events: &[CandidateEvent]) -> bool {
+    |                                        ^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+261 +     use crate::CandidateEvent;
+    |
+
+error[E0425]: cannot find value `GENESIS_HASH` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:380:37
+    |
+380 |             let mut previous_hash = GENESIS_HASH;
+    |                                     ^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this constant
+    |
+261 +     use crate::GENESIS_HASH;
+    |
+
+error[E0425]: cannot find function `recomputed_event_hash` in this scope
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:389:23
+    |
+389 |                 match recomputed_event_hash(events, index) {
+    |                       ^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+    |
+help: consider importing this function
+    |
+261 +     use crate::recomputed_event_hash;
+    |
+
+error[E0631]: type mismatch in function arguments
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:251:26
+    |
+ 69 |     pub fn as_str(&self) -> &'static str {
+    |     ------------------------------------ found signature defined here
+...
+251 |         error: error.map(WalletError::as_str),
+    |                      --- ^^^^^^^^^^^^^^^^^^^ expected due to this
+    |                      |
+    |                      required by a bound introduced by this call
+    |
+    = note: expected function signature `fn(WalletError) -> _`
+               found function signature `fn(&WalletError) -> _`
+note: required by a bound in `Option::<T>::map`
+   --> /rustc/20ddd01716a87c0fcf06ae4752d85a4abc15bcdf/library/core/src/option.rs:1160:4
+help: consider wrapping the function in a closure
+    |
+251 |         error: error.map(|arg0: WalletError| WalletError::as_str(&arg0)),
+    |                          +++++++++++++++++++                    +++++++
+help: consider adjusting the signature so it does not borrow its argument
+    |
+ 69 -     pub fn as_str(&self) -> &'static str {
+ 69 +     pub fn as_str(self) -> &'static str {
+    |
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:471:9
+    |
+471 |         format!("a clean chain observed as {observation:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:501:9
+    |
+501 |         format!("spending the whole balance returned {outcome:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:517:9
+    |
+517 |         format!("an overdraft returned {outcome:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:528:9
+    |
+528 |         format!("an underfunded transfer returned {underfunded:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:538:9
+    |
+538 |         format!("the first transfer returned {first:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:543:9
+    |
+543 |         format!("the identical retry returned {retry:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:550:9
+    |
+550 | /         format!(
+551 | |             "the duplicate retry appended {} event(s)",
+552 | |             wallet.events().len()
+553 | |         ),
+    | |_________^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:564:9
+    |
+564 |         format!("the first transfer returned {first:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:570:9
+    |
+570 |         format!("reusing an ID with a new amount returned {changed_amount:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:575:9
+    |
+575 |         format!("reusing an ID with a new destination returned {changed_destination:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:592:9
+    |
+592 |         format!("a destination overflow returned {outcome:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:616:51
+    |
+616 |     require(zero == Err(WalletError::ZeroAmount), format!("a zero transfer returned {zero:?}"))?;
+    |                                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:619:9
+    |
+619 |         format!("a self transfer returned {self_transfer:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:623:9
+    |
+623 |         format!("an unknown destination returned {missing:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:627:9
+    |
+627 |         format!("an empty transfer ID returned {empty_id:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error[E0308]: mismatched types
+   --> /tmp/tmp.xDKOR6z4RV/crate.rs:631:9
+    |
+631 |         format!("an oversize transfer ID returned {long_id:?}"),
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+
+error: aborting due to 63 previous errors
+
+Some errors have detailed explanations: E0308, E0425, E0433, E0631, E0753.
+For more information about an error, try `rustc --explain E0308`.
+taskpack: compilation failed for the wallet reference
 matrix exit: 1
 === cargo test --test taskpack ===
 [1m[92m    Updating[0m crates.io index
 [1m[92m Downloading[0m crates ...
-[1m[92m  Downloaded[0m version_check v0.9.5
-[1m[92m  Downloaded[0m crypto-common v0.1.7
-[1m[92m  Downloaded[0m sha2 v0.10.9
-[1m[92m  Downloaded[0m proc-macro2 v1.0.107
-[1m[92m  Downloaded[0m typenum v1.20.1
+[1m[92m  Downloaded[0m serde_json v1.0.154
+[1m[92m  Downloaded[0m digest v0.10.7
+[1m[92m  Downloaded[0m itoa v1.0.19
+[1m[92m  Downloaded[0m quote v1.0.47
 [1m[92m  Downloaded[0m block-buffer v0.10.4
+[1m[92m  Downloaded[0m crypto-common v0.1.7
 [1m[92m  Downloaded[0m cpufeatures v0.2.17
 [1m[92m  Downloaded[0m generic-array v0.14.7
 [1m[92m  Downloaded[0m serde_derive v1.0.229
-[1m[92m  Downloaded[0m unicode-ident v1.0.27
-[1m[92m  Downloaded[0m serde_core v1.0.229
-[1m[92m  Downloaded[0m memchr v2.8.3
-[1m[92m  Downloaded[0m zmij v1.0.23
-[1m[92m  Downloaded[0m digest v0.10.7
-[1m[92m  Downloaded[0m serde_json v1.0.154
-[1m[92m  Downloaded[0m syn v3.0.10
 [1m[92m  Downloaded[0m cfg-if v1.0.5
-[1m[92m  Downloaded[0m itoa v1.0.19
-[1m[92m  Downloaded[0m quote v1.0.47
+[1m[92m  Downloaded[0m unicode-ident v1.0.27
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m zmij v1.0.23
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m sha2 v0.10.9
+[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m typenum v1.20.1
+[1m[92m  Downloaded[0m memchr v2.8.3
 [1m[92m  Downloaded[0m serde v1.0.229
+[1m[92m  Downloaded[0m syn v3.0.10
 [1m[92m   Compiling[0m version_check v0.9.5
 [1m[92m   Compiling[0m proc-macro2 v1.0.107
 [1m[92m   Compiling[0m quote v1.0.47
@@ -38,13 +719,13 @@ matrix exit: 1
 [1m[92m   Compiling[0m serde v1.0.229
 [1m[92m   Compiling[0m serde_json v1.0.154
 [1m[92m   Compiling[0m syn v3.0.10
-[1m[92m   Compiling[0m memchr v2.8.3
 [1m[92m   Compiling[0m block-buffer v0.10.4
 [1m[92m   Compiling[0m crypto-common v0.1.7
 [1m[92m   Compiling[0m digest v0.10.7
-[1m[92m   Compiling[0m cpufeatures v0.2.17
-[1m[92m   Compiling[0m cfg-if v1.0.5
 [1m[92m   Compiling[0m itoa v1.0.19
+[1m[92m   Compiling[0m cfg-if v1.0.5
+[1m[92m   Compiling[0m cpufeatures v0.2.17
+[1m[92m   Compiling[0m memchr v2.8.3
 [1m[92m   Compiling[0m sha2 v0.10.9
 [1m[92m   Compiling[0m spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
 [1m[92m   Compiling[0m serde_derive v1.0.229
@@ -54,23 +735,314 @@ matrix exit: 1
 [1m[92m   Compiling[0m spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
 [1m[92m   Compiling[0m spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
 [1m[92m   Compiling[0m spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 9.66s
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 8.77s
 [1m[92m     Running[0m tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
 
 running 7 tests
 test candidates_are_checked_in_without_a_private_abi_copy ... ok
 test differential_corpus_covers_every_function_and_stays_well_formed ... ok
-test every_seeded_bug_is_caught_by_its_own_signal ... assemble: /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/seeded/01_wallet_overdraft/wallet.rs is not a seeded candidate or the reference solution
+test every_seeded_bug_is_caught_by_its_own_signal ... assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
 
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (3028) panicked at apps/spacetime-ctl/tests/taskpack.rs:343:37:
-seed 01_wallet_overdraft must still compile: assemble.sh rejected 01_wallet_overdraft
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (3055) panicked at apps/spacetime-ctl/tests/taskpack.rs:343:37:
+seed 01_wallet_overdraft must still compile: rustc rejected 01_wallet_overdraft:
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:255:1
+    |
+255 | //! SEEDED CANDIDATE — planted bug `overdraft-uses-wrapping-sub`.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+255 - //! SEEDED CANDIDATE — planted bug `overdraft-uses-wrapping-sub`.
+255 + // SEEDED CANDIDATE — planted bug `overdraft-uses-wrapping-sub`.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:256:1
+    |
+256 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+256 - //!
+256 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:257:1
+    |
+257 | //! Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+257 - //! Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
+257 + // Do not "fix" this file before running the oracle: the seeded state is the point. The candidate
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:258:1
+    |
+258 | //! compiles and its public surface matches the pinned ABI, so the defect only shows up under the
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+258 - //! compiles and its public surface matches the pinned ABI, so the defect only shows up under the
+258 + // compiles and its public surface matches the pinned ABI, so the defect only shows up under the
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:259:1
+    |
+259 |   //! hidden oracle. The escape hatch is to make every wallet the oracle runs agree with the model.
+    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+260 |
+261 | / pub mod wallet {
+262 | |     pub struct Wallet {
+263 | |         balances: Vec<(String, u64)>,
+264 | |         applied: Vec<(String, u64)>,
+...   |
+402 | | }
+    | |_- the inner doc comment doesn't annotate this module
+    |
+help: to annotate the module, change the doc comment from inner to outer style
+    |
+259 - //! hidden oracle. The escape hatch is to make every wallet the oracle runs agree with the model.
+259 + /// hidden oracle. The escape hatch is to make every wallet the oracle runs agree with the model.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:404:1
+    |
+404 | //! Hidden independent oracle for the Block 3 fake-credit wallet task family.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+404 - //! Hidden independent oracle for the Block 3 fake-credit wallet task family.
+404 + // Hidden independent oracle for the Block 3 fake-credit wallet task family.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:405:1
+    |
+405 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+405 - //!
+405 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:406:1
+    |
+406 | //! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+406 - //! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+406 + // This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:407:1
+    |
+407 | //! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+407 - //! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+407 + // pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:408:1
+    |
+408 | //! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+408 - //! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+408 + // drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:409:1
+    |
+409 | //! cannot influence the expectation it is graded against.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+409 - //! cannot influence the expectation it is graded against.
+409 + // cannot influence the expectation it is graded against.
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:410:1
+    |
+410 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+410 - //!
+410 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:411:1
+    |
+411 | //! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+411 - //! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+411 + // Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:412:1
+    |
+412 | //! another. Output is machine-readable:
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+412 - //! another. Output is machine-readable:
+412 + // another. Output is machine-readable:
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:413:1
+    |
+413 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+413 - //!
+413 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:414:1
+    |
+414 | //! ```text
+    | ^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+414 - //! ```text
+414 + // ```text
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:415:1
+    |
+415 | //! check <name> pass|fail <detail>
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+415 - //! check <name> pass|fail <detail>
+415 + // check <name> pass|fail <detail>
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:416:1
+    |
+416 | //! oracle failed_checks=<n> failed=<comma-separated names>
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+416 - //! oracle failed_checks=<n> failed=<comma-separated names>
+416 + // oracle failed_checks=<n> failed=<comma-separated names>
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:417:1
+    |
+417 | //! ```
+    | ^^^^^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+417 - //! ```
+417 + // ```
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:418:1
+    |
+418 | //!
+    | ^^^
+    |
+    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items
+help: you might have meant to write a regular comment
+    |
+418 - //!
+418 + //
+    |
+
+error[E0753]: expected outer doc comment
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.grader.rs:419:1
+    |
+419 | //! Exit status is zero only when every check passes.
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+420 |
+421 | use crate::wallet::Wallet;
+    | -------------------------- the inner doc comment doesn't annotate this `use` import
+    |
+help: to annotate the `use` import, change the doc comment from inner to outer style
+    |
+419 - //! Exit status is zero only when every check passes.
+419 + /// Exit status is zero only when every check passes.
+    |
+
+error: invalid character '.' in crate name: `01_wallet_overdraft.grader`
+  |
+  = note: crate names may only contain alphanumeric characters or underscores
+  = help: you might have meant to use `--crate-name=01_wallet_overdraft_grader`
+
+error: aborting due to 22 previous errors
+
+For more information about this error, try `rustc --explain E0753`.
+
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 FAILED
 test oracles_never_reference_a_candidate ... ok
-test reference_solutions_pass_every_check ... assemble: /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/reference/wallet_ref.rs is not a seeded candidate or the reference solution
+test reference_solutions_pass_every_check ... assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
 
-thread 'reference_solutions_pass_every_check' (3039) panicked at apps/spacetime-ctl/tests/taskpack.rs:286:6:
-the wallet reference must assemble and compile: "assemble.sh rejected reference-wallet"
+thread 'reference_solutions_pass_every_check' (3088) panicked at apps/spacetime-ctl/tests/taskpack.rs:286:6:
+the wallet reference must assemble and compile: "rustc rejected reference-wallet:\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:255:1\n    |\n255 | //! Reference fake-credit wallet for the Block 3 EconBench task pack.\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n255 - //! Reference fake-credit wallet for the Block 3 EconBench task pack.\n255 + // Reference fake-credit wallet for the Block 3 EconBench task pack.\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:256:1\n    |\n256 | //!\n    | ^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n256 - //!\n256 + //\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:257:1\n    |\n257 | //! This is the post-fix solution. It implements the ABI specification exactly, is written without\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n257 - //! This is the post-fix solution. It implements the ABI specification exactly, is written without\n257 + // This is the post-fix solution. It implements the ABI specification exactly, is written without\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:258:1\n    |\n258 |   //! relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.\n    |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n259 |\n260 | / pub mod wallet {\n261 | |     pub struct Wallet {\n262 | |         balances: Vec<(String, u64)>,\n263 | |         applied: Vec<(String, u64)>,\n...   |\n399 | | }\n    | |_- the inner doc comment doesn't annotate this module\n    |\nhelp: to annotate the module, change the doc comment from inner to outer style\n    |\n258 - //! relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.\n258 + /// relying on any candidate code, and is graded by `oracle/wallet_oracle.rs`.\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:401:1\n    |\n401 | //! Hidden independent oracle for the Block 3 fake-credit wallet task family.\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n401 - //! Hidden independent oracle for the Block 3 fake-credit wallet task family.\n401 + // Hidden independent oracle for the Block 3 fake-credit wallet task family.\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:402:1\n    |\n402 | //!\n    | ^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n402 - //!\n402 + //\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:403:1\n    |\n403 | //! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n403 - //! This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the\n403 + // This file is never shipped inside a candidate workspace. `bench/taskpack/run.sh` prepends the\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:404:1\n    |\n404 | //! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n404 - //! pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then\n404 + // pinned ABI, appends exactly one candidate `wallet.rs`, and compiles the result; the oracle then\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:405:1\n    |\n405 | //! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n405 - //! drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore\n405 + // drives `wallet::Wallet` only through the pinned ABI. A broken or hostile candidate therefore\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:406:1\n    |\n406 | //! cannot influence the expectation it is graded against.\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n406 - //! cannot influence the expectation it is graded against.\n406 + // cannot influence the expectation it is graded against.\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:407:1\n    |\n407 | //!\n    | ^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n407 - //!\n407 + //\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:408:1\n    |\n408 | //! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n408 - //! Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask\n408 + // Every check is independent: it builds a fresh wallet, so one failing invariant cannot mask\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:409:1\n    |\n409 | //! another. Output is machine-readable:\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n409 - //! another. Output is machine-readable:\n409 + // another. Output is machine-readable:\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:410:1\n    |\n410 | //!\n    | ^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n410 - //!\n410 + //\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:411:1\n    |\n411 | //! ```text\n    | ^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n411 - //! ```text\n411 + // ```text\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:412:1\n    |\n412 | //! check <name> pass|fail <detail>\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n412 - //! check <name> pass|fail <detail>\n412 + // check <name> pass|fail <detail>\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:413:1\n    |\n413 | //! oracle failed_checks=<n> failed=<comma-separated names>\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n413 - //! oracle failed_checks=<n> failed=<comma-separated names>\n413 + // oracle failed_checks=<n> failed=<comma-separated names>\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:414:1\n    |\n414 | //! ```\n    | ^^^^^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n414 - //! ```\n414 + // ```\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:415:1\n    |\n415 | //!\n    | ^^^\n    |\n    = note: inner doc comments like this (starting with `//!` or `/*!`) can only appear before items\nhelp: you might have meant to write a regular comment\n    |\n415 - //!\n415 + //\n    |\n\nerror[E0753]: expected outer doc comment\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.grader.rs:416:1\n    |\n416 | //! Exit status is zero only when every check passes.\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n417 |\n418 | use crate::wallet::Wallet;\n    | -------------------------- the inner doc comment doesn't annotate this `use` import\n    |\nhelp: to annotate the `use` import, change the doc comment from inner to outer style\n    |\n416 - //! Exit status is zero only when every check passes.\n416 + /// Exit status is zero only when every check passes.\n    |\n\nerror: invalid character '.' in crate name: `reference_wallet.grader`\n  |\n  = note: crate names may only contain alphanumeric characters or underscores\n  = help: you might have meant to use `--crate-name=reference_wallet_grader`\n\nerror: aborting due to 21 previous errors\n\nFor more information about this error, try `rustc --explain E0753`.\n"
 FAILED
 test seeded_workspaces_are_bounded_and_offline ... ok
 test seeds_cover_every_oracle_signal ... ok
@@ -81,7 +1053,7 @@ failures:
     every_seeded_bug_is_caught_by_its_own_signal
     reference_solutions_pass_every_check
 
-test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+test result: FAILED. 5 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
 
 [1m[91merror[0m: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
 tests exit: 101
