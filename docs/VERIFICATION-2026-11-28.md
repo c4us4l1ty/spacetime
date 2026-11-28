@@ -18,9 +18,10 @@ The development sandbox for this branch has **no Rust toolchain**: `static.rust-
 from it, and no `rustc` is preinstalled. As in every earlier block, GitHub Actions is the compiler
 and the authoritative verifier.
 
-**Status: verified at twenty.** Workflow run `46166597322` on `arena/cc36730c-spacetime` is green
+**Status: verified at twenty.** Workflow run `46167417243` on `arena/cc36730c-spacetime` is green
 end to end: all twenty steps pass, `bench taskpack` reports twenty candidates with twenty planted
-bugs caught, and the end-to-end report shows `gates = 40` and `failed = 0`.
+bugs caught, and the end-to-end report shows `gates = 40` and `failed = 0`. The equivalent earlier
+run `46166597322` is the one quoted by the pack README's digests.
 
 The first verified run, `46160941738`, covered the fourteen-seed pack before the protocol family
 was added. Both are recorded because the second one found defects the first could not.
@@ -62,6 +63,37 @@ Because CI is the only compiler, the seed/expectation pairings were additionally
 
 These two checks prove the *pairings*. They cannot prove the Rust sources compile; that is what CI
 does, and why `run.sh matrix`, `bench taskpack`, and `cargo test` all run inside the workflow.
+
+## What the end-to-end re-verification found
+
+A second, adversarial pass re-read the harness rather than the candidates, asking what a hostile
+candidate could do to it. Three defects surfaced. None of them is reachable with the corpus as it
+stands — which is precisely why they had to be fixed before the corpus grows.
+
+1. **A pipeline that could report a successful match as a miss.** Every pin in `run.sh` was decided
+   with `printf ... | grep -qx`. That file runs under `set -euo pipefail`; `grep -q` exits on the
+   first match, the writer is then killed by `SIGPIPE` (status 141), and `pipefail` promotes that to
+   the command's status. The oracle output is a few kilobytes and fits the 64 KB pipe buffer, so the
+   writer always finished first and the bug never fired. All nine pins now go through a `matched`
+   helper that keeps the match on a single command's status.
+2. **Candidate output could impersonate the grader.** Both harnesses decided a seed by matching
+   individual lines, and the candidate shares the grader's stdout. A candidate that broke one trace
+   could print `trace <name> fail ...` lines for the whole pinned set, plus a summary naming it, and
+   satisfy every pin without earning one. The protocol oracle emits exactly one line per trace and
+   one summary; the harness now requires exactly those counts and rejects the run otherwise, in
+   `run.sh` and in `taskpack.rs` alike.
+3. **A grader's explanation was thrown away.** `output="$(...)"` captures stdout only, so an oracle
+   that rejected a malformed recording (exit 2, message on stderr) produced empty output, and the
+   harness reported "the candidate failed the wrong check". The shell now folds stderr into the
+   captured text, matching the Rust harness's earlier fix.
+
+A fourth gap was a policy hole rather than a grading bug: the workspace sets
+`unsafe_code = "forbid"`, but the pack compiled candidates with bare `rustc` and no such lint, so a
+seeded workspace could have been "solved" with unsafe code the product would refuse to build. Both
+build paths now pass `-F unsafe_code`.
+
+Each is covered by a regression test; the shell-script ones read `run.sh` and fail if a piped
+verdict check, a missing stderr fold, or a missing forgery guard ever returns.
 
 ## What CI must assert
 
