@@ -1,8 +1,8 @@
-# Temporary helper: run the task-pack checks and commit the transcript to the branch.
+# Temporary helper: replay the CI steps and commit the transcript to the branch.
 #
 # The development sandbox for this branch has no Rust toolchain, and the Actions log endpoints are
 # not reachable from it, so the only way to read a failure is to write it into the repository.
-# This workflow is deleted once the task pack is green.
+# This workflow is deleted once the branch is green.
 name: taskpack diagnostic (temporary)
 
 on:
@@ -12,26 +12,50 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: never
+
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Run the task-pack matrix
+      - name: Clippy
         run: |
           {
-            echo "=== run.sh matrix ==="
+            echo "=== cargo clippy ==="
+            cargo clippy --workspace --all-targets --locked -- -D warnings 2>&1
+            echo "clippy exit: $?"
+          } > .ci-report.txt 2>&1 || true
+      - name: Tests
+        run: |
+          {
+            echo "=== cargo test --workspace ==="
+            cargo test --workspace --all-targets --locked 2>&1
+            echo "workspace tests exit: $?"
+          } >> .ci-report.txt 2>&1 || true
+      - name: Task pack step
+        run: |
+          {
+            echo "=== task pack step ==="
+            bash -n bench/taskpack/assemble.sh
+            echo "assemble syntax: $?"
+            bash -n bench/taskpack/run.sh
+            echo "run syntax: $?"
             bash bench/taskpack/run.sh matrix 2>&1
             echo "matrix exit: $?"
-          } > .ci-report.txt 2>&1 || true
-      - name: Run the integration tests
+            cargo run -q -p spacetime-ctl -- bench taskpack --out target/taskpack.json 2>&1
+            echo "ctl exit: $?"
+            cat target/taskpack.json
+          } >> .ci-report.txt 2>&1 || true
+      - name: End-to-end verification
         run: |
           {
-            echo "=== cargo test --test taskpack ==="
-            cargo test -p spacetime-ctl --test taskpack -- --nocapture --test-threads=1 2>&1
-            echo "tests exit: $?"
+            echo "=== end-to-end verification ==="
+            cargo run -q -p spacetime-ctl -- verify 2>&1
+            echo "verify exit: $?"
           } >> .ci-report.txt 2>&1 || true
       - name: Commit the transcript
         run: |
