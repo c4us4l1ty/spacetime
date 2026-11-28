@@ -83,10 +83,6 @@ pub(crate) const SEEDED: [(&str, &str, &str); 14] = [
     ("14_transform_parity", "func.rs", "function:parity"),
 ];
 
-/// The one graded wallet check with no dedicated seed: `Wallet::new` is exercised by every seed
-/// and by the reference, so a planted constructor bug is caught without a task of its own.
-pub(crate) const UNSEEDED_WALLET_CHECK: &str = "constructor_rejections";
-
 pub(crate) const WALLET_CHECKS: [&str; 8] = [
     "constructor_rejections",
     "exact_balance_is_allowed",
@@ -409,6 +405,10 @@ seeded_bugs_caught={caught} block3_done=false",
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The one graded wallet check with no dedicated seed: `Wallet::new` is exercised by every
+    /// seed and by the reference, so a planted constructor bug is still caught.
+    const UNSEEDED_WALLET_CHECK: &str = "constructor_rejections";
 
     #[test]
     fn seeded_signals_cover_every_oracle_surface() {
