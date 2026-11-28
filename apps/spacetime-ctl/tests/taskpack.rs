@@ -130,7 +130,7 @@ const SEEDED: [(&str, Family, &str, &str, &str); 14] = [
         Family::Transform,
         "func.rs",
         "function:parity",
-        "the parity predicate is inverted",
+        "the parity predicate is inverted"
     ),
 ];
 
