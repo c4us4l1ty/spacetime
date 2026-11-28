@@ -1,0 +1,38 @@
+# Temporary helper: run rustfmt on this branch and commit the result.
+#
+# This repository's development sandbox has no Rust toolchain, so rustfmt's exact output cannot be
+# produced locally. This workflow formats the tree and pushes the result back so the formatting can
+# be reviewed like any other change. It is removed once the tree is clean.
+name: rustfmt autofix (temporary)
+
+on:
+  push:
+    branches: ["arena/cc36730c-spacetime"]
+
+permissions:
+  contents: write
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/cc36730c-spacetime
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format the tree
+        run: cargo fmt --all
+      - name: Commit and push if formatting changed anything
+        run: |
+          if git diff --quiet; then
+            echo "already formatted"
+            exit 0
+          fi
+          git config user.name "spacetime-rustfmt"
+          git config user.email "spacetime-rustfmt@users.noreply.github.com"
+          git add -A
+          git commit -m "Apply cargo fmt"
+          git push origin HEAD:arena/cc36730c-spacetime
