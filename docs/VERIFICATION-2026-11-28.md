@@ -18,10 +18,12 @@ The development sandbox for this branch has **no Rust toolchain**: `static.rust-
 from it, and no `rustc` is preinstalled. As in every earlier block, GitHub Actions is the compiler
 and the authoritative verifier.
 
-**Status: verified at twenty.** Workflow run `46167417243` on `arena/cc36730c-spacetime` is green
-end to end: all twenty steps pass, `bench taskpack` reports twenty candidates with twenty planted
-bugs caught, and the end-to-end report shows `gates = 40` and `failed = 0`. The equivalent earlier
-run `46166597322` is the one quoted by the pack README's digests.
+**Status: verified at twenty, and merged.** The pack reached `main` as a fast-forward to `1097ff2`.
+Workflow run `46170510950`, on `main` itself, is green end to end: all twenty-two steps of the main
+job pass, `bench taskpack` reports twenty candidates with twenty planted bugs caught, and the
+end-to-end report shows `gates = 40` and `failed = 0`. The branch runs that preceded the merge were
+`46170113816` (green, the commit merged) and, before the hardening in this document's last section,
+`46167417243` (the twenty-candidate pack) and `46166597322` (the pack README's digests).
 
 The first verified run, `46160941738`, covered the fourteen-seed pack before the protocol family
 was added. Both are recorded because the second one found defects the first could not.

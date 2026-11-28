@@ -50,9 +50,10 @@ The usual failure mode of a self-graded task is that the grader imports the thin
 
 ## What CI proves
 
-**Verified.** Workflow run `46167417243` passes the whole CI job, including this step, on the final
-pack; the earlier run `46166597322` verified the same twenty candidates before the closing
-documentation commit. The claim below is not aspirational: `cargo test --workspace --all-targets`
+**Verified.** Workflow run `46170510950`, on `main` after the pack was merged, passes the whole CI
+job, including this step. The branch run that was merged is `46170113816`; the earlier `46167417243`
+verified the same twenty candidates before the hardening described at the end of
+`docs/VERIFICATION-2026-11-28.md`, and `46166597322` before the closing documentation commit. The claim below is not aspirational: `cargo test --workspace --all-targets`
 also runs `apps/spacetime-ctl/tests/taskpack.rs`, which assembles and grades every seed, and
 `verify` grades `block3_task_pack_seeded_workspaces` with a toolchain present rather than skipping
 it.
