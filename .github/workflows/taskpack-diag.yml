@@ -1,0 +1,42 @@
+# Temporary helper: run the task-pack checks and commit the transcript to the branch.
+#
+# The development sandbox for this branch has no Rust toolchain, and the Actions log endpoints are
+# not reachable from it, so the only way to read a failure is to write it into the repository.
+# This workflow is deleted once the task pack is green.
+name: taskpack diagnostic (temporary)
+
+on:
+  push:
+    branches: ["arena/cc36730c-spacetime"]
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run the task-pack matrix
+        run: |
+          {
+            echo "=== run.sh matrix ==="
+            bash bench/taskpack/run.sh matrix 2>&1
+            echo "matrix exit: $?"
+          } > .ci-report.txt 2>&1 || true
+      - name: Run the integration tests
+        run: |
+          {
+            echo "=== cargo test --test taskpack ==="
+            cargo test -p spacetime-ctl --test taskpack -- --nocapture --test-threads=1 2>&1
+            echo "tests exit: $?"
+          } >> .ci-report.txt 2>&1 || true
+      - name: Commit the transcript
+        run: |
+          git config user.name "spacetime-diagnostic"
+          git config user.email "spacetime-diagnostic@users.noreply.github.com"
+          git add -f .ci-report.txt
+          git commit -m "Task-pack diagnostic transcript"
+          git push origin HEAD:arena/cc36730c-spacetime
