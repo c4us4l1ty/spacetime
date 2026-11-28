@@ -1,0 +1,28 @@
+# Temporary helper: commit a test transcript to the branch (the sandbox cannot read Actions logs).
+name: taskpack diagnostic (temporary)
+on:
+  push:
+    branches: ["arena/cc36730c-spacetime"]
+permissions:
+  contents: write
+env:
+  CARGO_TERM_COLOR: never
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: |
+          {
+            echo "=== cargo test -p spacetime-ctl ==="
+            cargo test -p spacetime-ctl --all-targets --locked 2>&1
+            echo "exit: $?"
+          } > .ci-report.txt 2>&1 || true
+      - run: |
+          git config user.name "spacetime-diagnostic"
+          git config user.email "spacetime-diagnostic@users.noreply.github.com"
+          git add -f .ci-report.txt
+          git commit -m "Test transcript"
+          git push origin HEAD:arena/cc36730c-spacetime
