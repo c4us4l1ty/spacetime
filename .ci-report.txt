@@ -1,0 +1,97 @@
+=== run.sh matrix ===
+/home/runner/work/spacetime/spacetime/bench/taskpack/assemble.sh: 18: Bad substitution
+/home/runner/work/spacetime/spacetime/bench/taskpack/assemble.sh: 20: [[: not found
+usage: assemble.sh <source.rs> <destination.rs>
+taskpack: assemble.sh rejected the wallet reference
+matrix exit: 1
+=== cargo test --test taskpack ===
+[1m[92m    Updating[0m crates.io index
+[1m[92m Downloading[0m crates ...
+[1m[92m  Downloaded[0m cfg-if v1.0.5
+[1m[92m  Downloaded[0m digest v0.10.7
+[1m[92m  Downloaded[0m cpufeatures v0.2.17
+[1m[92m  Downloaded[0m crypto-common v0.1.7
+[1m[92m  Downloaded[0m block-buffer v0.10.4
+[1m[92m  Downloaded[0m unicode-ident v1.0.27
+[1m[92m  Downloaded[0m itoa v1.0.19
+[1m[92m  Downloaded[0m generic-array v0.14.7
+[1m[92m  Downloaded[0m quote v1.0.47
+[1m[92m  Downloaded[0m version_check v0.9.5
+[1m[92m  Downloaded[0m zmij v1.0.23
+[1m[92m  Downloaded[0m serde v1.0.229
+[1m[92m  Downloaded[0m sha2 v0.10.9
+[1m[92m  Downloaded[0m proc-macro2 v1.0.107
+[1m[92m  Downloaded[0m serde_core v1.0.229
+[1m[92m  Downloaded[0m serde_derive v1.0.229
+[1m[92m  Downloaded[0m typenum v1.20.1
+[1m[92m  Downloaded[0m memchr v2.8.3
+[1m[92m  Downloaded[0m serde_json v1.0.154
+[1m[92m  Downloaded[0m syn v3.0.10
+[1m[92m   Compiling[0m version_check v0.9.5
+[1m[92m   Compiling[0m proc-macro2 v1.0.107
+[1m[92m   Compiling[0m typenum v1.20.1
+[1m[92m   Compiling[0m quote v1.0.47
+[1m[92m   Compiling[0m unicode-ident v1.0.27
+[1m[92m   Compiling[0m generic-array v0.14.7
+[1m[92m   Compiling[0m serde_core v1.0.229
+[1m[92m   Compiling[0m zmij v1.0.23
+[1m[92m   Compiling[0m serde v1.0.229
+[1m[92m   Compiling[0m serde_json v1.0.154
+[1m[92m   Compiling[0m syn v3.0.10
+[1m[92m   Compiling[0m block-buffer v0.10.4
+[1m[92m   Compiling[0m crypto-common v0.1.7
+[1m[92m   Compiling[0m memchr v2.8.3
+[1m[92m   Compiling[0m digest v0.10.7
+[1m[92m   Compiling[0m itoa v1.0.19
+[1m[92m   Compiling[0m cfg-if v1.0.5
+[1m[92m   Compiling[0m cpufeatures v0.2.17
+[1m[92m   Compiling[0m sha2 v0.10.9
+[1m[92m   Compiling[0m spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
+[1m[92m   Compiling[0m serde_derive v1.0.229
+[1m[92m   Compiling[0m spacetime-types v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-types)
+[1m[92m   Compiling[0m spacetime-ledger v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-ledger)
+[1m[92m   Compiling[0m spacetime-bench v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-bench)
+[1m[92m   Compiling[0m spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
+[1m[92m   Compiling[0m spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
+[1m[92m   Compiling[0m spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
+[1m[92m    Finished[0m `test` profile [unoptimized + debuginfo] target(s) in 7.17s
+[1m[92m     Running[0m tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
+
+running 7 tests
+test candidates_are_checked_in_without_a_private_abi_copy ... ok
+test differential_corpus_covers_every_function_and_stays_well_formed ... ok
+test every_seeded_bug_is_caught_by_its_own_signal ... /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/assemble.sh: 18: Bad substitution
+/home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/assemble.sh: 20: [[: not found
+usage: assemble.sh <source.rs> <destination.rs>
+
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (2808) panicked at apps/spacetime-ctl/tests/taskpack.rs:343:37:
+seed 01_wallet_overdraft must still compile: assemble.sh rejected 01_wallet_overdraft
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test oracles_never_reference_a_candidate ... ok
+test reference_solutions_pass_every_check ... /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/assemble.sh: 18: Bad substitution
+/home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../bench/taskpack/assemble.sh: 20: [[: not found
+usage: assemble.sh <source.rs> <destination.rs>
+
+thread 'reference_solutions_pass_every_check' (2819) panicked at apps/spacetime-ctl/tests/taskpack.rs:286:6:
+the wallet reference must assemble and compile: "assemble.sh rejected reference-wallet"
+FAILED
+test seeded_workspaces_are_bounded_and_offline ... ok
+test seeds_cover_every_oracle_signal ... 
+thread 'seeds_cover_every_oracle_signal' (2830) panicked at apps/spacetime-ctl/tests/taskpack.rs:440:5:
+assertion `left == right` failed
+  left: 15
+ right: 14
+FAILED
+
+failures:
+
+failures:
+    every_seeded_bug_is_caught_by_its_own_signal
+    reference_solutions_pass_every_check
+    seeds_cover_every_oracle_signal
+
+test result: FAILED. 4 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+[1m[91merror[0m: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
+tests exit: 101
