@@ -404,7 +404,6 @@ fn every_seeded_bug_is_caught_by_its_own_signal() {
                     "unexpected grader summary for seed {seed}:\n{}",
                     run.stdout
                 );
-
             }
             other => panic!("unknown expectation kind: {other}"),
         }
