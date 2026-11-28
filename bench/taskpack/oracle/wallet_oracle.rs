@@ -35,11 +35,11 @@ fn funded() -> Wallet {
 
 type Failure = String;
 
-fn require(condition: bool, message: &str) -> Result<(), Failure> {
+fn require(condition: bool, message: impl Into<String>) -> Result<(), Failure> {
     if condition {
         Ok(())
     } else {
-        Err(message.to_string())
+        Err(message.into())
     }
 }
 

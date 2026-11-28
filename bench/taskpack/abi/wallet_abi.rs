@@ -211,6 +211,6 @@ pub fn observe(
         event_count: u64::try_from(events.len()).unwrap_or(u64::MAX),
         last_hash_ok,
         events_verified,
-        error: error.map(WalletError::as_str),
+        error: error.map(|error| error.as_str()),
     }
 }
