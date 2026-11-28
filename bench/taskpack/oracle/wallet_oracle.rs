@@ -65,10 +65,7 @@ fn observed(wallet: &Wallet) -> WalletObservation {
 /// A clean chain must validate, and the observation must agree with the events.
 fn require_clean_chain(wallet: &Wallet) -> Result<(), Failure> {
     let events = wallet.events();
-    require(
-        Wallet::verify_events(events),
-        "the candidate rejected its own clean event chain",
-    )?;
+        require(Wallet::verify_events(events), "the candidate rejected its own clean event chain")?;
     let observation = observed(wallet);
     require(
         observation.last_hash_ok && observation.events_verified,
@@ -82,7 +79,8 @@ fn require_clean_chain(wallet: &Wallet) -> Result<(), Failure> {
 
 fn constructor_rejections() -> Result<(), Failure> {
     require(
-        Wallet::new(&[("alice", 1_u64), ("alice", 2)]).err() == Some(WalletError::DuplicateAccount),
+        Wallet::new(&[("alice", 1_u64), ("alice", 2)]).err()
+            == Some(WalletError::DuplicateAccount),
         "duplicate accounts were accepted",
     )?;
     require(
@@ -257,10 +255,7 @@ fn tamper_is_detected() -> Result<(), Failure> {
     )?;
     let last = wallet.events().len() - 1;
     let original = wallet.events()[last].hash;
-    require(
-        wallet.tamper_event_hash(last),
-        "tampering an existing event reported failure",
-    )?;
+        require(wallet.tamper_event_hash(last), "tampering an existing event reported failure")?;
     require(
         wallet.events()[last].hash != original,
         "the tamper hook did not change the stored hash",
@@ -271,10 +266,7 @@ fn tamper_is_detected() -> Result<(), Failure> {
         "a rewritten event hash was accepted as a valid chain",
     )?;
     let observation = observed(&wallet);
-    require(
-        !observation.last_hash_ok,
-        "the observation did not expose the rewritten hash",
-    )?;
+        require(!observation.last_hash_ok, "the observation did not expose the rewritten hash")?;
     require(
         !observation.events_verified,
         "the observation reported a tampered chain as verified",

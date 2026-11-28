@@ -15,8 +15,9 @@ use spacetime_types::{Result, SpacetimeError};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-/// Every seeded candidate and the oracle signal its single planted bug must produce. Kept in one
-/// place so this module, `run.sh`, and the Rust test harness cannot drift apart.
+/// Every seeded candidate and the oracle signal its single planted bug must produce.
+///
+/// Kept in one place so this module, `run.sh`, and the Rust test harness cannot drift apart.
 pub(crate) const SEEDED: [(&str, &str, &str); 14] = [
     ("01_wallet_overdraft", "wallet.rs", "check:overdraft_is_rejected"),
     ("02_wallet_exact_balance", "wallet.rs", "check:exact_balance_is_allowed"),
@@ -276,7 +277,7 @@ pub fn taskpack_report() -> Result<Value> {
         )));
     }
 
-    // 3. The seeds must between them exercise every oracle check and every corpus function.
+    // 3. The seeds must exercise every oracle check and every corpus function between them.
     for check in WALLET_CHECKS {
         if !SEEDED.iter().any(|(_, _, expectation)| *expectation == format!("check:{check}")) {
             return Err(SpacetimeError::new(format!(
@@ -314,8 +315,8 @@ pub fn taskpack_report() -> Result<Value> {
         "resource_gate": "unmeasured_target_4gb",
         "performance_claims": "unmeasured",
         "block3_done": false,
-        "note": "offline functional evidence for seeded candidate workspaces, not a measured \
-resource gate",
+        "note": "offline functional evidence for seeded candidate workspaces; \
+not a measured resource gate",
     }))
 }
 
@@ -382,11 +383,7 @@ mod tests {
             );
         }
         assert_eq!(wallet.len(), WALLET_CHECKS.len(), "two seeds share a check");
-        assert_eq!(
-            transform.len(),
-            TRANSFORM_FUNCTIONS.len(),
-            "two seeds share a function"
-        );
+        assert_eq!(transform.len(), TRANSFORM_FUNCTIONS.len(), "two seeds share a function");
     }
 
     #[test]
