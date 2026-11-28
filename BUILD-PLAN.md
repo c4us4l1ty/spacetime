@@ -398,9 +398,13 @@ scripted fixtures, a verified hash-chained ledger, a static HTML review artifact
 gates. The EconBench runner now also has deterministic domain-case verifiers for wallet invariants,
 independent integer transformations, and local protocol-state traces, recorded per fixture in its
 machine-readable report. This improves the verifier layer but does not turn the existing scripted
-actions into the full local task pack specified below. Block 3 is not `DONE`: seeded code-repair
-tasks with candidate workspaces, measured 4 GB workload/resource gate, and accepted out-of-band
-provenance remain outstanding. The HTML artifact is not the product UI or a web application.
+actions into the full local task pack specified below. `bench/taskpack/` now supplies fourteen real
+seeded candidate workspaces (seven planted-invariant, seven transmutation), each compiled with plain
+`rustc` and graded by a hidden independent oracle in CI; see `docs/ADR-0010-block3-seeded-task-pack.md`.
+That pack measures nothing, so Block 3 is still not `DONE`: seeded protocol-distillation candidate
+workspaces and independently captured traces, the native mixed-workspace workload, a measured 4 GB
+resource gate, and accepted out-of-band provenance remain outstanding. The HTML artifact is not the
+product UI or a web application.
 
 ### Build
 

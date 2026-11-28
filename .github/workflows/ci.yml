@@ -151,6 +151,19 @@ jobs:
           ! cargo run --release --locked -p spacetime-ctl -- crucible adversarial --dir bench/adversarial --dir bench/adversarial
           ! cargo run --release --locked -p spacetime-ctl -- crucible adversarial --bogus x
 
+      - name: Block 3 task pack - seeded workspaces vs. hidden oracle
+        run: |
+          bash -n bench/taskpack/run.sh
+          bash -n bench/taskpack/assemble.sh
+          bench/taskpack/run.sh matrix
+          target/release/spacetime-ctl bench taskpack --out target/taskpack.json
+          grep -q '"candidates": 14' target/taskpack.json
+          grep -q '"seeded_bugs_caught": 14' target/taskpack.json
+          grep -q '"block3_done": false' target/taskpack.json
+          # A seeded candidate must be rejected as malformed if it ships its own ABI copy.
+          ! bench/taskpack/assemble.sh bench/taskpack/abi/wallet_abi.rs target/should-not-exist.rs
+          ! bench/taskpack/run.sh candidate 99_not_a_seed
+
       - name: End-to-end verification
         run: |
           cargo run --release --locked -p spacetime-ctl -- verify --out target/verify.toml > target/verify.stdout
@@ -162,7 +175,7 @@ jobs:
           grep -q 'atomic=true overdraft_rejected=true idempotent=true hash_chain=verified' target/verify.toml
           grep -q 'name = "block1_happy"' target/verify.toml
           grep -q 'name = "crucible_flaky_family"' target/verify.toml
-          grep -q '^gates = 39$' target/verify.toml
+          grep -q '^gates = 40$' target/verify.toml
           grep -q 'name = "determinism_controls"' target/verify.toml
           grep -q 'name = "capability_enforcement"' target/verify.toml
           grep -q 'name = "cli_input_validation"' target/verify.toml
@@ -173,6 +186,7 @@ jobs:
           grep -q 'name = "resource_gate_unmeasured"' target/verify.toml
           grep -q 'name = "target_profile_registry"' target/verify.toml
           grep -q 'name = "econbench_offline"' target/verify.toml
+          grep -q 'name = "block3_task_pack_seeded_workspaces"' target/verify.toml
           grep -q 'name = "static_console_report"' target/verify.toml
           grep -q '^econbench_fixtures = 20$' target/verify.toml
           grep -q '^static_console = "offline_prototype"$' target/verify.toml

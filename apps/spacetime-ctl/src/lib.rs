@@ -35,6 +35,7 @@ mod initramfs;
 pub mod memory;
 pub mod security;
 mod space;
+mod taskpack;
 mod verify;
 pub mod workspace;
 
@@ -55,6 +56,7 @@ Commands:
   verify --out <file> [--measurement <file>]
   bench run --arm A|B|C --model <id> --budget <tokens> --out <file>
   bench harness --out <file>
+  bench taskpack --out <file>
   console --ledger <file> --out <file>
   dashboard [ledger-file]
   workspace
@@ -120,6 +122,7 @@ pub fn run(args: &[String]) -> Result<()> {
         "crucible" => cmd_crucible(&args[1..]),
         "verify" => verify::cmd_verify_all(&args[1..]),
         "bench" => econbench::cmd_bench(&args[1..]),
+        "taskpack" => taskpack::cmd_taskpack(&args[1..]),
         "console" => console::cmd_console(&args[1..]),
         "dashboard" => dashboard::cmd_dashboard(&args[1..]),
         "workspace" => workspace::cmd_ui(&args[1..]),

@@ -143,8 +143,16 @@ action allow-list enforces capability fields; the shim is **not** a kernel sandb
 boundary. `machine profiles` lists explicit registered targets; `4gb_potato` is the mandatory
 release baseline, while `8gb_reference` and `16gb_developer` are optional and additive.
 `machine gate` stays unmeasured until real per-profile evidence and accepted out-of-band provenance
-exist; CI/synthetic host labels are rejected. CI host facts are not evidence for any recorded
-target, so no performance or resource-budget claim is made.
+exist; CI/synthetic host labels are rejected.
+`bench/taskpack/` holds fourteen seeded candidate workspaces — seven planted-invariant wallet tasks
+and seven integer-transmutation tasks, each with exactly one planted bug — graded by hidden
+independent oracles under plain `rustc` with no crates. CI runs `bench/taskpack/run.sh matrix` and
+requires both reference solutions to pass every check while each seed fails exactly its own signal;
+`spacetime-ctl bench taskpack --out <file>` emits the machine-readable report, and `verify` carries
+the same evidence as its 40th gate. The pack measures nothing, so `block3_done` stays `false`.
+
+CI host facts are not evidence for any recorded target, so no performance or resource-budget claim
+is made.
 
 Block 2 was merged to `main` via PR #8 at explicit user request after strict CI passed 24 gates.
 PR #9's bounded measurement-intake and bug-hunt increment was merged to `main` at
@@ -178,7 +186,8 @@ prototype, `docs/ADR-0005-exploratory-cli-profiler.md` for the diagnostic profil
 `docs/ADR-0006-independent-differential-oracle.md` for the differential-verifier correction,
 `docs/ADR-0007-offline-mock-economy-invariants.md` for local fake-credit transaction rules,
 `docs/ADR-0008-econbench-domain-verifiers.md` for domain verifiers, and
-`docs/ADR-0009-blocks-3-to-12-offline-slices.md` for the Blocks 3–12 offline architecture.
+`docs/ADR-0009-blocks-3-to-12-offline-slices.md` for the Blocks 3–12 offline architecture, and
+`docs/ADR-0010-block3-seeded-task-pack.md` for the seeded candidate task pack.
 
 ## Experimental native window
 

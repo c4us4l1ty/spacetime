@@ -121,6 +121,7 @@ pub fn cmd_bench(args: &[String]) -> Result<()> {
     match subcommand {
         "run" => cmd_bench_run(&args[1..]),
         "harness" => cmd_bench_harness(&args[1..]),
+        "taskpack" => crate::taskpack::cmd_taskpack(&args[1..]),
         _ => Err(SpacetimeError::new(format!(
             "unknown bench subcommand: {subcommand}"
         ))),

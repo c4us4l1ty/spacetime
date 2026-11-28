@@ -16,8 +16,14 @@ the checked-in mixed-workspace snapshot ledger. Its `.jsonl` and `.jsonl.head`
 files have narrow `.gitignore` exceptions because the static console consumes
 them as deterministic offline fixtures.
 
-Remaining before Block 3 is DONE: seeded planted-invariant candidate workspaces, reference-plus-skeleton
-transmutation tasks, independently captured protocol traces and task-specific operators; a native
-mixed-workspace target workload; a measured 4 GB baseline resource gate; and accepted out-of-band
-provenance. The current local verifiers are useful domain checks, not substitutes for those task
-artifacts or physical target evidence.
+The seeded candidate workspaces now live in `bench/taskpack/` (ADR-0010): seven planted-invariant
+wallet candidates and seven transmutation candidates, each with exactly one planted bug, graded by a
+hidden independent oracle. CI runs the whole matrix through plain `rustc`, and `verify` carries it as
+the `block3_task_pack_seeded_workspaces` gate. That pack measures nothing and does not set
+`block3_done`.
+
+Remaining before Block 3 is DONE: seeded candidate workspaces for the six `protocol_*`
+protocol-distillation tasks and their independently captured traces and task-specific operators; a
+native mixed-workspace target workload; a measured 4 GB baseline resource gate; and accepted
+out-of-band provenance. The current local verifiers and the task pack are useful domain checks, not
+substitutes for physical target evidence.

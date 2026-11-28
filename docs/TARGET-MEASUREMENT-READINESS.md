@@ -54,7 +54,9 @@ native mixed-workspace product workload yet, and the exploratory CLI profiler ca
 product startup, full workspace/concurrent RSS, tab switching, or fresh-snapshot cost. Do not use
 CLI-only samples, idle measurements, CI results, or the user-reported specifications as gate values.
 
-Before recording any performance result, implement the real Block 3 local tasks and full workload,
+Before recording any performance result, implement the remaining Block 3 local tasks (the
+protocol-distillation half; `bench/taskpack/` now supplies the 7 + 7 planted-invariant and
+transmutation candidates) and the full workload,
 then define and run its cold-start, mixed-workspace concurrency, active/hidden-tab, snapshot, and
 CPU/RSS protocol on the identified target. Keep raw traces and completed provenance out of band.
 Until the resulting evidence has been reviewed and a provenance-consuming gate exists,

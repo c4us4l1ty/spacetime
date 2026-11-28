@@ -55,6 +55,7 @@ use spacetime_verifier::{
 };
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 static VERIFY_COUNTER: AtomicU64 = AtomicU64::new(0);
@@ -186,6 +187,9 @@ pub fn cmd_verify_all(args: &[String]) -> Result<()> {
     }));
     gates.push(capture("econbench_planted_bugs_and_bounties", || {
         check_econbench_planted_bugs_and_bounties()
+    }));
+    gates.push(capture("block3_task_pack_seeded_workspaces", || {
+        check_block3_task_pack()
     }));
     gates.push(capture("provenance_gate_contract", || {
         check_provenance_gate_contract(&root)
@@ -1470,6 +1474,50 @@ fn check_econbench_planted_bugs_and_bounties() -> Result<String> {
         "bounties.json fake_credits_total does not match bounty rewards",
     )?;
     Ok("passing=20 planted_bugs_caught=20 bounties=20 fake_credits_total=60".to_string())
+}
+
+/// The Block 3 task pack gate: seeded candidate workspaces graded by a hidden independent oracle.
+///
+/// This gate is skipped with an explicit reason when no `rustc` is on `PATH` (the normal case
+/// outside CI) rather than being reported as a pass, and it never promotes the resource gate.
+fn check_block3_task_pack() -> Result<String> {
+    let rustc_present = Command::new("rustc")
+        .arg("--version")
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false);
+    if !rustc_present {
+        return Err(SpacetimeError::new(
+            "skipped: no rustc on PATH; the CI task-pack step grades this gate",
+        ));
+    }
+    let report = crate::taskpack::taskpack_report()?;
+    let caught = json_u64(&report, "seeded_bugs_caught")?;
+    let candidates = json_u64(&report, "candidates")?;
+    ensure(
+        candidates == 14,
+        "the task pack no longer ships fourteen seeded candidates",
+    )?;
+    ensure(
+        caught == candidates,
+        "a planted bug escaped its expected oracle signal",
+    )?;
+    ensure(
+        json_str(&report, "resource_gate")? == "unmeasured_target_4gb",
+        "the task pack claimed a measured resource gate",
+    )?;
+    ensure(
+        json_str(&report, "performance_claims")? == "unmeasured",
+        "the task pack claimed measured performance",
+    )?;
+    let corpus_rows = json_u64(&report, "corpus_rows")?;
+    ensure(
+        corpus_rows >= 2_000,
+        "the differential corpus shrank below its floor",
+    )?;
+    Ok(format!(
+        "candidates={candidates} planted_bugs_caught={caught} corpus_rows={corpus_rows}"
+    ))
 }
 
 fn check_provenance_gate_contract(root: &TempRoot) -> Result<String> {
