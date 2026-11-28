@@ -1,0 +1,235 @@
+=== cargo test -p spacetime-ctl ===
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cpufeatures v0.2.17
+  Downloaded block-buffer v0.10.4
+  Downloaded crypto-common v0.1.7
+  Downloaded cfg-if v1.0.5
+  Downloaded digest v0.10.7
+  Downloaded itoa v1.0.19
+  Downloaded version_check v0.9.5
+  Downloaded quote v1.0.47
+  Downloaded generic-array v0.14.7
+  Downloaded sha2 v0.10.9
+  Downloaded serde_derive v1.0.229
+  Downloaded unicode-ident v1.0.27
+  Downloaded zmij v1.0.23
+  Downloaded serde v1.0.229
+  Downloaded proc-macro2 v1.0.107
+  Downloaded serde_core v1.0.229
+  Downloaded memchr v2.8.3
+  Downloaded typenum v1.20.1
+  Downloaded serde_json v1.0.154
+  Downloaded syn v3.0.10
+   Compiling version_check v0.9.5
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling generic-array v0.14.7
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
+   Compiling syn v3.0.10
+   Compiling memchr v2.8.3
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling itoa v1.0.19
+   Compiling cfg-if v1.0.5
+   Compiling sha2 v0.10.9
+   Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
+   Compiling serde_derive v1.0.229
+   Compiling spacetime-types v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-types)
+   Compiling spacetime-ledger v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-ledger)
+   Compiling spacetime-bench v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-bench)
+   Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
+   Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
+   Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.50s
+     Running unittests src/lib.rs (target/debug/build/spacetime-ctl/c13b477211acb967/out/spacetime_ctl-c13b477211acb967)
+
+running 52 tests
+test console::tests::console_flags_reject_duplicate_unknown_and_missing_values ... ok
+test dashboard::tests::empty_history_is_clear ... ok
+test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
+test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
+test console::tests::console_report_reads_checked_in_ledger ... ok
+test econbench::tests::bench_run_flags_are_bounded ... ok
+test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
+test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
+test initramfs::tests::archive_headers_describe_bootable_entries ... ok
+test initramfs::tests::optional_app_is_included_and_dynamic_apps_are_rejected ... ok
+test initramfs::tests::parser_requires_unique_flags ... ok
+test initramfs::tests::refuses_to_overwrite_output ... ok
+test initramfs::tests::rejects_dynamic_wrong_arch_and_truncated_images ... ok
+test distill::tests::operator_drift_quarantines_and_skills_require_green_selftest ... ok
+test security::tests::approved_untrusted_spend_consumes_budget_and_longest_secret_redacts_first ... ok
+test security::tests::redteam_suite_blocks_all_ten_adversarial_vectors ... ok
+test space::tests::doctor_rejects_unknown_arguments ... ok
+test space::tests::monitor_sandbox_is_mandatory_and_offline ... ok
+test space::tests::qemu_configuration_is_offline_and_has_no_host_share ... ok
+test space::tests::refuses_non_files ... ok
+test space::tests::requires_explicit_acknowledgement_and_both_images ... ok
+test space::tests::sandboxed_guest_boots_without_network ... ignored, requires QEMU, bubblewrap, user namespaces and CI-supplied guest images
+test taskpack::tests::families_resolve_to_their_pinned_files ... ok
+test taskpack::tests::seeded_signals_cover_every_oracle_surface ... ok
+test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
+test taskpack::tests::seeded_sources_stay_minimal ... ok
+test tests::cli_commands_reject_invalid_inputs ... ok
+test tests::cli_input_validation_rejects_unsafe_ranges ... ok
+test tests::crucible_verify_passes_on_deterministic_fixture ... ok
+test tests::crucible_verify_rejects_expected_verdict_mismatch ... ok
+test tests::crucible_verify_rejects_flaky_fixture ... ok
+test tests::false_claim_does_not_advance_goal ... ok
+test memory::tests::space_supervisor_persists_resumes_and_rebuilds_bm25_memory ... ok
+test tests::flag_rejects_duplicate_and_unsafe_values ... ok
+test tests::happy_path_verifies_and_replays_identically ... ok
+test tests::incomplete_goal_is_not_reported_as_success ... ok
+test tests::machine_gate_never_labels_shape_pass_as_measured ... ok
+test tests::machine_profiles_lists_registry_and_rejects_arguments ... ok
+test tests::non_canonical_ledger_line_is_rejected ... ok
+test tests::optional_flag_rejects_duplicate_unknown_and_unsafe_values ... ok
+test tests::optional_flag_rejects_missing_value ... ok
+test tests::parse_exact_flags_rejects_unknown_duplicate_and_odd_arguments ... ok
+test tests::state_path_preserves_non_utf8_bytes ... ok
+test tests::tamper_and_truncation_are_detected ... ok
+test econbench::tests::econbench_report_runs_twenty_offline_fixtures ... ok
+test tests::timeout_is_a_failure_not_a_pass ... ok
+test workspace::tests::detects_only_actual_shm_tmpfs_mounts ... ok
+test workspace::tests::run_requires_explicit_experimental_and_unique_inputs ... ok
+test workspace::tests::temporary_workspace_removed_on_drop ... ok
+test tests::verifier_panel_resolves_five_sources ... ok
+test tests::adversarial_corpus_has_twenty_spec_only_fixtures ... ok
+test tests::fixture_population_covers_real_fixtures ... ok
+
+test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.89s
+
+     Running unittests src/main.rs (target/debug/build/spacetime-ctl/efb0edb5051ff77e/out/spacetime_ctl-efb0edb5051ff77e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
+
+running 8 tests
+test oracles_never_reference_a_candidate ... ok
+test candidates_are_checked_in_without_a_private_abi_copy ... ok
+test protocol_recording_is_well_formed ... ok
+test differential_corpus_covers_every_function_and_stays_well_formed ... ok
+test seeded_workspaces_are_bounded_and_offline ... ok
+test seeds_cover_every_oracle_signal ... ok
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
+assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
+assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/02_wallet_exact_balance.assembled.rs
+assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
+assemble: reference/protocol_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.assembled.rs
+assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/03_wallet_idempotent_replay.assembled.rs
+test reference_solutions_pass_every_check ... FAILED
+assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/04_wallet_id_reuse.assembled.rs
+assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/05_wallet_overflow_atomicity.assembled.rs
+assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/06_wallet_invalid_requests.assembled.rs
+assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/07_wallet_tamper_detection.assembled.rs
+assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/08_transform_bit_reverse.assembled.rs
+assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/09_transform_byte_swap.assembled.rs
+assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/10_transform_rotate_left.assembled.rs
+assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/11_transform_rotate_right.assembled.rs
+assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/12_transform_saturating_add.assembled.rs
+assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/13_transform_checked_mul.assembled.rs
+assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/14_transform_parity.assembled.rs
+assemble: seeded/15_protocol_double_begin/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.assembled.rs
+test every_seeded_bug_is_caught_by_its_own_signal ... FAILED
+
+failures:
+
+---- reference_solutions_pass_every_check stdout ----
+
+thread 'reference_solutions_pass_every_check' (3113) panicked at apps/spacetime-ctl/tests/taskpack.rs:401:6:
+the protocol reference must assemble and compile: "rustc rejected reference-protocol:\nerror[E0428]: the name `split_recording_line` is defined multiple times\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:481:1\n    |\n 83 | pub fn split_recording_line(line: &str) -> Option<(String, String)> {\n    | ------------------------------------------------------------------- previous definition of the value `split_recording_line` here\n...\n481 | fn split_recording_line(line: &str) -> Option<(String, String)> {\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `split_recording_line` redefined here\n    |\n    = note: `split_recording_line` must be defined only once in the value namespace of this module\n\nerror[E0432]: unresolved import `crate::ProtocolState`\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:183:44\n    |\n183 |     use crate::{ProtocolError, ProtocolOp, ProtocolState};\n    |                                            ^^^^^^^^^^^^^ no `ProtocolState` in the root\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:76:20\n   |\n76 |     Final { state: ProtocolState },\n   |                    ^^^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:76:20\n   |\n76 |     Final { state: ProtocolState },\n   |                    ^^^^^^^^^^^^^ not found in this scope\n   |\nhelp: you might be missing a type parameter\n   |\n72 | pub enum TraceExpectation<ProtocolState> {\n   |                          +++++++++++++++\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:118:44\n    |\n118 | pub fn parse_state(column: &str) -> Option<ProtocolState> {\n    |                                            ^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: you might be missing a type parameter\n    |\n118 | pub fn parse_state<ProtocolState>(column: &str) -> Option<ProtocolState> {\n    |                   +++++++++++++++\n\nerror[E0422]: cannot find struct, variant or union type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:123:21\n    |\n123 |     let mut state = ProtocolState {\n    |                     ^^^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:375:29\n    |\n375 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {\n    |                             ^^^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:375:50\n    |\n375 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {\n    |                                                  ^^^^^^^^^^^^^ not found in this scope\n\nerror: aborting due to 8 previous errors\n\nSome errors have detailed explanations: E0422, E0425, E0428, E0432.\nFor more information about an error, try `rustc --explain E0422`.\n"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- every_seeded_bug_is_caught_by_its_own_signal stdout ----
+
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (3105) panicked at apps/spacetime-ctl/tests/taskpack.rs:442:37:
+seed 15_protocol_double_begin must still compile: rustc rejected 15_protocol_double_begin:
+error[E0428]: the name `split_recording_line` is defined multiple times
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:450:1
+    |
+ 83 | pub fn split_recording_line(line: &str) -> Option<(String, String)> {
+    | ------------------------------------------------------------------- previous definition of the value `split_recording_line` here
+...
+450 | fn split_recording_line(line: &str) -> Option<(String, String)> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `split_recording_line` redefined here
+    |
+    = note: `split_recording_line` must be defined only once in the value namespace of this module
+
+error[E0432]: unresolved import `crate::ProtocolState`
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:182:44
+    |
+182 |     use crate::{ProtocolError, ProtocolOp, ProtocolState};
+    |                                            ^^^^^^^^^^^^^ no `ProtocolState` in the root
+
+error[E0425]: cannot find type `ProtocolState` in this scope
+  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:76:20
+   |
+76 |     Final { state: ProtocolState },
+   |                    ^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ProtocolState` in this scope
+  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:76:20
+   |
+76 |     Final { state: ProtocolState },
+   |                    ^^^^^^^^^^^^^ not found in this scope
+   |
+help: you might be missing a type parameter
+   |
+72 | pub enum TraceExpectation<ProtocolState> {
+   |                          +++++++++++++++
+
+error[E0425]: cannot find type `ProtocolState` in this scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:118:44
+    |
+118 | pub fn parse_state(column: &str) -> Option<ProtocolState> {
+    |                                            ^^^^^^^^^^^^^ not found in this scope
+    |
+help: you might be missing a type parameter
+    |
+118 | pub fn parse_state<ProtocolState>(column: &str) -> Option<ProtocolState> {
+    |                   +++++++++++++++
+
+error[E0422]: cannot find struct, variant or union type `ProtocolState` in this scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:123:21
+    |
+123 |     let mut state = ProtocolState {
+    |                     ^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ProtocolState` in this scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:344:29
+    |
+344 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {
+    |                             ^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find type `ProtocolState` in this scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:344:50
+    |
+344 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {
+    |                                                  ^^^^^^^^^^^^^ not found in this scope
+
+error: aborting due to 8 previous errors
+
+Some errors have detailed explanations: E0422, E0425, E0428, E0432.
+For more information about an error, try `rustc --explain E0422`.
+
+
+
+failures:
+    every_seeded_bug_is_caught_by_its_own_signal
+    reference_solutions_pass_every_check
+
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+
+error: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
+exit: 101
