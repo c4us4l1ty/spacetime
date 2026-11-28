@@ -1,11 +1,11 @@
 === verify ===
-status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/happy.jsonl
-status=Unverified events=1 ledger=/tmp/spacetime-verify-2515-0/false.jsonl
-status=Failed events=1 ledger=/tmp/spacetime-verify-2515-0/timeout.jsonl
-status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/tamper.jsonl
-status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/truncate.jsonl
-status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/canonical.jsonl
-status=InProgress events=1 ledger=/tmp/spacetime-verify-2515-0/incomplete.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2475-0/happy.jsonl
+status=Unverified events=1 ledger=/tmp/spacetime-verify-2475-0/false.jsonl
+status=Failed events=1 ledger=/tmp/spacetime-verify-2475-0/timeout.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2475-0/tamper.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2475-0/truncate.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2475-0/canonical.jsonl
+status=InProgress events=1 ledger=/tmp/spacetime-verify-2475-0/incomplete.jsonl
 verdict=pass verifier_id=crucible-verifier-v2
 source=FixtureSuite source_priority=1 expected_verdict=fail
 determinism_runs=2 mutation_score_bps=10000 evidence_digest=f379ccb92b9116442dc65bdc35648a85d3786b34779db7f704a901fa07b00cb6
@@ -14,7 +14,7 @@ verdict=pass verifier_id=crucible-verifier-v2
 source=FixtureSuite source_priority=1 expected_verdict=pass
 determinism_runs=2 mutation_score_bps=10000 evidence_digest=35c31ed2d8897a1f98d8c0ec907135afa3944075e66e02bddcb8576a0978480d
 execution_profile_digest=b9185fbdf6e5cca21f450646a227734e089e9f8b4e7ec6db253c7584b9c9b46c
-console_report=/tmp/spacetime-verify-2515-0/console-report.json ledger_events=4 wallet_ledger_verified=true
+console_report=/tmp/spacetime-verify-2475-0/console-report.json ledger_events=4 wallet_ledger_verified=true
 assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/reference-wallet.assembled.rs
 assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/reference-transform.assembled.rs
 assemble: reference/protocol_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/reference-protocol.assembled.rs
@@ -40,9 +40,9 @@ assemble: seeded/19_protocol_read_early/protocol.rs + ABI -> /home/runner/work/s
 assemble: seeded/20_protocol_abort_without_transaction/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/20_protocol_abort_without_transaction.assembled.rs
 schema_version = 1
 report = "end_to_end_verification"
-status = "fail"
+status = "pass"
 gates = 40
-failed = 1
+failed = 0
 resource_gate = "unmeasured_target_4gb"
 performance_claims = "unmeasured"
 measurement_intake = "none"
@@ -193,8 +193,8 @@ status = "pass"
 detail = "passing=20 planted_bugs_caught=20 bounties=20 fake_credits_total=60"
 [[gate]]
 name = "block3_task_pack_seeded_workspaces"
-status = "fail"
-detail = "the task pack no longer ships fourteen seeded candidates"
+status = "pass"
+detail = "candidates=20 planted_bugs_caught=20 corpus_rows=2498 protocol_tasks=6 protocol_traces=21"
 [[gate]]
 name = "provenance_gate_contract"
 status = "pass"
@@ -231,11 +231,10 @@ detail = "cas_isolation=true collapse=1 branch=1 bundle_roundtrip=verified"
 name = "egress_airlock_and_distillation"
 status = "pass"
 detail = "egress_guarded=true airlock_one_shot=true drift_quarantine=true"
-error: 1 end-to-end verification gates failed
-verify exit: 1
-status = "fail"
+verify exit: 0
+status = "pass"
 gates = 40
-failed = 1
+failed = 0
 status = "pass"
 status = "pass"
 status = "pass"
@@ -266,7 +265,6 @@ status = "pass"
 status = "pass"
 status = "pass"
 status = "pass"
-status = "fail"
 status = "pass"
 status = "pass"
 status = "pass"
@@ -276,22 +274,4 @@ status = "pass"
 status = "pass"
 status = "pass"
 status = "pass"
-schema_version = 1
-report = "end_to_end_verification"
-status = "fail"
-gates = 40
-failed = 1
-resource_gate = "unmeasured_target_4gb"
-performance_claims = "unmeasured"
-measurement_intake = "none"
-measurement_evaluator = "none"
---
-[[gate]]
-name = "block3_task_pack_seeded_workspaces"
-status = "fail"
-detail = "the task pack no longer ships fourteen seeded candidates"
-[[gate]]
-name = "provenance_gate_contract"
 status = "pass"
-detail = "unmeasured_default=true ci_rejected=true valid_attested_verified=true"
-[[gate]]
