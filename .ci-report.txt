@@ -1,44 +1,44 @@
 === cargo test -p spacetime-ctl ===
     Updating crates.io index
  Downloading crates ...
-  Downloaded cpufeatures v0.2.17
-  Downloaded block-buffer v0.10.4
   Downloaded crypto-common v0.1.7
-  Downloaded cfg-if v1.0.5
+  Downloaded block-buffer v0.10.4
   Downloaded digest v0.10.7
-  Downloaded itoa v1.0.19
+  Downloaded cfg-if v1.0.5
+  Downloaded cpufeatures v0.2.17
+  Downloaded serde_json v1.0.154
   Downloaded version_check v0.9.5
-  Downloaded quote v1.0.47
   Downloaded generic-array v0.14.7
-  Downloaded sha2 v0.10.9
-  Downloaded serde_derive v1.0.229
-  Downloaded unicode-ident v1.0.27
+  Downloaded itoa v1.0.19
   Downloaded zmij v1.0.23
-  Downloaded serde v1.0.229
+  Downloaded unicode-ident v1.0.27
+  Downloaded sha2 v0.10.9
+  Downloaded quote v1.0.47
   Downloaded proc-macro2 v1.0.107
   Downloaded serde_core v1.0.229
+  Downloaded serde v1.0.229
   Downloaded memchr v2.8.3
+  Downloaded serde_derive v1.0.229
   Downloaded typenum v1.20.1
-  Downloaded serde_json v1.0.154
   Downloaded syn v3.0.10
    Compiling version_check v0.9.5
    Compiling proc-macro2 v1.0.107
-   Compiling quote v1.0.47
    Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
    Compiling typenum v1.20.1
-   Compiling serde_core v1.0.229
    Compiling generic-array v0.14.7
+   Compiling serde_core v1.0.229
    Compiling zmij v1.0.23
    Compiling serde_json v1.0.154
    Compiling serde v1.0.229
    Compiling syn v3.0.10
-   Compiling memchr v2.8.3
+   Compiling itoa v1.0.19
+   Compiling cpufeatures v0.2.17
    Compiling block-buffer v0.10.4
    Compiling crypto-common v0.1.7
-   Compiling digest v0.10.7
-   Compiling cpufeatures v0.2.17
-   Compiling itoa v1.0.19
    Compiling cfg-if v1.0.5
+   Compiling digest v0.10.7
+   Compiling memchr v2.8.3
    Compiling sha2 v0.10.9
    Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
    Compiling serde_derive v1.0.229
@@ -48,7 +48,7 @@
    Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
    Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
    Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.50s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.48s
      Running unittests src/lib.rs (target/debug/build/spacetime-ctl/c13b477211acb967/out/spacetime_ctl-c13b477211acb967)
 
 running 52 tests
@@ -56,9 +56,9 @@ test console::tests::console_flags_reject_duplicate_unknown_and_missing_values .
 test dashboard::tests::empty_history_is_clear ... ok
 test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
 test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
-test console::tests::console_report_reads_checked_in_ledger ... ok
-test econbench::tests::bench_run_flags_are_bounded ... ok
 test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
+test econbench::tests::bench_run_flags_are_bounded ... ok
+test console::tests::console_report_reads_checked_in_ledger ... ok
 test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
 test initramfs::tests::archive_headers_describe_bootable_entries ... ok
 test initramfs::tests::optional_app_is_included_and_dynamic_apps_are_rejected ... ok
@@ -76,8 +76,8 @@ test space::tests::requires_explicit_acknowledgement_and_both_images ... ok
 test space::tests::sandboxed_guest_boots_without_network ... ignored, requires QEMU, bubblewrap, user namespaces and CI-supplied guest images
 test taskpack::tests::families_resolve_to_their_pinned_files ... ok
 test taskpack::tests::seeded_signals_cover_every_oracle_surface ... ok
-test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
 test taskpack::tests::seeded_sources_stay_minimal ... ok
+test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
 test tests::cli_commands_reject_invalid_inputs ... ok
 test tests::cli_input_validation_rejects_unsafe_ranges ... ok
 test tests::crucible_verify_passes_on_deterministic_fixture ... ok
@@ -105,7 +105,7 @@ test tests::verifier_panel_resolves_five_sources ... ok
 test tests::adversarial_corpus_has_twenty_spec_only_fixtures ... ok
 test tests::fixture_population_covers_real_fixtures ... ok
 
-test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.89s
+test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.93s
 
      Running unittests src/main.rs (target/debug/build/spacetime-ctl/efb0edb5051ff77e/out/spacetime_ctl-efb0edb5051ff77e)
 
@@ -117,13 +117,13 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
 running 8 tests
 test oracles_never_reference_a_candidate ... ok
-test candidates_are_checked_in_without_a_private_abi_copy ... ok
 test protocol_recording_is_well_formed ... ok
-test differential_corpus_covers_every_function_and_stays_well_formed ... ok
+test candidates_are_checked_in_without_a_private_abi_copy ... ok
 test seeded_workspaces_are_bounded_and_offline ... ok
 test seeds_cover_every_oracle_signal ... ok
-assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
+test differential_corpus_covers_every_function_and_stays_well_formed ... ok
 assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
 assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/02_wallet_exact_balance.assembled.rs
 assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
 assemble: reference/protocol_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.assembled.rs
@@ -147,81 +147,80 @@ failures:
 
 ---- reference_solutions_pass_every_check stdout ----
 
-thread 'reference_solutions_pass_every_check' (3113) panicked at apps/spacetime-ctl/tests/taskpack.rs:401:6:
-the protocol reference must assemble and compile: "rustc rejected reference-protocol:\nerror[E0428]: the name `split_recording_line` is defined multiple times\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:481:1\n    |\n 83 | pub fn split_recording_line(line: &str) -> Option<(String, String)> {\n    | ------------------------------------------------------------------- previous definition of the value `split_recording_line` here\n...\n481 | fn split_recording_line(line: &str) -> Option<(String, String)> {\n    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `split_recording_line` redefined here\n    |\n    = note: `split_recording_line` must be defined only once in the value namespace of this module\n\nerror[E0432]: unresolved import `crate::ProtocolState`\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:183:44\n    |\n183 |     use crate::{ProtocolError, ProtocolOp, ProtocolState};\n    |                                            ^^^^^^^^^^^^^ no `ProtocolState` in the root\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:76:20\n   |\n76 |     Final { state: ProtocolState },\n   |                    ^^^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:76:20\n   |\n76 |     Final { state: ProtocolState },\n   |                    ^^^^^^^^^^^^^ not found in this scope\n   |\nhelp: you might be missing a type parameter\n   |\n72 | pub enum TraceExpectation<ProtocolState> {\n   |                          +++++++++++++++\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:118:44\n    |\n118 | pub fn parse_state(column: &str) -> Option<ProtocolState> {\n    |                                            ^^^^^^^^^^^^^ not found in this scope\n    |\nhelp: you might be missing a type parameter\n    |\n118 | pub fn parse_state<ProtocolState>(column: &str) -> Option<ProtocolState> {\n    |                   +++++++++++++++\n\nerror[E0422]: cannot find struct, variant or union type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:123:21\n    |\n123 |     let mut state = ProtocolState {\n    |                     ^^^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:375:29\n    |\n375 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {\n    |                             ^^^^^^^^^^^^^ not found in this scope\n\nerror[E0425]: cannot find type `ProtocolState` in this scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:375:50\n    |\n375 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {\n    |                                                  ^^^^^^^^^^^^^ not found in this scope\n\nerror: aborting due to 8 previous errors\n\nSome errors have detailed explanations: E0422, E0425, E0428, E0432.\nFor more information about an error, try `rustc --explain E0422`.\n"
+thread 'reference_solutions_pass_every_check' (3813) panicked at apps/spacetime-ctl/tests/taskpack.rs:401:6:
+the protocol reference must assemble and compile: "rustc rejected reference-protocol:\nerror[E0599]: no method named `op_index` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:348:20\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `op_index` not found for this enum\n...\n348 |             if got.op_index() != *op_index {\n    |                    ^^^^^^^^ method not found in `ProtocolError`\n\nerror[E0599]: no method named `op_index` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:351:25\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `op_index` not found for this enum\n...\n351 |                     got.op_index(),\n    |                         ^^^^^^^^ method not found in `ProtocolError`\n\nerror[E0599]: no method named `error` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:353:25\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `error` not found for this enum\n...\n353 |                     got.error().as_str()\n    |                         ^^^^^ method not found in `ProtocolError`\n\nerror[E0599]: no method named `error` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:356:20\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `error` not found for this enum\n...\n356 |             if got.error().as_str() != error.as_str() {\n    |                    ^^^^^ method not found in `ProtocolError`\n\nerror[E0599]: no method named `error` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:359:25\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `error` not found for this enum\n...\n359 |                     got.error().as_str()\n    |                         ^^^^^ method not found in `ProtocolError`\n\nerror[E0599]: no method named `op_index` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:376:17\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `op_index` not found for this enum\n...\n376 |             got.op_index(),\n    |                 ^^^^^^^^ method not found in `ProtocolError`\n\nerror[E0599]: no method named `error` found for enum `ProtocolError` in the current scope\n   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.grader.rs:377:17\n    |\n 58 | pub enum ProtocolError {\n    | ---------------------- method `error` not found for this enum\n...\n377 |             got.error().as_str()\n    |                 ^^^^^ method not found in `ProtocolError`\n\nerror: aborting due to 7 previous errors\n\nFor more information about this error, try `rustc --explain E0599`.\n"
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 ---- every_seeded_bug_is_caught_by_its_own_signal stdout ----
 
-thread 'every_seeded_bug_is_caught_by_its_own_signal' (3105) panicked at apps/spacetime-ctl/tests/taskpack.rs:442:37:
+thread 'every_seeded_bug_is_caught_by_its_own_signal' (3809) panicked at apps/spacetime-ctl/tests/taskpack.rs:442:37:
 seed 15_protocol_double_begin must still compile: rustc rejected 15_protocol_double_begin:
-error[E0428]: the name `split_recording_line` is defined multiple times
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:450:1
+error[E0599]: no method named `op_index` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:317:20
     |
- 83 | pub fn split_recording_line(line: &str) -> Option<(String, String)> {
-    | ------------------------------------------------------------------- previous definition of the value `split_recording_line` here
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `op_index` not found for this enum
 ...
-450 | fn split_recording_line(line: &str) -> Option<(String, String)> {
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `split_recording_line` redefined here
+317 |             if got.op_index() != *op_index {
+    |                    ^^^^^^^^ method not found in `ProtocolError`
+
+error[E0599]: no method named `op_index` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:320:25
     |
-    = note: `split_recording_line` must be defined only once in the value namespace of this module
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `op_index` not found for this enum
+...
+320 |                     got.op_index(),
+    |                         ^^^^^^^^ method not found in `ProtocolError`
 
-error[E0432]: unresolved import `crate::ProtocolState`
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:182:44
+error[E0599]: no method named `error` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:322:25
     |
-182 |     use crate::{ProtocolError, ProtocolOp, ProtocolState};
-    |                                            ^^^^^^^^^^^^^ no `ProtocolState` in the root
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `error` not found for this enum
+...
+322 |                     got.error().as_str()
+    |                         ^^^^^ method not found in `ProtocolError`
 
-error[E0425]: cannot find type `ProtocolState` in this scope
-  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:76:20
-   |
-76 |     Final { state: ProtocolState },
-   |                    ^^^^^^^^^^^^^ not found in this scope
-
-error[E0425]: cannot find type `ProtocolState` in this scope
-  --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:76:20
-   |
-76 |     Final { state: ProtocolState },
-   |                    ^^^^^^^^^^^^^ not found in this scope
-   |
-help: you might be missing a type parameter
-   |
-72 | pub enum TraceExpectation<ProtocolState> {
-   |                          +++++++++++++++
-
-error[E0425]: cannot find type `ProtocolState` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:118:44
+error[E0599]: no method named `error` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:325:20
     |
-118 | pub fn parse_state(column: &str) -> Option<ProtocolState> {
-    |                                            ^^^^^^^^^^^^^ not found in this scope
-    |
-help: you might be missing a type parameter
-    |
-118 | pub fn parse_state<ProtocolState>(column: &str) -> Option<ProtocolState> {
-    |                   +++++++++++++++
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `error` not found for this enum
+...
+325 |             if got.error().as_str() != error.as_str() {
+    |                    ^^^^^ method not found in `ProtocolError`
 
-error[E0422]: cannot find struct, variant or union type `ProtocolState` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:123:21
+error[E0599]: no method named `error` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:328:25
     |
-123 |     let mut state = ProtocolState {
-    |                     ^^^^^^^^^^^^^ not found in this scope
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `error` not found for this enum
+...
+328 |                     got.error().as_str()
+    |                         ^^^^^ method not found in `ProtocolError`
 
-error[E0425]: cannot find type `ProtocolState` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:344:29
+error[E0599]: no method named `op_index` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:345:17
     |
-344 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {
-    |                             ^^^^^^^^^^^^^ not found in this scope
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `op_index` not found for this enum
+...
+345 |             got.op_index(),
+    |                 ^^^^^^^^ method not found in `ProtocolError`
 
-error[E0425]: cannot find type `ProtocolState` in this scope
-   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:344:50
+error[E0599]: no method named `error` found for enum `ProtocolError` in the current scope
+   --> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.grader.rs:346:17
     |
-344 | fn compare_state(expected: &ProtocolState, got: &ProtocolState) -> Result<(), String> {
-    |                                                  ^^^^^^^^^^^^^ not found in this scope
+ 58 | pub enum ProtocolError {
+    | ---------------------- method `error` not found for this enum
+...
+346 |             got.error().as_str()
+    |                 ^^^^^ method not found in `ProtocolError`
 
-error: aborting due to 8 previous errors
+error: aborting due to 7 previous errors
 
-Some errors have detailed explanations: E0422, E0425, E0428, E0432.
-For more information about an error, try `rustc --explain E0422`.
+For more information about this error, try `rustc --explain E0599`.
 
 
 
@@ -229,7 +228,7 @@ failures:
     every_seeded_bug_is_caught_by_its_own_signal
     reference_solutions_pass_every_check
 
-test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.91s
 
 error: test failed, to rerun pass `-p spacetime-ctl --test taskpack`
 exit: 101
