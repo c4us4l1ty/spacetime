@@ -633,9 +633,24 @@ fn candidates_are_checked_in_without_a_private_abi_copy() {
                     );
                 }
             }
+            Family::Protocol => {
+                assert_eq!(
+                    text.matches("pub mod protocol {").count(),
+                    1,
+                    "{seed} must define exactly one protocol module"
+                );
+                assert!(
+                    text.contains("pub fn replay("),
+                    "{seed} is missing the pinned replay function"
+                );
+            }
         }
     }
-    for reference in ["reference/wallet_ref.rs", "reference/transform_ref.rs"] {
+    for reference in [
+        "reference/wallet_ref.rs",
+        "reference/transform_ref.rs",
+        "reference/protocol_ref.rs",
+    ] {
         let text = std::fs::read_to_string(taskpack_dir().join(reference)).expect("reference");
         assert!(!text.contains("CANDIDATE EVENT ABI"));
     }
@@ -661,6 +676,14 @@ fn oracles_never_reference_a_candidate() {
         assert!(
             !transform.contains(forbidden),
             "the hidden transform oracle must not reference a candidate via {forbidden}"
+        );
+    }
+    let protocol = std::fs::read_to_string(taskpack_dir().join("oracle/protocol_oracle.rs"))
+        .expect("protocol oracle must be readable");
+    for forbidden in ["include!", "seeded/", "reference/"] {
+        assert!(
+            !protocol.contains(forbidden),
+            "the hidden protocol oracle must not reference a candidate via {forbidden}"
         );
     }
     assert!(
