@@ -99,6 +99,22 @@ fn main() {
 
 /// Grade one trace against its recording.
 fn grade_trace(trace: &Trace) -> Result<(), String> {
+    // Re-parse the raw `put`/`begin`/... columns and require the same count, so a trace the oracle
+    // mis-parsed cannot be graded as if it had been read correctly.
+    let mut reparsed: Vec<ProtocolOp> = Vec::with_capacity(trace.raw_ops.len());
+    for raw in &trace.raw_ops {
+        match parse_operation(raw) {
+            Some(operation) => reparsed.push(operation),
+            None => return Err(format!("the oracle cannot re-read the recorded op {raw:?}")),
+        }
+    }
+    if reparsed != trace.ops {
+        return Err(format!(
+            "the oracle parsed {} operations from {} recorded rows",
+            trace.ops.len(),
+            trace.raw_ops.len()
+        ));
+    }
     let replay = protocol::replay(&trace.ops);
     match (&trace.outcome, replay) {
         (TraceExpectation::Error { op_index, error }, Err(got)) => {
