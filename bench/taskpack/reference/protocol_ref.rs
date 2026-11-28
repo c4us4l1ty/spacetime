@@ -21,7 +21,7 @@ pub mod protocol {
             records: Vec::new(),
             reads: 0,
         };
-        for operation in operations {
+        for (index, operation) in operations.iter().enumerate() {
             match operation {
                 ProtocolOp::Begin if !state.begun && !state.committed && !state.aborted => {
                     state.begun = true;
@@ -32,7 +32,7 @@ pub mod protocol {
                     // A record may only be appended at the next free index, so a duplicate or a
                     // gap is refused rather than silently coerced.
                     if *sequence != state.records.len() {
-                        return Err(ProtocolError::InvalidOperation);
+                        return Err(ProtocolError::invalid_operation(index));
                     }
                     state.records.push(value.clone());
                 }
@@ -50,9 +50,9 @@ pub mod protocol {
                     state.reads = state
                         .reads
                         .checked_add(1)
-                        .ok_or(ProtocolError::OutOfRange)?;
+                        .ok_or(ProtocolError::out_of_range(index))?;
                 }
-                _ => return Err(ProtocolError::InvalidOperation),
+                _ => return Err(ProtocolError::invalid_operation(index)),
             }
         }
         Ok(state)

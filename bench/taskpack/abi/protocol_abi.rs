@@ -53,24 +53,39 @@ pub enum ProtocolOp {
     Read,
 }
 
-/// Why a replay refused to apply an operation.
+/// Why a replay refused to apply an operation, and which operation it was.
+///
+/// The operation index and the reason are both part of the contract rather than of the oracle: a
+/// recording says *where* a trace is refused and *why*, so a candidate that refuses the right
+/// trace at the wrong operation is not implementing the protocol.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProtocolError {
-    /// The operation is not legal in the current state.
-    InvalidOperation,
-    /// A record index or counter would not fit the recording's integer type.
-    OutOfRange,
+pub struct ProtocolError {
+    /// Zero-based index of the operation the replay refused.
+    pub op_index: usize,
+    /// Stable reason name, one of `REASONS`.
+    pub reason: &'static str,
 }
 
 impl ProtocolError {
-    /// Stable name used in the machine-readable grader output.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ProtocolError::InvalidOperation => "invalid_operation",
-            ProtocolError::OutOfRange => "out_of_range",
+    /// The operation is not legal in the current state.
+    pub fn invalid_operation(op_index: usize) -> ProtocolError {
+        ProtocolError {
+            op_index,
+            reason: "invalid_operation",
+        }
+    }
+
+    /// A record index or counter would not fit the recording's integer type.
+    pub fn out_of_range(op_index: usize) -> ProtocolError {
+        ProtocolError {
+            op_index,
+            reason: "out_of_range",
         }
     }
 }
+
+/// Every reason name a replay may report, pinned so a candidate cannot invent one.
+pub const REASONS: [&str; 2] = ["invalid_operation", "out_of_range"];
 
 /// One line of a trace recording, as captured by the protocol's own auditor.
 ///

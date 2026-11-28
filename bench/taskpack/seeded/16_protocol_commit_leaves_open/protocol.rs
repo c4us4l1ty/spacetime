@@ -16,12 +16,12 @@ pub mod protocol {
             records: Vec::new(),
             reads: 0,
         };
-        for operation in operations {
+        for (index, operation) in operations.iter().enumerate() {
             match operation {
                 ProtocolOp::Commit if state.begun && !state.committed && !state.aborted => {
                     state.committed = true;
                 }
-                _ => return Err(ProtocolError::InvalidOperation),
+                _ => return Err(ProtocolError::invalid_operation(index)),
             }
         }
         Ok(state)

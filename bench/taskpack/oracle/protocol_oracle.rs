@@ -102,18 +102,24 @@ fn grade_trace(trace: &Trace) -> Result<(), String> {
     let replay = protocol::replay(&trace.ops);
     match (&trace.outcome, replay) {
         (TraceExpectation::Error { op_index, error }, Err(got)) => {
-            if got.op_index() != *op_index {
+            if !REASONS.contains(&got.reason) {
                 return Err(format!(
-                    "refused at op {} instead of the recorded op {} ({})",
-                    got.op_index(),
-                    op_index,
-                    got.error().as_str()
+                    "refused op {} with an unpinned reason {:?}",
+                    got.op_index, got.reason
                 ));
             }
-            if got.error().as_str() != error.as_str() {
+            if got.op_index != *op_index {
+                return Err(format!(
+                    "refused at op {} instead of the recorded op {} ({})",
+                    got.op_index,
+                    op_index,
+                    got.reason
+                ));
+            }
+            if got.reason != error.as_str() {
                 return Err(format!(
                     "refused op {op_index} with {} instead of the recorded {error}",
-                    got.error().as_str()
+                    got.reason
                 ));
             }
             Ok(())
@@ -130,8 +136,7 @@ fn grade_trace(trace: &Trace) -> Result<(), String> {
         (TraceExpectation::Final { state: expected }, Ok(got)) => compare_state(expected, &got),
         (TraceExpectation::Final { state: expected }, Err(got)) => Err(format!(
             "refused op {} with {}; the recording accepts every operation (expected {expected:?})",
-            got.op_index(),
-            got.error().as_str()
+            got.op_index, got.reason
         )),
     }
 }
