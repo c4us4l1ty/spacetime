@@ -1,153 +1,297 @@
-=== cargo test -p spacetime-ctl ===
-    Updating crates.io index
- Downloading crates ...
-  Downloaded digest v0.10.7
-  Downloaded itoa v1.0.19
-  Downloaded serde_core v1.0.229
-  Downloaded cpufeatures v0.2.17
-  Downloaded crypto-common v0.1.7
-  Downloaded version_check v0.9.5
-  Downloaded memchr v2.8.3
-  Downloaded quote v1.0.47
-  Downloaded proc-macro2 v1.0.107
-  Downloaded serde_json v1.0.154
-  Downloaded generic-array v0.14.7
-  Downloaded serde_derive v1.0.229
-  Downloaded unicode-ident v1.0.27
-  Downloaded block-buffer v0.10.4
-  Downloaded typenum v1.20.1
-  Downloaded cfg-if v1.0.5
-  Downloaded serde v1.0.229
-  Downloaded sha2 v0.10.9
-  Downloaded syn v3.0.10
-  Downloaded zmij v1.0.23
-   Compiling version_check v0.9.5
-   Compiling proc-macro2 v1.0.107
-   Compiling unicode-ident v1.0.27
-   Compiling quote v1.0.47
-   Compiling typenum v1.20.1
-   Compiling serde_core v1.0.229
-   Compiling generic-array v0.14.7
-   Compiling zmij v1.0.23
-   Compiling serde_json v1.0.154
-   Compiling serde v1.0.229
-   Compiling syn v3.0.10
-   Compiling memchr v2.8.3
-   Compiling crypto-common v0.1.7
-   Compiling block-buffer v0.10.4
-   Compiling digest v0.10.7
-   Compiling cpufeatures v0.2.17
-   Compiling cfg-if v1.0.5
-   Compiling itoa v1.0.19
-   Compiling sha2 v0.10.9
-   Compiling spacetime-exec v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-exec)
-   Compiling serde_derive v1.0.229
-   Compiling spacetime-types v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-types)
-   Compiling spacetime-ledger v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-ledger)
-   Compiling spacetime-bench v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-bench)
-   Compiling spacetime-verifier v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-verifier)
-   Compiling spacetime-cortex v0.1.0 (/home/runner/work/spacetime/spacetime/crates/spacetime-cortex)
-   Compiling spacetime-ctl v0.1.0 (/home/runner/work/spacetime/spacetime/apps/spacetime-ctl)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.52s
-     Running unittests src/lib.rs (target/debug/build/spacetime-ctl/c13b477211acb967/out/spacetime_ctl-c13b477211acb967)
-
-running 52 tests
-test console::tests::console_flags_reject_duplicate_unknown_and_missing_values ... ok
-test dashboard::tests::empty_history_is_clear ... ok
-test dashboard::tests::invalid_arguments_and_missing_ledgers_are_rejected ... ok
-test airlock::tests::airlock_enforces_one_shot_clipboard_canary_check_and_symlink_denial ... ok
-test dashboard::tests::sample_ledger_is_verified_before_rendering ... ok
-test econbench::tests::bench_run_flags_are_bounded ... ok
-test console::tests::console_report_reads_checked_in_ledger ... ok
-test initramfs::tests::archive_contains_boot_files_and_is_deterministic ... ok
-test initramfs::tests::archive_headers_describe_bootable_entries ... ok
-test initramfs::tests::optional_app_is_included_and_dynamic_apps_are_rejected ... ok
-test initramfs::tests::parser_requires_unique_flags ... ok
-test initramfs::tests::refuses_to_overwrite_output ... ok
-test initramfs::tests::rejects_dynamic_wrong_arch_and_truncated_images ... ok
-test distill::tests::operator_drift_quarantines_and_skills_require_green_selftest ... ok
-test security::tests::approved_untrusted_spend_consumes_budget_and_longest_secret_redacts_first ... ok
-test security::tests::redteam_suite_blocks_all_ten_adversarial_vectors ... ok
-test space::tests::doctor_rejects_unknown_arguments ... ok
-test space::tests::monitor_sandbox_is_mandatory_and_offline ... ok
-test space::tests::qemu_configuration_is_offline_and_has_no_host_share ... ok
-test space::tests::refuses_non_files ... ok
-test space::tests::requires_explicit_acknowledgement_and_both_images ... ok
-test space::tests::sandboxed_guest_boots_without_network ... ignored, requires QEMU, bubblewrap, user namespaces and CI-supplied guest images
-test taskpack::tests::families_resolve_to_their_pinned_files ... ok
-test taskpack::tests::seeded_signals_cover_every_oracle_surface ... ok
-test taskpack::tests::seeded_sources_stay_minimal ... ok
-test cas::tests::cas_enforces_provenance_isolation_collapse_branch_and_bundle_roundtrip ... ok
-test tests::cli_commands_reject_invalid_inputs ... ok
-test tests::cli_input_validation_rejects_unsafe_ranges ... ok
-test tests::crucible_verify_passes_on_deterministic_fixture ... ok
-test tests::crucible_verify_rejects_expected_verdict_mismatch ... ok
-test tests::crucible_verify_rejects_flaky_fixture ... ok
-test tests::false_claim_does_not_advance_goal ... ok
-test memory::tests::space_supervisor_persists_resumes_and_rebuilds_bm25_memory ... ok
-test tests::flag_rejects_duplicate_and_unsafe_values ... ok
-test tests::happy_path_verifies_and_replays_identically ... ok
-test tests::incomplete_goal_is_not_reported_as_success ... ok
-test tests::machine_gate_never_labels_shape_pass_as_measured ... ok
-test tests::machine_profiles_lists_registry_and_rejects_arguments ... ok
-test tests::non_canonical_ledger_line_is_rejected ... ok
-test tests::optional_flag_rejects_duplicate_unknown_and_unsafe_values ... ok
-test tests::optional_flag_rejects_missing_value ... ok
-test tests::parse_exact_flags_rejects_unknown_duplicate_and_odd_arguments ... ok
-test tests::state_path_preserves_non_utf8_bytes ... ok
-test tests::tamper_and_truncation_are_detected ... ok
-test tests::timeout_is_a_failure_not_a_pass ... ok
-test econbench::tests::econbench_report_runs_twenty_offline_fixtures ... ok
-test workspace::tests::detects_only_actual_shm_tmpfs_mounts ... ok
-test workspace::tests::run_requires_explicit_experimental_and_unique_inputs ... ok
-test workspace::tests::temporary_workspace_removed_on_drop ... ok
-test tests::verifier_panel_resolves_five_sources ... ok
-test tests::adversarial_corpus_has_twenty_spec_only_fixtures ... ok
-test tests::fixture_population_covers_real_fixtures ... ok
-
-test result: ok. 51 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.87s
-
-     Running unittests src/main.rs (target/debug/build/spacetime-ctl/efb0edb5051ff77e/out/spacetime_ctl-efb0edb5051ff77e)
-
-running 0 tests
-
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
-
-     Running tests/taskpack.rs (target/debug/build/spacetime-ctl/05af2fc310c8b500/out/taskpack-05af2fc310c8b500)
-
-running 8 tests
-test oracles_never_reference_a_candidate ... ok
-test protocol_recording_is_well_formed ... ok
-test candidates_are_checked_in_without_a_private_abi_copy ... ok
-test seeded_workspaces_are_bounded_and_offline ... ok
-test seeds_cover_every_oracle_signal ... ok
-test differential_corpus_covers_every_function_and_stays_well_formed ... ok
-assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-wallet.assembled.rs
-assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/01_wallet_overdraft.assembled.rs
-assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/02_wallet_exact_balance.assembled.rs
-assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-transform.assembled.rs
-assemble: reference/protocol_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/reference-protocol.assembled.rs
-assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/03_wallet_idempotent_replay.assembled.rs
-test reference_solutions_pass_every_check ... ok
-assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/04_wallet_id_reuse.assembled.rs
-assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/05_wallet_overflow_atomicity.assembled.rs
-assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/06_wallet_invalid_requests.assembled.rs
-assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/07_wallet_tamper_detection.assembled.rs
-assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/08_transform_bit_reverse.assembled.rs
-assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/09_transform_byte_swap.assembled.rs
-assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/10_transform_rotate_left.assembled.rs
-assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/11_transform_rotate_right.assembled.rs
-assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/12_transform_saturating_add.assembled.rs
-assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/13_transform_checked_mul.assembled.rs
-assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/14_transform_parity.assembled.rs
-assemble: seeded/15_protocol_double_begin/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/15_protocol_double_begin.assembled.rs
-assemble: seeded/16_protocol_commit_leaves_open/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/16_protocol_commit_leaves_open.assembled.rs
-assemble: seeded/17_protocol_abort_keeps_records/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/17_protocol_abort_keeps_records.assembled.rs
-assemble: seeded/18_protocol_sequence_unchecked/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/18_protocol_sequence_unchecked.assembled.rs
-assemble: seeded/19_protocol_read_early/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/19_protocol_read_early.assembled.rs
-assemble: seeded/20_protocol_abort_without_transaction/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ci/20_protocol_abort_without_transaction.assembled.rs
-test every_seeded_bug_is_caught_by_its_own_signal ... ok
-
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.99s
-
-exit: 0
+=== verify ===
+status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/happy.jsonl
+status=Unverified events=1 ledger=/tmp/spacetime-verify-2515-0/false.jsonl
+status=Failed events=1 ledger=/tmp/spacetime-verify-2515-0/timeout.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/tamper.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/truncate.jsonl
+status=Verified events=2 ledger=/tmp/spacetime-verify-2515-0/canonical.jsonl
+status=InProgress events=1 ledger=/tmp/spacetime-verify-2515-0/incomplete.jsonl
+verdict=pass verifier_id=crucible-verifier-v2
+source=FixtureSuite source_priority=1 expected_verdict=fail
+determinism_runs=2 mutation_score_bps=10000 evidence_digest=f379ccb92b9116442dc65bdc35648a85d3786b34779db7f704a901fa07b00cb6
+execution_profile_digest=b9185fbdf6e5cca21f450646a227734e089e9f8b4e7ec6db253c7584b9c9b46c
+verdict=pass verifier_id=crucible-verifier-v2
+source=FixtureSuite source_priority=1 expected_verdict=pass
+determinism_runs=2 mutation_score_bps=10000 evidence_digest=35c31ed2d8897a1f98d8c0ec907135afa3944075e66e02bddcb8576a0978480d
+execution_profile_digest=b9185fbdf6e5cca21f450646a227734e089e9f8b4e7ec6db253c7584b9c9b46c
+console_report=/tmp/spacetime-verify-2515-0/console-report.json ledger_events=4 wallet_ledger_verified=true
+assemble: reference/wallet_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/reference-wallet.assembled.rs
+assemble: reference/transform_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/reference-transform.assembled.rs
+assemble: reference/protocol_ref.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/reference-protocol.assembled.rs
+assemble: seeded/01_wallet_overdraft/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/01_wallet_overdraft.assembled.rs
+assemble: seeded/02_wallet_exact_balance/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/02_wallet_exact_balance.assembled.rs
+assemble: seeded/03_wallet_idempotent_replay/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/03_wallet_idempotent_replay.assembled.rs
+assemble: seeded/04_wallet_id_reuse/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/04_wallet_id_reuse.assembled.rs
+assemble: seeded/05_wallet_overflow_atomicity/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/05_wallet_overflow_atomicity.assembled.rs
+assemble: seeded/06_wallet_invalid_requests/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/06_wallet_invalid_requests.assembled.rs
+assemble: seeded/07_wallet_tamper_detection/wallet.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/07_wallet_tamper_detection.assembled.rs
+assemble: seeded/08_transform_bit_reverse/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/08_transform_bit_reverse.assembled.rs
+assemble: seeded/09_transform_byte_swap/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/09_transform_byte_swap.assembled.rs
+assemble: seeded/10_transform_rotate_left/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/10_transform_rotate_left.assembled.rs
+assemble: seeded/11_transform_rotate_right/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/11_transform_rotate_right.assembled.rs
+assemble: seeded/12_transform_saturating_add/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/12_transform_saturating_add.assembled.rs
+assemble: seeded/13_transform_checked_mul/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/13_transform_checked_mul.assembled.rs
+assemble: seeded/14_transform_parity/func.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/14_transform_parity.assembled.rs
+assemble: seeded/15_protocol_double_begin/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/15_protocol_double_begin.assembled.rs
+assemble: seeded/16_protocol_commit_leaves_open/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/16_protocol_commit_leaves_open.assembled.rs
+assemble: seeded/17_protocol_abort_keeps_records/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/17_protocol_abort_keeps_records.assembled.rs
+assemble: seeded/18_protocol_sequence_unchecked/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/18_protocol_sequence_unchecked.assembled.rs
+assemble: seeded/19_protocol_read_early/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/19_protocol_read_early.assembled.rs
+assemble: seeded/20_protocol_abort_without_transaction/protocol.rs + ABI -> /home/runner/work/spacetime/spacetime/apps/spacetime-ctl/../../target/taskpack-ctl/20_protocol_abort_without_transaction.assembled.rs
+schema_version = 1
+report = "end_to_end_verification"
+status = "fail"
+gates = 40
+failed = 1
+resource_gate = "unmeasured_target_4gb"
+performance_claims = "unmeasured"
+measurement_intake = "none"
+measurement_evaluator = "none"
+measurement_digest = "none"
+measurement_reasons = ["no measurement file supplied; baseline 4 GB potato machine unmeasured"]
+target_profile = "4gb_potato"
+baseline_target_profile = "4gb_potato"
+target_profile_registry = 3
+evaluated_memory_budget_kb = 4194304
+profile_role = "baseline_gate"
+econbench_fixtures = 20
+static_console = "offline_prototype"
+block3_done = false
+resource_law = "holy_grail"
+ci_host = "github_actions_not_target"
+panel_sources = 5
+adversarial_fixtures = 20
+determinism_shim = "ld_preload_not_complete_boundary"
+capability_allow_list = "local_fixture_only"
+fixture_population_fixtures = 26
+fixture_population_runs = 50
+fixture_population_verifier_runs = 1300
+synthetic_operator_population = true
+real_operator_study = "unmeasured"
+resource_gate_evaluator = "unmeasured_fail_pass_self_test"
+cli_input_validation = "bounded"
+resource_gate_host_validation = true
+[[gate]]
+name = "block1_happy"
+status = "pass"
+detail = "events=2 status=verified replay=byte_identical pass_proofs=provenance_complete"
+[[gate]]
+name = "block1_false_claim"
+status = "pass"
+detail = "status=unverified command_exit=nonzero ledger=valid"
+[[gate]]
+name = "block1_timeout"
+status = "pass"
+detail = "status=failed command_exit=nonzero ledger=valid"
+[[gate]]
+name = "block1_tamper"
+status = "pass"
+detail = "byte_flip=rejected"
+[[gate]]
+name = "block1_truncation"
+status = "pass"
+detail = "truncation=rejected"
+[[gate]]
+name = "block1_non_canonical"
+status = "pass"
+detail = "non_canonical=rejected"
+[[gate]]
+name = "block1_incomplete_goal"
+status = "pass"
+detail = "status=in_progress command_exit=nonzero ledger=valid"
+[[gate]]
+name = "crucible_deterministic"
+status = "pass"
+detail = "verdict=pass determinism_runs=2 mutation_score_bps=10000"
+[[gate]]
+name = "crucible_flaky_family"
+status = "pass"
+detail = "family=4 verdict=error flip_rate=0 false_pass_leaks=0"
+[[gate]]
+name = "crucible_false_pass"
+status = "pass"
+detail = "runs=50 flip_rate=0.0000 false_pass_leaks=0.0000"
+[[gate]]
+name = "crucible_unstable_operator"
+status = "pass"
+detail = "runs=50 flip_rate=1.0000 false_pass_leaks=0.5000"
+[[gate]]
+name = "crucible_trivial_mutation_gate"
+status = "pass"
+detail = "verdict=fail mutation_score_bps=0 promotion=blocked"
+[[gate]]
+name = "crucible_differential_mutation"
+status = "pass"
+detail = "inputs=1000000 matched=1000000 mutation_score_bps=10000"
+[[gate]]
+name = "verifier_source_priority"
+status = "pass"
+detail = "sources=5 priority=fixture_suite_to_mutation"
+[[gate]]
+name = "determinism_profile"
+status = "pass"
+detail = "profile_digest=b9185fbdf6e5cca21f450646a227734e089e9f8b4e7ec6db253c7584b9c9b46c network=ld_preload_socket_denied shim=not_complete_boundary"
+[[gate]]
+name = "machine_baseline"
+status = "pass"
+detail = "resource_gate=unmeasured_target_4gb host_facts_only profiles=3"
+[[gate]]
+name = "determinism_controls"
+status = "pass"
+detail = "clock=fixed rng=fixed locale=C env=cleared stdin=null shim=clock/rng/socket/connect network=ld_preload_denied"
+[[gate]]
+name = "capability_enforcement"
+status = "pass"
+detail = "denied_cases=7 valid_action=completed"
+[[gate]]
+name = "cli_input_validation"
+status = "pass"
+detail = "rejected_cases=10 valid_verify=accepted"
+[[gate]]
+name = "verifier_panel"
+status = "pass"
+detail = "sources=5 verdict=pass conflicts=0 selected_priority=1"
+[[gate]]
+name = "adversarial_corpus"
+status = "pass"
+detail = "fixtures=20 mismatches=0 pass=8 fail=8 error=4"
+[[gate]]
+name = "operator_population"
+status = "pass"
+detail = "operators=10 runs=50 unstable=6 promoted_false_pass_leaks=0 real_operator_study=false"
+[[gate]]
+name = "fixture_population"
+status = "pass"
+detail = "fixtures=26 verifier_runs=1300 max_flip_rate=0.0000 max_leak_rate=0.0000 real_operator_study=false"
+[[gate]]
+name = "measurement_intake"
+status = "pass"
+detail = "bounded=none/unreadable/malformed/duplicate/ci/synthetic/incomplete/wrong-profile/oversize shape_pass_only"
+[[gate]]
+name = "resource_gate_unmeasured"
+status = "pass"
+detail = "evaluator=unmeasured/fail/pass/non_target_host real_target_4gb=unmeasured"
+[[gate]]
+name = "target_profile_registry"
+status = "pass"
+detail = "profiles=3 baseline=4gb_potato optional=8gb_reference,16gb_developer release_gate=unmeasured"
+[[gate]]
+name = "econbench_offline"
+status = "pass"
+detail = "fixtures=20 completed=20 claims=20 false_pass_rate=0.0000 network=none"
+[[gate]]
+name = "mock_economy_invariants"
+status = "pass"
+detail = "atomic=true overdraft_rejected=true idempotent=true hash_chain=verified"
+[[gate]]
+name = "static_console_report"
+status = "pass"
+detail = "static_html=offline ledger_verified=true snapshot_frames=3 workspaces=2"
+[[gate]]
+name = "econbench_planted_bugs_and_bounties"
+status = "pass"
+detail = "passing=20 planted_bugs_caught=20 bounties=20 fake_credits_total=60"
+[[gate]]
+name = "block3_task_pack_seeded_workspaces"
+status = "fail"
+detail = "the task pack no longer ships fourteen seeded candidates"
+[[gate]]
+name = "provenance_gate_contract"
+status = "pass"
+detail = "unmeasured_default=true ci_rejected=true valid_attested_verified=true"
+[[gate]]
+name = "population_cycler_and_abc_harness"
+status = "pass"
+detail = "population=8 rejected_all_when_0_pass=true performance_claims=unmeasured"
+[[gate]]
+name = "space_supervisor_bm25_memory"
+status = "pass"
+detail = "durable_resume=true bm25_rebuild=3 blocker_resolved=true"
+[[gate]]
+name = "ring3_policy_vault_redteam"
+status = "pass"
+detail = "redteam_total=10 redteam_blocked=10 redteam_leaked=0"
+[[gate]]
+name = "tier1_wasi_tier2_ark_net_none"
+status = "pass"
+detail = "wasi_confined=true ark_quarantine=true net_none_listener_denied=true"
+[[gate]]
+name = "resource_governor_and_surface_broker"
+status = "pass"
+detail = "governor_enforced=true ram_only_snapshots=true cortex_secrets_masked=true"
+[[gate]]
+name = "quarantine_autopsy_and_leak_audit"
+status = "pass"
+detail = "autopsy_tombstone=true upperdir_removed=true zero_traces_claimed=false"
+[[gate]]
+name = "wavefunction_cas_branch_export"
+status = "pass"
+detail = "cas_isolation=true collapse=1 branch=1 bundle_roundtrip=verified"
+[[gate]]
+name = "egress_airlock_and_distillation"
+status = "pass"
+detail = "egress_guarded=true airlock_one_shot=true drift_quarantine=true"
+error: 1 end-to-end verification gates failed
+verify exit: 1
+status = "fail"
+gates = 40
+failed = 1
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "fail"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+status = "pass"
+schema_version = 1
+report = "end_to_end_verification"
+status = "fail"
+gates = 40
+failed = 1
+resource_gate = "unmeasured_target_4gb"
+performance_claims = "unmeasured"
+measurement_intake = "none"
+measurement_evaluator = "none"
+--
+[[gate]]
+name = "block3_task_pack_seeded_workspaces"
+status = "fail"
+detail = "the task pack no longer ships fourteen seeded candidates"
+[[gate]]
+name = "provenance_gate_contract"
+status = "pass"
+detail = "unmeasured_default=true ci_rejected=true valid_attested_verified=true"
+[[gate]]
